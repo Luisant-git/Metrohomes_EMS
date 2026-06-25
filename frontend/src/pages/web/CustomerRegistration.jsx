@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Users, Briefcase, DollarSign, ArrowLeft, ArrowRight } from "lucide-react";
+import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Users, Briefcase, DollarSign, ArrowLeft, ArrowRight, Car } from "lucide-react";
 import toast from "react-hot-toast";
 
 function FormField({ label, icon: Icon, children, required, className }) {

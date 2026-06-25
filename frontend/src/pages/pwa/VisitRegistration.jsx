@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Car, Users, Briefcase, DollarSign } from "lucide-react";
+import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Users, Briefcase, DollarSign } from "lucide-react";
 import toast from "react-hot-toast";
 
 function FormField({ label, icon: Icon, children, required, className }) {
@@ -31,7 +31,6 @@ export default function PWAVisitRegistration() {
     occupation: "",
     location: "", siteId: prefillSite || "", visitDate: "", visitTime: "",
     persons: "", purchaseMode: "Own Funding",
-    driverName: "", driverMobile: "", cabNumber: "",
     notes: "", status: "Interested",
   });
   const [otp, setOtp] = useState("");
@@ -274,7 +273,7 @@ export default function PWAVisitRegistration() {
                     className="input-field flex-1" placeholder="lat,lng or use GPS" />
                   <button onClick={getLocation} disabled={locLoading}
                     className="flex-shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1">
-                    {locLoading ? <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /> : <Navigation size={14} />}
+                    {locLoading ? <div className="w-4 h-4 border-2 border-blue-500 border-t transparent rounded-full animate-spin" /> : <Navigation size={14} />}
                     {locLoading ? "" : "GPS"}
                   </button>
                 </div>

@@ -8,7 +8,7 @@ import { Eye, Edit2, Trash2, UserCheck, Phone, MapPin, Plus, UserPlus } from "lu
 import toast from "react-hot-toast";
 
 const STATUSES = ["Interested", "Visit Scheduled", "Visit Completed", "Ready for Booking", "Booked", "Payment Done", "Dropped"];
-const emptyCustomer = { name: "", mobile: "", email: "", address: "", location: "", status: "Interested", siteId: "", salesManagerName: "", notes: "" };
+const emptyCustomer = { name: "", mobile: "", email: "", address: "", location: "", status: "Interested", siteId: "", salesManagerName: "", driverName: "", driverMobile: "", cabNumber: "", notes: "" };
 
 export default function WebCustomers() {
   const navigate = useNavigate();
@@ -137,28 +137,87 @@ export default function WebCustomers() {
               ))}
             </div>
             {selected.notes && <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-3"><div className="text-xs font-semibold text-yellow-700 mb-1">Notes</div><div className="text-sm text-gray-700">{selected.notes}</div></div>}
+            
+            {(selected.driverName || selected.driverMobile || selected.cabNumber) && (
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                <div className="text-xs font-semibold text-blue-700 mb-2">🚗 Driver Details</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {selected.driverName && <div><span className="text-xs text-gray-500">Driver Name:</span> <span className="text-sm font-semibold text-gray-800">{selected.driverName}</span></div>}
+                  {selected.driverMobile && <div><span className="text-xs text-gray-500">Driver Mobile:</span> <span className="text-sm font-semibold text-gray-800">{selected.driverMobile}</span></div>}
+                  {selected.cabNumber && <div className="col-span-2"><span className="text-xs text-gray-500">Cab Number:</span> <span className="text-sm font-semibold text-gray-800">{selected.cabNumber}</span></div>}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </Modal>
 
       {/* Edit Status Modal */}
-      <Modal open={modal === "edit"} onClose={() => setModal(null)} title="Update Customer Status">
+      <Modal open={modal === "edit"} onClose={() => setModal(null)} title="Update Customer">
         {selected && (
           <div className="space-y-4">
-            <div className="font-semibold text-gray-800">{selected.name}</div>
+            <div className="font-semibold text-gray-800 mb-4">{selected.name}</div>
+            
             <div>
               <label className="label">Current Status</label>
               <StatusBadge status={selected.status} />
             </div>
             <div>
               <label className="label">Update Status</label>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {STATUSES.map(s => (
-                  <button key={s} onClick={() => { handleStatusChange(selected.id, s); setModal(null); }}
-                    className={`p-2.5 rounded-xl text-sm font-semibold border text-left transition-all ${selected.status === s ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-200 hover:border-gray-300 text-gray-700"}`}>
-                    {s}
-                  </button>
-                ))}
+              <select 
+                value={selected.status} 
+                onChange={e => { handleStatusChange(selected.id, e.target.value); setSelected(p => ({ ...p, status: e.target.value })); }}
+                className="input-field mt-2"
+              >
+                {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            <div className="border-t border-gray-200 pt-4 mt-4">
+              <div className="text-sm font-semibold text-gray-700 mb-3">🚗 Driver Details (Optional)</div>
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <label className="label">Driver Name</label>
+                  <input 
+                    value={selected.driverName || ""} 
+                    onChange={e => { setSelected(p => ({ ...p, driverName: e.target.value })); }}
+                    className="input-field" 
+                    placeholder="Enter driver name" 
+                  />
+                </div>
+                <div>
+                  <label className="label">Driver Mobile</label>
+                  <input 
+                    type="tel"
+                    value={selected.driverMobile || ""} 
+                    onChange={e => { setSelected(p => ({ ...p, driverMobile: e.target.value })); }}
+                    className="input-field" 
+                    placeholder="Driver mobile number"
+                    maxLength={10}
+                  />
+                </div>
+                <div>
+                  <label className="label">Cab Number</label>
+                  <input 
+                    value={selected.cabNumber || ""} 
+                    onChange={e => { setSelected(p => ({ ...p, cabNumber: e.target.value })); }}
+                    className="input-field" 
+                    placeholder="Cab/Vehicle number" 
+                  />
+                </div>
+                <button 
+                  onClick={() => { 
+                    updateCustomer(selected.id, { 
+                      driverName: selected.driverName, 
+                      driverMobile: selected.driverMobile, 
+                      cabNumber: selected.cabNumber 
+                    }); 
+                    toast.success("Driver details updated!"); 
+                    setModal(null);
+                  }}
+                  className="btn-primary w-full justify-center py-2.5">
+                  Save Driver Details
+                </button>
               </div>
             </div>
           </div>

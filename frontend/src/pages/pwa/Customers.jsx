@@ -120,25 +120,38 @@ export default function PWACustomers() {
               </div>
             </div>
             <div className="space-y-2">
-              {[["Site", selected.siteName], ["Visit Date", selected.visitDate], ["Address", selected.address], ["Registered", selected.registeredDate], ["Notes", selected.notes || "—"]].map(([k, v]) => (
+              {[["Site", selected.siteName], ["Visit Date", selected.visitDate], ["Address", selected.address], ["Registered", selected.registeredDate]].map(([k, v]) => (
                 <div key={k} className="flex justify-between text-sm">
                   <span className="text-gray-400">{k}</span>
-                  <span className="font-semibold text-gray-800 text-right max-w-[55%]">{v}</span>
+                  <span className="font-semibold text-gray-800 text-right max-w-[55%]">{v || "—"}</span>
                 </div>
               ))}
             </div>
+            
+            {(selected.driverName || selected.driverMobile || selected.cabNumber) && (
+              <div className="bg-blue-50 rounded-xl p-3">
+                <div className="text-xs font-semibold text-blue-700 mb-1.5">🚗 Driver Details</div>
+                <div className="space-y-1">
+                  {selected.driverName && <div className="flex justify-between text-sm"><span className="text-gray-500">Driver:</span><span className="font-semibold text-gray-800">{selected.driverName}</span></div>}
+                  {selected.driverMobile && <div className="flex justify-between text-sm"><span className="text-gray-500">Mobile:</span><span className="font-semibold text-gray-800">{selected.driverMobile}</span></div>}
+                  {selected.cabNumber && <div className="flex justify-between text-sm"><span className="text-gray-500">Cab No:</span><span className="font-semibold text-gray-800">{selected.cabNumber}</span></div>}
+                </div>
+              </div>
+            )}
+            
+            {selected.notes && <div className="bg-yellow-50 rounded-xl p-3"><div className="text-xs font-semibold text-yellow-700 mb-1">Notes</div><div className="text-sm text-gray-700">{selected.notes}</div></div>}
             {/* Status flow */}
             <div>
               <div className="text-xs font-semibold text-gray-500 mb-2">Update Status</div>
-              <div className="space-y-1.5">
-                {["Interested", "Visit Scheduled", "Visit Completed", "Ready for Booking", "Dropped"].map(s => (
-                  <button key={s} onClick={() => { updateCustomer(selected.id, { status: s }); setSelected(p => ({ ...p, status: s })); toast.success(`Status: ${s}`); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-sm font-semibold transition-all ${selected.status === s ? "bg-blue-600 text-white" : "bg-gray-50 text-gray-700 hover:bg-gray-100"}`}>
-                    {s}
-                  </button>
-                ))}
-              </div>
+              <select 
+                value={selected.status} 
+                onChange={e => { updateCustomer(selected.id, { status: e.target.value }); setSelected(p => ({ ...p, status: e.target.value })); toast.success(`Status: ${e.target.value}`); }}
+                className="input-field"
+              >
+                {["Interested", "Visit Scheduled", "Visit Completed", "Ready for Booking", "Dropped"].map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
             </div>
+
           </div>
         )}
       </Modal>
