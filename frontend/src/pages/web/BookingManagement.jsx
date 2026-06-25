@@ -3,10 +3,17 @@ import { useData } from "../../context/DataContext.jsx";
 import DataTable from "../../components/DataTable.jsx";
 import Modal from "../../components/Modal.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
-import { BookOpen, Eye, Plus, IndianRupee, FileText, MessageSquare, CheckCircle, Bell } from "lucide-react";
+import { BookOpen, Eye, Plus, IndianRupee, FileText, MessageSquare, CheckCircle, Bell, Home, Building2 } from "lucide-react";
 import toast from "react-hot-toast";
 
-const empty = { customerId: "", customerName: "", siteId: "", plotNo: "", plotArea: "", plotPrice: "", paidAmount: "", status: "Booked", salesManagerName: "" };
+const empty = { 
+  customerId: "", customerName: "", siteId: "", 
+  propertyType: "Flat", projectName: "", projectNo: "", projectSqFt: "",
+  applicantName: "", relation: "", address: "", pinCode: "", mobile: "", email: "",
+  paymentMode: "Cash", bankName: "", chequeNo: "", chequeDate: "", transferId: "", loanOrOwn: "Own Fund",
+  plotNo: "", plotArea: "", plotPrice: "", paidAmount: "", status: "Booked", 
+  salesManagerName: "", officeIdNo: "" 
+};
 
 export default function BookingManagement() {
   const { bookings, customers, sites, addBooking, updateBooking, updateCustomer } = useData();
@@ -23,15 +30,40 @@ export default function BookingManagement() {
   const handleCustomerSelect = (cid) => {
     const c = customers.find(x => x.id === +cid);
     const s = sites.find(x => x.id === c?.siteId);
-    if (c) setForm(p => ({ ...p, customerId: c.id, customerName: c.name, siteId: c.siteId, salesManagerName: c.salesManagerName, plotPrice: s?.pricePerSqft ? s.pricePerSqft * 200 : "" }));
+    if (c) {
+      setForm(p => ({ 
+        ...p, 
+        customerId: c.id, 
+        customerName: c.name,
+        applicantName: c.name,
+        relation: "", 
+        address: c.address || "", 
+        pinCode: c.pinCode || "", 
+        mobile: c.mobile || "", 
+        email: c.email || "",
+        siteId: c.siteId, 
+        salesManagerName: c.salesManagerName, 
+        plotPrice: s?.pricePerSqft ? s.pricePerSqft * 200 : "" 
+      }));
+    }
   };
 
   const handleBook = () => {
-    if (!form.customerId || !form.plotNo || !form.plotArea || !form.paidAmount) { toast.error("Fill all required fields"); return; }
+    if (!form.customerId || !form.plotNo || !form.plotArea || !form.paidAmount || !form.applicantName) { 
+      toast.error("Fill all required fields"); 
+      return; 
+    }
     const siteName = sites.find(s => s.id === +form.siteId)?.name || "";
     const price = +form.plotArea * (+form.plotPrice / 200 || 5000);
     const remaining = price - +form.paidAmount;
-    addBooking({ ...form, siteName, plotPrice: price, remainingAmount: remaining, salesManagerId: 6 });
+    addBooking({ 
+      ...form, 
+      siteName, 
+      plotPrice: price, 
+      remainingAmount: remaining, 
+      salesManagerId: 6,
+      bookingDate: new Date().toISOString().split("T")[0]
+    });
     updateCustomer(+form.customerId, { status: "Booked" });
     toast.success("Booking registered! WhatsApp notification sent 📱");
     setModal(null);
@@ -118,29 +150,193 @@ export default function BookingManagement() {
       />
 
       {/* Add Booking Modal */}
-      <Modal open={modal === "add"} onClose={() => setModal(null)} title="Register New Booking" size="lg">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="sm:col-span-2">
+      <Modal open={modal === "add"} onClose={() => setModal(null)} title="Register New Booking" size="xl">
+        <div className="space-y-4">
+          {/* Property Type & Date */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="label">Property Type *</label>
+              <select value={form.propertyType} onChange={e => setForm(p => ({ ...p, propertyType: e.target.value }))} className="input-field">
+                <option>Flat</option>
+                <option>Plot</option>
+                <option>Villa</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Booking Date *</label>
+              <input type="date" value={form.bookingDate} onChange={e => setForm(p => ({ ...p, bookingDate: e.target.value }))}
+                className="input-field" min={new Date().toISOString().split("T")[0]} />
+            </div>
+            <div>
+              <label className="label">Office ID No.</label>
+              <input value={form.officeIdNo} onChange={e => setForm(p => ({ ...p, officeIdNo: e.target.value }))}
+                className="input-field" placeholder="Internal reference" />
+            </div>
+          </div>
+
+          {/* Project Details */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="label">Project Name *</label>
+              <select value={form.siteId} onChange={e => setForm(p => ({ ...p, siteId: e.target.value }))} className="input-field">
+                <option value="">Select project…</option>
+                {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label">Project No.</label>
+              <input value={form.projectNo} onChange={e => setForm(p => ({ ...p, projectNo: e.target.value }))}
+                className="input-field" placeholder="Project number" />
+            </div>
+            <div>
+              <label className="label">Sq. Ft.</label>
+              <input type="number" value={form.projectSqFt} onChange={e => setForm(p => ({ ...p, projectSqFt: e.target.value }))}
+                className="input-field" placeholder="Square feet" />
+            </div>
+          </div>
+
+          {/* Customer Selection & Details */}
+          <div>
             <label className="label">Select Customer *</label>
             <select value={form.customerId} onChange={e => handleCustomerSelect(e.target.value)} className="input-field">
-              <option value="">Select customer…</option>
+              <option value="">Search or select customer…</option>
               {customers.filter(c => ["Ready for Booking", "Interested", "Visit Completed"].includes(c.status)).map(c => (
                 <option key={c.id} value={c.id}>{c.name} — {c.siteName}</option>
               ))}
             </select>
           </div>
-          <div><label className="label">Customer Name</label><input value={form.customerName} readOnly className="input-field bg-gray-50" /></div>
-          <div><label className="label">Sales Manager</label><input value={form.salesManagerName} readOnly className="input-field bg-gray-50" /></div>
-          <div><label className="label">Plot No. *</label><input value={form.plotNo} onChange={e => setForm(p => ({ ...p, plotNo: e.target.value }))} className="input-field" placeholder="e.g. A-12" /></div>
-          <div><label className="label">Plot Area (sq.yd.) *</label><input type="number" value={form.plotArea} onChange={e => setForm(p => ({ ...p, plotArea: e.target.value }))} className="input-field" placeholder="200" /></div>
-          <div><label className="label">Paid Amount (₹) *</label><input type="number" value={form.paidAmount} onChange={e => setForm(p => ({ ...p, paidAmount: e.target.value }))} className="input-field" placeholder="Token amount" /></div>
-          <div><label className="label">Status</label>
-            <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="input-field">
-              <option>Booked</option><option>Payment Done</option>
-            </select>
+          
+          {form.customerId && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+              <div>
+                <label className="label">Applicant Name *</label>
+                <input value={form.applicantName} onChange={e => setForm(p => ({ ...p, applicantName: e.target.value }))}
+                  className="input-field" placeholder="Customer name" />
+              </div>
+              <div>
+                <label className="label">Relation</label>
+                <select value={form.relation} onChange={e => setForm(p => ({ ...p, relation: e.target.value }))} className="input-field">
+                  <option value="">Select…</option>
+                  <option>S/o</option>
+                  <option>D/o</option>
+                  <option>W/o</option>
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="label">Address</label>
+                <textarea value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))}
+                  className="input-field h-16 resize-none" placeholder="Full address" />
+              </div>
+              <div>
+                <label className="label">Pin Code</label>
+                <input type="number" value={form.pinCode} onChange={e => setForm(p => ({ ...p, pinCode: e.target.value }))}
+                  className="input-field" placeholder="6-digit" maxLength={6} />
+              </div>
+              <div>
+                <label className="label">Mobile</label>
+                <input type="tel" value={form.mobile} onChange={e => setForm(p => ({ ...p, mobile: e.target.value }))}
+                  className="input-field" placeholder="10-digit" maxLength={10} />
+              </div>
+              <div className="md:col-span-2">
+                <label className="label">Email</label>
+                <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                  className="input-field" placeholder="email@example.com" />
+              </div>
+            </div>
+          )}
+
+          {/* Plot Details */}
+          <div>
+            <label className="label font-semibold text-gray-700">Plot Details</label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+              <div>
+                <label className="label">Plot No. *</label>
+                <input value={form.plotNo} onChange={e => setForm(p => ({ ...p, plotNo: e.target.value }))}
+                  className="input-field" placeholder="e.g. A-12" />
+              </div>
+              <div>
+                <label className="label">Plot Area (sq.yd.) *</label>
+                <input type="number" value={form.plotArea} onChange={e => setForm(p => ({ ...p, plotArea: e.target.value }))}
+                  className="input-field" placeholder="200" />
+              </div>
+              <div>
+                <label className="label">Plot Price (₹) *</label>
+                <input type="number" value={form.plotPrice} onChange={e => setForm(p => ({ ...p, plotPrice: e.target.value }))}
+                  className="input-field" placeholder="Auto-calculated" readOnly />
+              </div>
+            </div>
+          </div>
+
+          {/* Payment Mode */}
+          <div>
+            <label className="label font-semibold text-gray-700">Payment Mode *</label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
+              {["Cheque", "DD", "Cash", "Online Transfer"].map(mode => (
+                <label key={mode} className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all ${form.paymentMode === mode ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"}`}>
+                  <input type="radio" name="paymentMode" value={mode} checked={form.paymentMode === mode} onChange={e => setForm(p => ({ ...p, paymentMode: e.target.value }))} className="hidden" />
+                  <span className="text-sm font-semibold">{mode}</span>
+                </label>
+              ))}
+            </div>
+            
+            {(form.paymentMode === "Cheque" || form.paymentMode === "DD") && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 p-4 bg-gray-50 rounded-xl">
+                <div>
+                  <label className="label">Bank Name</label>
+                  <input value={form.bankName} onChange={e => setForm(p => ({ ...p, bankName: e.target.value }))}
+                    className="input-field" placeholder="Bank name" />
+                </div>
+                <div>
+                  <label className="label">Cheque/DD No.</label>
+                  <input value={form.chequeNo} onChange={e => setForm(p => ({ ...p, chequeNo: e.target.value }))}
+                    className="input-field" placeholder="Cheque number" />
+                </div>
+                <div>
+                  <label className="label">Date</label>
+                  <input type="date" value={form.chequeDate} onChange={e => setForm(p => ({ ...p, chequeDate: e.target.value }))}
+                    className="input-field" />
+                </div>
+              </div>
+            )}
+            
+            {form.paymentMode === "Online Transfer" && (
+              <div className="mt-4 p-4 bg-gray-50 rounded-xl">
+                <label className="label">Transfer ID</label>
+                <input value={form.transferId} onChange={e => setForm(p => ({ ...p, transferId: e.target.value }))}
+                  className="input-field" placeholder="Transaction ID" />
+              </div>
+            )}
+
+            <div className="mt-4">
+              <label className="label">Funding Type</label>
+              <div className="grid grid-cols-2 gap-3 max-w-md">
+                {["Own Fund", "Loan"].map(fund => (
+                  <label key={fund} className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all ${form.loanOrOwn === fund ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"}`}>
+                    <input type="radio" name="loanOrOwn" value={fund} checked={form.loanOrOwn === fund} onChange={e => setForm(p => ({ ...p, loanOrOwn: e.target.value }))} className="hidden" />
+                    <span className="text-sm font-semibold">{fund}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Payment Amount */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Paid Amount (₹) *</label>
+              <input type="number" value={form.paidAmount} onChange={e => setForm(p => ({ ...p, paidAmount: e.target.value }))}
+                className="input-field" placeholder="Token amount" />
+            </div>
+            <div>
+              <label className="label">Status</label>
+              <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="input-field">
+                <option>Booked</option>
+                <option>Payment Done</option>
+              </select>
+            </div>
           </div>
         </div>
-        <div className="flex gap-3 mt-6">
+        <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
           <button onClick={handleBook} className="btn-primary flex-1 justify-center py-2.5"><BookOpen size={16} />Register Booking</button>
           <button onClick={() => setModal(null)} className="btn-secondary flex-1 justify-center py-2.5">Cancel</button>
         </div>
@@ -175,7 +371,7 @@ export default function BookingManagement() {
             </div>
             <div className="bg-blue-50 rounded-xl p-3 text-sm font-mono text-blue-700 font-semibold">{selected.invoiceNo}</div>
             <div className="grid grid-cols-2 gap-3">
-              {[["Plot No.", selected.plotNo], ["Plot Area", `${selected.plotArea} sq.yd.`], ["Plot Price", `₹${Number(selected.plotPrice).toLocaleString("en-IN")}`], ["Paid", `₹${Number(selected.paidAmount).toLocaleString("en-IN")}`], ["Remaining", `₹${Number(selected.remainingAmount).toLocaleString("en-IN")}`], ["Booked On", selected.bookingDate]].map(([k, v]) => (
+              {[["Property Type", selected.propertyType], ["Plot No.", selected.plotNo], ["Plot Area", `${selected.plotArea} sq.yd.`], ["Plot Price", `₹${Number(selected.plotPrice).toLocaleString("en-IN")}`], ["Paid", `₹${Number(selected.paidAmount).toLocaleString("en-IN")}`], ["Remaining", `₹${Number(selected.remainingAmount).toLocaleString("en-IN")}`], ["Booked On", selected.bookingDate], ["Payment Mode", selected.paymentMode]].map(([k, v]) => (
                 <div key={k} className="bg-gray-50 rounded-xl p-3"><div className="text-xs text-gray-400 font-semibold">{k}</div><div className="font-bold text-gray-800 text-sm mt-0.5">{v}</div></div>
               ))}
             </div>
