@@ -20,15 +20,15 @@ const SM_PERF = [
   { name: "Neha Mishra", sales: 11, revenue: 242000000, visits: 41, conversion: 27 },
 ];
 
-export default function SalesReport() {
+export default function BookingReport() {
   const { customers, bookings } = useData();
   const totalRevenue = bookings.reduce((a, b) => a + (b.paidAmount || 0), 0);
 
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
-        <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-2"><BarChart3 size={22} />Sales Report</h1>
-        <p className="text-gray-400 text-sm mt-0.5">Comprehensive sales performance analytics</p>
+        <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-2"><BarChart3 size={22} />Booking Report</h1>
+        <p className="text-gray-400 text-sm mt-0.5">Comprehensive booking analytics</p>
       </div>
 
       {/* Summary */}
@@ -49,8 +49,8 @@ export default function SalesReport() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card p-5">
-          <h3 className="font-bold text-gray-800 mb-4">Monthly Revenue (₹ Crore)</h3>
+      <div className="card p-5">
+        <h3 className="font-bold text-gray-800 mb-4">Monthly Bookings Revenue (₹ Crore)</h3>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={MONTHLY}>
               <defs>
@@ -69,7 +69,7 @@ export default function SalesReport() {
         </div>
 
         <div className="card p-5">
-          <h3 className="font-bold text-gray-800 mb-4">Sales Count & Site Visits</h3>
+          <h3 className="font-bold text-gray-800 mb-4">Bookings & Visits</h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={MONTHLY}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -85,9 +85,9 @@ export default function SalesReport() {
 
       {/* Sales Manager Performance Table */}
       <div className="card overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h3 className="font-bold text-gray-800">Sales Manager Performance</h3>
-        </div>
+      <div className="px-6 py-4 border-b border-gray-100">
+        <h3 className="font-bold text-gray-800">Sales Manager Performance</h3>
+      </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>

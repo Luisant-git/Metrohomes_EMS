@@ -11,7 +11,7 @@ import WebDashboard from "./pages/web/Dashboard.jsx";
 import UserManagement from "./pages/web/UserManagement.jsx";
 import SiteManagement from "./pages/web/SiteManagement.jsx";
 import BookingManagement from "./pages/web/BookingManagement.jsx";
-import SalesReport from "./pages/web/SalesReport.jsx";
+import BookingReport from "./pages/web/BookingReport.jsx";
 import CommissionManagement from "./pages/web/CommissionManagement.jsx";
 import AchieversReport from "./pages/web/AchieversReport.jsx";
 import WebProfile from "./pages/web/Profile.jsx";
@@ -41,7 +41,7 @@ function AppRoutes() {
           <Route path="/sites" element={<SiteManagement />} />
           <Route path="/bookings" element={<BookingManagement />} />
           <Route path="/customers" element={<WebCustomers />} />
-          <Route path="/sales-report" element={<SalesReport />} />
+          <Route path="/sales-report" element={<BookingReport />} />
           <Route path="/achievers" element={<AchieversReport />} />
           <Route path="/commission" element={<CommissionManagement />} />
           <Route path="/profile" element={<WebProfile />} />
