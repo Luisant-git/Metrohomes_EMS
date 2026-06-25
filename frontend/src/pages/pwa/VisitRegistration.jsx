@@ -30,7 +30,7 @@ export default function PWAVisitRegistration() {
     name: "", mobile: "", email: "", address: "", pinCode: "",
     occupation: "",
     location: "", siteId: prefillSite || "", visitDate: "", visitTime: "",
-    persons: 1, purchaseMode: "Own Funding",
+    persons: "", purchaseMode: "Own Funding",
     driverName: "", driverMobile: "", cabNumber: "",
     notes: "", status: "Interested",
   });
@@ -89,12 +89,12 @@ export default function PWAVisitRegistration() {
   };
 
   const handleSubmit = () => {
-    if (!form.name || !form.mobile || !form.siteId || !form.visitDate || !form.visitTime) {
+    if (!form.name || !form.mobile || !form.siteId || !form.visitDate || !form.visitTime || !form.persons) {
       toast.error("Please fill all required fields");
       return;
     }
     if (!otpVerified) {
-      toast.error("Please verify mobile number");
+      toast.error("Please verify OTP to continue");
       return;
     }
     addCustomer({
@@ -109,8 +109,7 @@ export default function PWAVisitRegistration() {
     navigate("/customers");
   };
 
-  const F = FormField;
-
+  const F = FormField
   return (
     <div className="pb-40 relative z-10">
       {/* Header */}
@@ -248,14 +247,25 @@ export default function PWAVisitRegistration() {
                 </F>
 
                 <F label="Visit Time" required>
-                  <input type="time" value={form.visitTime} onChange={e => setForm(p => ({ ...p, visitTime: e.target.value }))}
-                    className="input-field" />
+                  <input type="text" value={form.visitTime} onChange={e => {
+                    const val = e.target.value.replace(/[^\d:]/g, '');
+                    if (/^\d{0,2}:?\d{0,2}$/.test(val)) {
+                      setForm(p => ({ ...p, visitTime: val }));
+                    }
+                  }} onBlur={e => {
+                    const val = e.target.value;
+                    if (val && !/^\d{2}:\d{2}$/.test(val)) {
+                      toast.error("Time format: HH:MM");
+                    }
+                  }}
+                    className="input-field" placeholder="_ _ : _ _" maxLength={5} />
                 </F>
               </div>
 
               <F label="Number of Persons" icon={Users} required>
-                <input type="number" value={form.persons} onChange={e => setForm(p => ({ ...p, persons: +e.target.value || 1 }))}
-                  className="input-field" min="1" max="10" />
+                <input type="text" value={form.persons} onChange={e => setForm(p => ({ ...p, persons: e.target.value.replace(/[^\d]/g, '') }))}
+                  className="input-field" placeholder="1" maxLength={2} />
+                {form.persons === '' && <p className="text-xs text-gray-400 mt-1">Enter number of persons</p>}
               </F>
 
               <F label="Pickup Location (GPS)" icon={MapPin}>
