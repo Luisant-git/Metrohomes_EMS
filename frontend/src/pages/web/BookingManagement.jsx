@@ -11,7 +11,7 @@ const empty = {
   propertyType: "Flat", projectName: "", projectNo: "", projectSqFt: "",
   applicantName: "", relation: "", address: "", pinCode: "", mobile: "", email: "",
   paymentMode: "Cash", bankName: "", chequeNo: "", chequeDate: "", transferId: "", loanOrOwn: "Own Fund",
-  plotNo: "", plotArea: "", pricePerSqft: "", plotPrice: "", paidAmount: "", status: "Booked", 
+  plotArea: "", pricePerSqft: "", plotPrice: "", paidAmount: "", status: "Booked", 
   salesManagerName: "", officeIdNo: "" 
 };
 
@@ -88,7 +88,7 @@ export default function BookingManagement() {
   };
 
   const handleBook = () => {
-    if (!form.customerId || !form.plotNo || !form.plotArea || !form.paidAmount || !form.applicantName) { 
+    if (!form.customerId || !form.siteId || !form.plotArea || !form.paidAmount || !form.applicantName) { 
       toast.error("Fill all required fields"); 
       return; 
     }
@@ -99,6 +99,8 @@ export default function BookingManagement() {
     addBooking({ 
       ...form, 
       siteName, 
+      projectName: form.projectName,
+      projectNo: form.projectNo,
       pricePerSqft,
       plotPrice, 
       remainingAmount: remaining, 
@@ -109,6 +111,8 @@ export default function BookingManagement() {
     toast.success("Booking registered! WhatsApp notification sent 📱");
     setModal(null);
     setForm(empty);
+    setFoundCustomer(null);
+    setMobileSearch("");
   };
 
   const handlePayment = () => {
@@ -126,7 +130,7 @@ export default function BookingManagement() {
   const columns = [
     { key: "invoiceNo", label: "Invoice" },
     { key: "customerName", label: "Customer", render: (v, row) => (<div><div className="font-semibold">{v}</div><div className="text-xs text-gray-400">{row.siteName}</div></div>) },
-    { key: "plotNo", label: "Plot No." },
+    { key: "projectNo", label: "Project No." },
     { key: "plotPrice", label: "Plot Price", render: v => `₹${Number(v).toLocaleString("en-IN")}` },
     { key: "paidAmount", label: "Paid", render: v => <span className="text-green-600 font-semibold">₹{Number(v).toLocaleString("en-IN")}</span> },
     { key: "remainingAmount", label: "Pending", render: v => <span className={`font-semibold ${v > 0 ? "text-red-500" : "text-green-500"}`}>₹{Number(v).toLocaleString("en-IN")}</span> },
@@ -141,7 +145,7 @@ export default function BookingManagement() {
           <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-2"><BookOpen size={22} />Booking Management</h1>
           <p className="text-gray-400 text-sm mt-0.5">{bookings.length} bookings · {readyCustomers.length} ready to book</p>
         </div>
-        <button onClick={() => setModal("add")} className="btn-primary"><Plus size={16} />New Booking</button>
+        <button onClick={() => { setForm(empty); setFoundCustomer(null); setMobileSearch(""); setModal("add"); }} className="btn-primary"><Plus size={16} />New Booking</button>
       </div>
 
       {/* Stats */}
@@ -177,7 +181,7 @@ export default function BookingManagement() {
         </div>
       )}
 
-      <DataTable title="All Bookings" columns={columns} data={bookings} searchKey={["customerName", "siteName", "plotNo", "invoiceNo", "status"]}
+      <DataTable title="All Bookings" columns={columns} data={[...bookings].reverse()} searchKey={["customerName", "siteName", "projectNo", "invoiceNo", "status"]}
         actions={(row) => (
           <>
             <button onClick={() => { setSelected(row); setModal("view"); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Eye size={15} /></button>
@@ -212,27 +216,6 @@ export default function BookingManagement() {
               <label className="label">Office ID No.</label>
               <input value={form.officeIdNo} onChange={e => setForm(p => ({ ...p, officeIdNo: e.target.value }))}
                 className="input-field" placeholder="Internal reference" />
-            </div>
-          </div>
-
-          {/* Project Details */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="label">Project Name *</label>
-              <select value={form.siteId} onChange={e => setForm(p => ({ ...p, siteId: e.target.value }))} className="input-field">
-                <option value="">Select project…</option>
-                {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="label">Project No.</label>
-              <input value={form.projectNo} onChange={e => setForm(p => ({ ...p, projectNo: e.target.value }))}
-                className="input-field" placeholder="Project number" />
-            </div>
-            <div>
-              <label className="label">Sq. Ft.</label>
-              <input type="number" value={form.projectSqFt} onChange={e => setForm(p => ({ ...p, projectSqFt: e.target.value }))}
-                className="input-field" placeholder="Square feet" />
             </div>
           </div>
 
@@ -277,13 +260,8 @@ export default function BookingManagement() {
                   className="input-field" placeholder="Customer name" />
               </div>
               <div>
-                <label className="label">Relation</label>
-                <select value={form.relation} onChange={e => setForm(p => ({ ...p, relation: e.target.value }))} className="input-field">
-                  <option value="">Select…</option>
-                  <option>S/o</option>
-                  <option>D/o</option>
-                  <option>W/o</option>
-                </select>
+                <label className="label">Father/Husband Name</label>
+                <input value={form.relation} onChange={e => setForm(p => ({ ...p, relation: e.target.value }))} className="input-field" placeholder="Name" />
               </div>
               <div className="md:col-span-2">
                 <label className="label">Address</label>
@@ -308,17 +286,39 @@ export default function BookingManagement() {
             </div>
           )}
 
-          {/* Plot Details */}
-          <div>
-            <label className="label font-semibold text-gray-700">Plot Details</label>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+          {/* Project Details */}
+          <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+            <div className="text-xs font-semibold text-blue-900 mb-3">PROJECT DETAILS</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="label">Plot No. *</label>
-                <input value={form.plotNo} onChange={e => setForm(p => ({ ...p, plotNo: e.target.value }))}
-                  className="input-field" placeholder="e.g. A-12" />
+                <label className="label">Project Name *</label>
+                <select value={form.siteId} onChange={e => {
+                  const selectedSite = sites.find(s => s.id === +e.target.value);
+                  setForm(p => ({ 
+                    ...p, 
+                    siteId: e.target.value,
+                    projectName: selectedSite?.name || "",
+                    projectNo: selectedSite ? `PRJ-${String(selectedSite.id).padStart(3, '0')}` : "",
+                    pricePerSqft: selectedSite?.pricePerSqft || ""
+                  }));
+                }} className="input-field">
+                  <option value="">Select project…</option>
+                  {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
               </div>
               <div>
-                <label className="label">Plot Area (sq.yd.) *</label>
+                <label className="label">Project No.</label>
+                <input value={form.projectNo} readOnly className="input-field bg-white border-blue-200" placeholder="Auto-generated" />
+              </div>
+              <div>
+                <label className="label">Price per sq.ft (₹)</label>
+                <input value={form.pricePerSqft} readOnly className="input-field bg-white border-blue-200" placeholder="Fetched from project" />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              <div>
+                <label className="label">Project Area (sq.yd.) *</label>
                 <input type="number" value={form.plotArea} onChange={e => {
                   const area = e.target.value;
                   setForm(p => ({ 
@@ -329,25 +329,12 @@ export default function BookingManagement() {
                 }} className="input-field" placeholder="200" />
               </div>
               <div>
-                <label className="label">Price per sq.yd. (₹)</label>
-                <input type="number" value={form.pricePerSqft} onChange={e => {
-                  const price = e.target.value;
-                  setForm(p => ({ 
-                    ...p, 
-                    pricePerSqft: price,
-                    plotPrice: p.plotArea ? p.plotArea * price : ""
-                  }));
-                }} className="input-field" placeholder="₹5000" />
-              </div>
-            </div>
-            <div className="mt-4">
-              <label className="label">Plot Price (₹) *</label>
-              <div className="md:w-1/2">
+                <label className="label">Project Price (₹) *</label>
                 <input type="number" value={form.plotPrice} readOnly
-                  className="input-field bg-gray-50 font-semibold text-blue-700 text-lg" placeholder="Auto-calculated" />
+                  className="input-field bg-white border-blue-200 font-semibold text-blue-700" placeholder="Auto-calculated" />
                 {form.plotPrice && (
-                  <p className="text-xs text-gray-500 mt-1 font-medium">
-                    = {form.plotArea} sq.yd × ₹{form.pricePerSqft}/sq.yd = ₹{Number(form.plotPrice).toLocaleString("en-IN")}
+                  <p className="text-xs text-gray-500 mt-1">
+                    = {form.plotArea} × ₹{form.pricePerSqft} = ₹{Number(form.plotPrice).toLocaleString("en-IN")}
                   </p>
                 )}
               </div>
@@ -425,6 +412,7 @@ export default function BookingManagement() {
         </div>
         <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
           <button onClick={handleBook} className="btn-primary flex-1 justify-center py-2.5"><BookOpen size={16} />Register Booking</button>
+          <button onClick={() => { setForm(empty); setFoundCustomer(null); setMobileSearch(""); }} className="btn-secondary flex-1 justify-center py-2.5"><span className="text-orange-600 font-semibold">Clear</span></button>
           <button onClick={() => setModal(null)} className="btn-secondary flex-1 justify-center py-2.5">Cancel</button>
         </div>
       </Modal>
@@ -458,7 +446,7 @@ export default function BookingManagement() {
             </div>
             <div className="bg-blue-50 rounded-xl p-3 text-sm font-mono text-blue-700 font-semibold">{selected.invoiceNo}</div>
             <div className="grid grid-cols-2 gap-3">
-              {[["Property Type", selected.propertyType], ["Plot No.", selected.plotNo], ["Plot Area", `${selected.plotArea} sq.yd.`], ["Plot Price", `₹${Number(selected.plotPrice).toLocaleString("en-IN")}`], ["Paid", `₹${Number(selected.paidAmount).toLocaleString("en-IN")}`], ["Remaining", `₹${Number(selected.remainingAmount).toLocaleString("en-IN")}`], ["Booked On", selected.bookingDate], ["Payment Mode", selected.paymentMode]].map(([k, v]) => (
+              {[["Property Type", selected.propertyType], ["Project No.", selected.projectNo], ["Plot Area", `${selected.plotArea} sq.yd.`], ["Plot Price", `₹${Number(selected.plotPrice).toLocaleString("en-IN")}`], ["Paid", `₹${Number(selected.paidAmount).toLocaleString("en-IN")}`], ["Remaining", `₹${Number(selected.remainingAmount).toLocaleString("en-IN")}`], ["Booked On", selected.bookingDate], ["Payment Mode", selected.paymentMode]].map(([k, v]) => (
                 <div key={k} className="bg-gray-50 rounded-xl p-3"><div className="text-xs text-gray-400 font-semibold">{k}</div><div className="font-bold text-gray-800 text-sm mt-0.5">{v}</div></div>
               ))}
             </div>

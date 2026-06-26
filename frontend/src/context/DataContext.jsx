@@ -40,35 +40,21 @@ const INITIAL_SITES = [
   },
 ];
 
-// Customers assigned to specific Sales Managers
 const INITIAL_CUSTOMERS = [
-  // Anjali Verma (SM-001, id:6) - 2 customers
   { id: 1, name: "Ramesh Gupta", mobile: "9811234567", email: "ramesh@email.com", address: "Lajpat Nagar, Delhi", status: "Booked", siteId: 1, siteName: "Green Valley Residency", salesManagerId: 6, salesManagerName: "Anjali Verma", visitDate: "2024-04-10", registeredDate: "2024-04-05", notes: "Interested in corner plot" },
   { id: 2, name: "Meena Agarwal", mobile: "9822345678", email: "meena@email.com", address: "Rohini, Delhi", status: "Visit Completed", siteId: 1, siteName: "Green Valley Residency", salesManagerId: 6, salesManagerName: "Anjali Verma", visitDate: "2024-04-15", registeredDate: "2024-04-12", notes: "Wants 200 sq yard plot" },
-  
-  // Rahul Verma (SM-002, id:20) - 1 customer
   { id: 7, name: "Suresh Bhatia", mobile: "9833456789", email: "suresh@email.com", address: "Vasant Kunj, Delhi", status: "Interested", siteId: 2, siteName: "Sunrise Commercial Hub", salesManagerId: 20, salesManagerName: "Rahul Verma", visitDate: "2024-04-20", registeredDate: "2024-04-18", notes: "Looking for office space" },
-  
-  // Karthik Nair (SM-003, id:21) - 1 customer
   { id: 8, name: "Kavita Joshi", mobile: "9844567890", email: "kavita@email.com", address: "Noida Sec 15", status: "Ready for Booking", siteId: 3, siteName: "Blue Lagoon Villas", salesManagerId: 21, salesManagerName: "Karthik Nair", visitDate: "2024-04-08", registeredDate: "2024-04-01", notes: "Premium villa preferred" },
-  
-  // Naveen Reddy (SM-004, id:22) - 1 customer
   { id: 9, name: "Deepak Nair", mobile: "9855678901", email: "deepak@email.com", address: "Sector 12, Gurgaon", status: "Dropped", siteId: 1, siteName: "Green Valley Residency", salesManagerId: 22, salesManagerName: "Naveen Reddy", visitDate: "2024-03-25", registeredDate: "2024-03-20", notes: "Budget constraint" },
-  
-  // Ajay Singh (SM-005, id:23) - 1 customer
   { id: 10, name: "Pooja Mehrotra", mobile: "9866789012", email: "pooja@email.com", address: "Indirapuram, Ghaziabad", status: "Payment Done", siteId: 4, siteName: "Emerald Heights", salesManagerId: 23, salesManagerName: "Ajay Singh", visitDate: "2024-03-15", registeredDate: "2024-03-10", notes: "Plot no. 45 confirmed", paymentAmount: 7600000, invoiceNo: "INV-2024-001" },
-  
-  // Suresh Pal (SM-006, id:24) - 1 customer
   { id: 11, name: "Anita Sharma", mobile: "9876543299", email: "anita@email.com", address: "Dwarka, Delhi", status: "Booked", siteId: 2, siteName: "Sunrise Commercial Hub", salesManagerId: 24, salesManagerName: "Suresh Pal", visitDate: "2024-05-01", registeredDate: "2024-04-25", notes: "Commercial space for clinic" },
-  
-  // Lata Mehta (SM-007, id:25) - 1 customer
   { id: 12, name: "Vijay Malhotra", mobile: "9876543300", email: "vijay@email.com", address: "Noida Sector 62", status: "Visit Scheduled", siteId: 1, siteName: "Green Valley Residency", salesManagerId: 25, salesManagerName: "Lata Mehta", visitDate: "2024-05-10", registeredDate: "2024-05-05", notes: "Wants 2 plots side by side" },
 ];
 
 const INITIAL_BOOKINGS = [
-  { id: 1, customerId: 1, customerName: "Ramesh Gupta", siteId: 1, siteName: "Green Valley Residency", plotNo: "A-12", plotArea: 200, plotPrice: 11000000, paidAmount: 5000000, remainingAmount: 6000000, status: "Booked", salesManagerId: 6, salesManagerName: "Anjali Verma", bookingDate: "2024-04-12", invoiceNo: "INV-2024-002" },
-  { id: 2, customerId: 10, customerName: "Pooja Mehrotra", siteId: 4, siteName: "Emerald Heights", plotNo: "B-45", plotArea: 200, plotPrice: 7600000, paidAmount: 7600000, remainingAmount: 0, status: "Payment Done", salesManagerId: 23, salesManagerName: "Ajay Singh", bookingDate: "2024-03-18", invoiceNo: "INV-2024-001" },
-  { id: 3, customerId: 11, customerName: "Anita Sharma", siteId: 2, siteName: "Sunrise Commercial Hub", plotNo: "C-08", plotArea: 150, plotPrice: 18000000, paidAmount: 9000000, remainingAmount: 9000000, status: "Booked", salesManagerId: 24, salesManagerName: "Suresh Pal", bookingDate: "2024-05-02", invoiceNo: "INV-2024-003" },
+  { id: 1, customerId: 1, customerName: "Ramesh Gupta", siteId: 1, siteName: "Green Valley Residency", plotArea: 200, plotPrice: 11000000, paidAmount: 5000000, remainingAmount: 6000000, status: "Booked", salesManagerId: 6, salesManagerName: "Anjali Verma", bookingDate: "2026-04-12", invoiceNo: "INV-2026-001", projectNo: "PRJ-001", propertyType: "Plot" },
+  { id: 2, customerId: 10, customerName: "Pooja Mehrotra", siteId: 4, siteName: "Emerald Heights", plotArea: 200, plotPrice: 7600000, paidAmount: 7600000, remainingAmount: 0, status: "Payment Done", salesManagerId: 23, salesManagerName: "Ajay Singh", bookingDate: "2026-03-18", invoiceNo: "INV-2026-002", projectNo: "PRJ-004", propertyType: "Plot" },
+  { id: 3, customerId: 11, customerName: "Anita Sharma", siteId: 2, siteName: "Sunrise Commercial Hub", plotArea: 150, plotPrice: 18000000, paidAmount: 9000000, remainingAmount: 9000000, status: "Booked", salesManagerId: 24, salesManagerName: "Suresh Pal", bookingDate: "2026-05-02", invoiceNo: "INV-2026el-003", projectNo: "PRJ-002", propertyType: "Commercial" },
 ];
 
 const INITIAL_VISITS = [
@@ -129,7 +115,12 @@ export function DataProvider({ children }) {
   const deleteCustomer = (id) => setCustomers(prev => prev.filter(c => c.id !== id));
 
   // Bookings
-  const addBooking = (booking) => setBookings(prev => [...prev, { ...booking, id: Date.now(), bookingDate: new Date().toISOString().split("T")[0], invoiceNo: `INV-${Date.now()}` }]);
+  const addBooking = (booking) => setBookings(prev => {
+    const year = new Date().getFullYear();
+    const count = prev.filter(b => b.invoiceNo?.startsWith(`INV-${year}`)).length + 1;
+    const invoiceNo = `INV-${year}-${String(count).padStart(3, '0')}`;
+    return [...prev, { ...booking, id: Date.now(), bookingDate: new Date().toISOString().split("T")[0], invoiceNo }];
+  });
   const updateBooking = (id, updates) => setBookings(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
 
   // Visits
