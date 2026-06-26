@@ -92,7 +92,7 @@ export default function LoginPage() {
                 <input
                   type="email" value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="your@email.com" required
-                  className="input-field pl-10"
+                  className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white outline-none transition-all duration-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
                 />
               </div>
             </div>
@@ -102,7 +102,8 @@ export default function LoginPage() {
                 <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••" required className="input-field pl-10 pr-10"
+                  placeholder="••••••••" required
+                  className="w-full border border-gray-200 rounded-xl pl-10 pr-10 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white outline-none transition-all duration-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
                 />
                 <button type="button" onClick={() => setShowPassword(p => !p)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
