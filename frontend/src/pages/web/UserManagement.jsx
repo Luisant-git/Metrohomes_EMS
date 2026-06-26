@@ -155,8 +155,28 @@ export default function UserManagement() {
   const [showTree, setShowTree] = useState(false); // default to table view
   const [treeSearch, setTreeSearch] = useState("");
   const [filterRole, setFilterRole] = useState("");
+  const [viewingTeamId, setViewingTeamId] = useState(null);
 
   const creatableRoles = useMemo(() => hierarchy.getCreatableRoles(), [hierarchy]);
+
+  // Get team members for a specific user
+  const getTeamMembers = (userId) => {
+    const teamMembers = [];
+    const queue = [userId];
+    const visited = new Set();
+    
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+      if (visited.has(currentId)) continue;
+      visited.add(currentId);
+      
+      const children = users.filter(u => u.parentUserId === currentId);
+      teamMembers.push(...children.map(u => u.id));
+      queue.push(...children.map(u => u.id));
+    }
+    
+    return teamMembers;
+  };
 
   // Visible users to logged-in user
   const visibleUsers = useMemo(() => {
@@ -167,9 +187,16 @@ export default function UserManagement() {
     return myself ? [myself, ...myTeam] : myTeam;
   }, [users, user, hierarchy]);
 
-  // Filtered users based on search/filter
+  // Filtered users based on search/filter/team view
   const filteredUsers = useMemo(() => {
     let result = visibleUsers;
+    
+    // If viewing a specific team, filter to only show that team
+    if (viewingTeamId) {
+      const teamMemberIds = getTeamMembers(viewingTeamId);
+      result = result.filter(u => u.id === viewingTeamId || teamMemberIds.includes(u.id));
+    }
+    
     if (treeSearch) {
       const s = treeSearch.toLowerCase();
       result = result.filter(u =>
@@ -186,7 +213,7 @@ export default function UserManagement() {
       result = result.filter(u => u.role === filterRole);
     }
     return result;
-  }, [visibleUsers, treeSearch, filterRole]);
+  }, [visibleUsers, treeSearch, filterRole, viewingTeamId, users]);
 
   // Tree roots
   const treeRoots = useMemo(() => {
@@ -287,9 +314,16 @@ export default function UserManagement() {
     { key: "status", label: "Status", render: v => <StatusBadge status={v} /> },
   ];
 
-  // Scroll to specific user in tree view
+  // View specific team
   const handleViewTeam = (node) => {
-    toast.success(`Showing ${node.name}'s team in tree`, { duration: 2000 });
+    setViewingTeamId(node.id);
+    setShowTree(false); // Switch to table view
+    toast.success(`Showing ${node.name}'s team`, { duration: 2000 });
+  };
+
+  // Clear team filter
+  const clearTeamFilter = () => {
+    setViewingTeamId(null);
   };
 
   return (
@@ -302,19 +336,24 @@ export default function UserManagement() {
           </h1>
      
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowTree(p => !p)}
-            className={`${showTree ? "btn-primary" : "btn-secondary"} text-sm`}
-          >
-            {showTree ? <Users size={14} /> : <Users size={14} />} {showTree ? "Tree View" : "Table View"}
+      <div className="flex items-center gap-2">
+        {viewingTeamId && (
+          <button onClick={clearTeamFilter} className="btn-secondary text-sm">
+            <X size={14} /> Clear Filter
           </button>
-          {hierarchy.canCreateUser() && (
-            <button onClick={openAdd} className="btn-primary">
-              <UserPlus size={16} /> Add User
-            </button>
-          )}
-        </div>
+        )}
+        <button
+          onClick={() => setShowTree(p => !p)}
+          className={`${showTree ? "btn-primary" : "btn-secondary"} text-sm`}
+        >
+          {showTree ? <Users size={14} /> : <Users size={14} />} {showTree ? "Tree View" : "Table View"}
+        </button>
+        {hierarchy.canCreateUser() && (
+          <button onClick={openAdd} className="btn-primary">
+            <UserPlus size={16} /> Add User
+          </button>
+        )}
+      </div>
       </div>
 
       {/* Role summary cards */}
@@ -384,6 +423,17 @@ export default function UserManagement() {
        
       </div>
 
+      {/* Team filter indicator */}
+      {viewingTeamId && !showTree && (
+        <div className="flex items-center gap-2 bg-blue-50 text-blue-700 text-sm font-semibold px-4 py-2.5 rounded-xl">
+          <Users size={16} />
+          <span>Viewing Team: {users.find(u => u.id === viewingTeamId)?.name}</span>
+          <button onClick={clearTeamFilter} className="ml-auto hover:text-blue-900">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Search & Filter Bar (for tree view) */}
       {showTree && (
         <div className="flex items-center gap-3">
@@ -401,7 +451,14 @@ export default function UserManagement() {
               </button>
             )}
           </div>
-          {filterRole && (
+          {viewingTeamId && (
+            <div className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 text-xs font-semibold px-3 py-2 rounded-xl">
+              <Users size={12} />
+              Team View
+              <button onClick={clearTeamFilter} className="ml-1 hover:text-indigo-900"><X size={12} /></button>
+            </div>
+          )}
+          {filterRole && !viewingTeamId && (
             <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-2 rounded-xl">
               <Filter size={12} />
               {filterRole}
