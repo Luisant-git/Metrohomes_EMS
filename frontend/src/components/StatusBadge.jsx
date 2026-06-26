@@ -14,6 +14,12 @@ const STATUS_MAP = {
   "Residential":      "bg-blue-100 text-blue-700",
   "Commercial":       "bg-purple-100 text-purple-700",
   "Villa":            "bg-orange-100 text-orange-700",
+  "Admin":            "bg-indigo-100 text-indigo-700",
+  "Director":         "bg-blue-100 text-blue-700",
+  "Regional Manager": "bg-purple-100 text-purple-700",
+  "Branch Manager":   "bg-cyan-100 text-cyan-700",
+  "BDM":              "bg-orange-100 text-orange-700",
+  "Sales Manager":    "bg-green-100 text-green-700",
 };
 
 export default function StatusBadge({ status }) {

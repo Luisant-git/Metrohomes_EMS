@@ -3,12 +3,27 @@ const router = express.Router();
 
 // ─── In-memory data ───────────────────────────────────────────────────────────
 let users = [
-  { id: 1, name: "Arjun Mehta", email: "admin@realestate.com", role: "Admin", mobile: "9876543210", status: "Active", region: null, branch: null },
-  { id: 2, name: "Priya Sharma", email: "director@realestate.com", role: "Director", mobile: "9876543211", status: "Active", region: "North", branch: null },
-  { id: 3, name: "Rajesh Kumar", email: "rm@realestate.com", role: "Regional Manager", mobile: "9876543212", status: "Active", region: "North", branch: null },
-  { id: 4, name: "Sunita Patel", email: "bm@realestate.com", role: "Branch Manager", mobile: "9876543213", status: "Active", region: "North", branch: "Delhi HQ" },
-  { id: 5, name: "Vikram Singh", email: "bdm@realestate.com", role: "BDM", mobile: "9876543214", status: "Active", region: "North", branch: "Delhi HQ" },
-  { id: 6, name: "Anjali Verma", email: "sm@realestate.com", role: "Sales Manager", mobile: "9876543215", status: "Active", region: "North", branch: "Delhi HQ" },
+  { id: 1, name: "Arjun Mehta", email: "admin@realestate.com", role: "Admin", mobile: "9876543210", status: "Active", region: "Head Office", branch: null, parentUserId: null, createdBy: null },
+  { id: 2, name: "Priya Sharma", email: "director@realestate.com", role: "Director", mobile: "9876543211", status: "Active", region: "North", branch: null, parentUserId: 1, createdBy: 1 },
+  { id: 7, name: "Rahul Verma", email: "rahul.dir@realestate.com", role: "Director", mobile: "9876543240", status: "Active", region: "South", branch: null, parentUserId: 1, createdBy: 1 },
+  { id: 3, name: "Rajesh Kumar", email: "rm@realestate.com", role: "Regional Manager", mobile: "9876543212", status: "Active", region: "North", branch: null, parentUserId: 2, createdBy: 2 },
+  { id: 8, name: "Sanjay Gupta", email: "sanjay.rm@realestate.com", role: "Regional Manager", mobile: "9876543241", status: "Active", region: "South", branch: null, parentUserId: 7, createdBy: 7 },
+  { id: 9, name: "Meena Joshi", email: "meena.rm@realestate.com", role: "Regional Manager", mobile: "9876543242", status: "Active", region: "East", branch: null, parentUserId: 7, createdBy: 7 },
+  { id: 4, name: "Sunita Patel", email: "bm@realestate.com", role: "Branch Manager", mobile: "9876543213", status: "Active", region: "North", branch: "Delhi HQ", parentUserId: 3, createdBy: 3 },
+  { id: 10, name: "Amit Patel", email: "amit.bm@realestate.com", role: "Branch Manager", mobile: "9876543243", status: "Active", region: "South", branch: "Mumbai HQ", parentUserId: 8, createdBy: 8 },
+  { id: 11, name: "Pooja Singh", email: "pooja.bm@realestate.com", role: "Branch Manager", mobile: "9876543244", status: "Active", region: "South", branch: "Bangalore Branch", parentUserId: 8, createdBy: 8 },
+  { id: 12, name: "Ramesh Yadav", email: "ramesh.bm@realestate.com", role: "Branch Manager", mobile: "9876543245", status: "Active", region: "East", branch: "Hyderabad Branch", parentUserId: 9, createdBy: 9 },
+  { id: 5, name: "Vikram Singh", email: "bdm@realestate.com", role: "BDM", mobile: "9876543214", status: "Active", region: "North", branch: "Delhi HQ", parentUserId: 4, createdBy: 4 },
+  { id: 13, name: "Kiran Kumar", email: "kiran.bdm@realestate.com", role: "BDM", mobile: "9876543246", status: "Active", region: "South", branch: "Mumbai HQ", parentUserId: 10, createdBy: 10 },
+  { id: 14, name: "Ritu Sharma", email: "ritu.bdm@realestate.com", role: "BDM", mobile: "9876543247", status: "Active", region: "South", branch: "Bangalore Branch", parentUserId: 11, createdBy: 11 },
+  { id: 15, name: "Anil Bose", email: "anil.bdm@realestate.com", role: "BDM", mobile: "9876543248", status: "Active", region: "East", branch: "Hyderabad Branch", parentUserId: 12, createdBy: 12 },
+  { id: 16, name: "Deepa Rao", email: "deepa.bdm@realestate.com", role: "BDM", mobile: "9876543249", status: "Active", region: "South", branch: "Mumbai HQ", parentUserId: 10, createdBy: 10 },
+  { id: 6, name: "Anjali Verma", email: "sm@realestate.com", role: "Sales Manager", mobile: "9876543215", status: "Active", region: "North", branch: "Delhi HQ", parentUserId: 5, createdBy: 5 },
+  { id: 17, name: "Manoj Tiwari", email: "manoj.sm@realestate.com", role: "Sales Manager", mobile: "9876543250", status: "Active", region: "South", branch: "Mumbai HQ", parentUserId: 13, createdBy: 13 },
+  { id: 18, name: "Sonia Kapoor", email: "sonia.sm@realestate.com", role: "Sales Manager", mobile: "9876543251", status: "Active", region: "South", branch: "Bangalore Branch", parentUserId: 14, createdBy: 14 },
+  { id: 19, name: "Vijay Menon", email: "vijay.sm@realestate.com", role: "Sales Manager", mobile: "9876543252", status: "Active", region: "East", branch: "Hyderabad Branch", parentUserId: 15, createdBy: 15 },
+  { id: 20, name: "Rekha Das", email: "rekha.sm@realestate.com", role: "Sales Manager", mobile: "9876543253", status: "Active", region: "South", branch: "Mumbai HQ", parentUserId: 16, createdBy: 16 },
+  { id: 21, name: "Arjun Reddy", email: "arjun.sm@realestate.com", role: "Sales Manager", mobile: "9876543254", status: "Active", region: "South", branch: "Mumbai HQ", parentUserId: 13, createdBy: 13 },
 ];
 
 let sites = [
@@ -37,7 +52,7 @@ router.get("/users/:id", (req, res) => {
 });
 router.post("/users", (req, res) => {
   const user = { ...req.body, id: Date.now(), joinDate: new Date().toISOString().split("T")[0] };
-  users.push(user);
+  users = [user, ...users];
   res.status(201).json({ success: true, data: user, message: "User created" });
 });
 router.put("/users/:id", (req, res) => {
