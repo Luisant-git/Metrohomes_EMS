@@ -3,7 +3,7 @@ import { useData } from "../../context/DataContext.jsx";
 import DataTable from "../../components/DataTable.jsx";
 import Modal from "../../components/Modal.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
-import { BookOpen, Eye, Plus, IndianRupee, FileText, MessageSquare, CheckCircle, Bell, Home, Building2 } from "lucide-react";
+import { BookOpen, Eye, Plus, IndianRupee, FileText, MessageSquare, CheckCircle, Bell, Home, Building2, Phone } from "lucide-react";
 import toast from "react-hot-toast";
 
 const empty = { 
@@ -11,7 +11,7 @@ const empty = {
   propertyType: "Flat", projectName: "", projectNo: "", projectSqFt: "",
   applicantName: "", relation: "", address: "", pinCode: "", mobile: "", email: "",
   paymentMode: "Cash", bankName: "", chequeNo: "", chequeDate: "", transferId: "", loanOrOwn: "Own Fund",
-  plotNo: "", plotArea: "", plotPrice: "", paidAmount: "", status: "Booked", 
+  plotNo: "", plotArea: "", pricePerSqft: "", plotPrice: "", paidAmount: "", status: "Booked", 
   salesManagerName: "", officeIdNo: "" 
 };
 
@@ -21,6 +21,8 @@ export default function BookingManagement() {
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState(empty);
   const [paymentAmt, setPaymentAmt] = useState("");
+  const [mobileSearch, setMobileSearch] = useState("");
+  const [foundCustomer, setFoundCustomer] = useState(null);
 
   const readyCustomers = customers.filter(c => c.status === "Ready for Booking");
 
@@ -31,6 +33,7 @@ export default function BookingManagement() {
     const c = customers.find(x => x.id === +cid);
     const s = sites.find(x => x.id === c?.siteId);
     if (c) {
+      const pricePerSqft = s?.pricePerSqft || 5000;
       setForm(p => ({ 
         ...p, 
         customerId: c.id, 
@@ -43,8 +46,44 @@ export default function BookingManagement() {
         email: c.email || "",
         siteId: c.siteId, 
         salesManagerName: c.salesManagerName, 
-        plotPrice: s?.pricePerSqft ? s.pricePerSqft * 200 : "" 
+        pricePerSqft,
+        plotPrice: p.plotArea ? p.plotArea * pricePerSqft : ""
       }));
+      setFoundCustomer(c);
+      setMobileSearch(c.mobile || "");
+    }
+  };
+
+  const handleMobileSearch = (mobile) => {
+    setMobileSearch(mobile);
+    if (mobile.length === 10) {
+      const c = customers.find(x => x.mobile === mobile);
+      if (c) {
+        setFoundCustomer(c);
+        const s = sites.find(x => x.id === c.siteId);
+        const pricePerSqft = s?.pricePerSqft || 5000;
+        setForm(p => ({
+          ...p,
+          customerId: c.id,
+          customerName: c.name,
+          applicantName: c.name,
+          relation: "",
+          address: c.address || "",
+          pinCode: c.pinCode || "",
+          mobile: c.mobile || "",
+          email: c.email || "",
+          siteId: c.siteId,
+          salesManagerName: c.salesManagerName,
+          pricePerSqft,
+          plotPrice: p.plotArea ? p.plotArea * pricePerSqft : ""
+        }));
+        toast.success("Customer found! Details loaded ✓");
+      } else {
+        setFoundCustomer(null);
+        toast.error("Customer not found with this mobile number");
+      }
+    } else {
+      setFoundCustomer(null);
     }
   };
 
@@ -54,12 +93,14 @@ export default function BookingManagement() {
       return; 
     }
     const siteName = sites.find(s => s.id === +form.siteId)?.name || "";
-    const price = +form.plotArea * (+form.plotPrice / 200 || 5000);
-    const remaining = price - +form.paidAmount;
+    const pricePerSqft = +form.pricePerSqft || 5000;
+    const plotPrice = +form.plotArea * pricePerSqft;
+    const remaining = plotPrice - +form.paidAmount;
     addBooking({ 
       ...form, 
       siteName, 
-      plotPrice: price, 
+      pricePerSqft,
+      plotPrice, 
       remainingAmount: remaining, 
       salesManagerId: 6,
       bookingDate: new Date().toISOString().split("T")[0]
@@ -197,13 +238,35 @@ export default function BookingManagement() {
 
           {/* Customer Selection & Details */}
           <div>
-            <label className="label">Select Customer *</label>
-            <select value={form.customerId} onChange={e => handleCustomerSelect(e.target.value)} className="input-field">
-              <option value="">Search or select customer…</option>
-              {customers.filter(c => ["Ready for Booking", "Interested", "Visit Completed"].includes(c.status)).map(c => (
-                <option key={c.id} value={c.id}>{c.name} — {c.siteName}</option>
-              ))}
-            </select>
+            <label className="label">Search Customer by Mobile *</label>
+            <div className="relative">
+              <input 
+                type="tel" 
+                value={mobileSearch}
+                onChange={e => handleMobileSearch(e.target.value)}
+                className="input-field pr-10"
+                placeholder="Enter 10-digit mobile number"
+                maxLength={10}
+              />
+              {foundCustomer && (
+                <CheckCircle size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600" />
+              )}
+            </div>
+            {foundCustomer && (
+              <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-bold text-gray-800">{foundCustomer.name}</div>
+                    <div className="text-xs text-gray-600">{foundCustomer.siteName} · {foundCustomer.email}</div>
+                  </div>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                    foundCustomer.status === "Ready for Booking" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+                  }`}>
+                    {foundCustomer.status}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
           
           {form.customerId && (
@@ -256,13 +319,37 @@ export default function BookingManagement() {
               </div>
               <div>
                 <label className="label">Plot Area (sq.yd.) *</label>
-                <input type="number" value={form.plotArea} onChange={e => setForm(p => ({ ...p, plotArea: e.target.value }))}
-                  className="input-field" placeholder="200" />
+                <input type="number" value={form.plotArea} onChange={e => {
+                  const area = e.target.value;
+                  setForm(p => ({ 
+                    ...p, 
+                    plotArea: area,
+                    plotPrice: area ? area * (+p.pricePerSqft || 5000) : ""
+                  }));
+                }} className="input-field" placeholder="200" />
               </div>
               <div>
-                <label className="label">Plot Price (₹) *</label>
-                <input type="number" value={form.plotPrice} onChange={e => setForm(p => ({ ...p, plotPrice: e.target.value }))}
-                  className="input-field" placeholder="Auto-calculated" readOnly />
+                <label className="label">Price per sq.yd. (₹)</label>
+                <input type="number" value={form.pricePerSqft} onChange={e => {
+                  const price = e.target.value;
+                  setForm(p => ({ 
+                    ...p, 
+                    pricePerSqft: price,
+                    plotPrice: p.plotArea ? p.plotArea * price : ""
+                  }));
+                }} className="input-field" placeholder="₹5000" />
+              </div>
+            </div>
+            <div className="mt-4">
+              <label className="label">Plot Price (₹) *</label>
+              <div className="md:w-1/2">
+                <input type="number" value={form.plotPrice} readOnly
+                  className="input-field bg-gray-50 font-semibold text-blue-700 text-lg" placeholder="Auto-calculated" />
+                {form.plotPrice && (
+                  <p className="text-xs text-gray-500 mt-1 font-medium">
+                    = {form.plotArea} sq.yd × ₹{form.pricePerSqft}/sq.yd = ₹{Number(form.plotPrice).toLocaleString("en-IN")}
+                  </p>
+                )}
               </div>
             </div>
           </div>
