@@ -138,7 +138,7 @@ export function DataProvider({ children }) {
   // Users
   const addUser = (user, loggedInUserId) => setUsers(prev => [{
     ...user,
-    id: Date.now(),
+    id: Date.now() + Math.floor(Math.random() * 1000),
     joinDate: new Date().toISOString().split("T")[0],
     parentUserId: user.parentUserId ?? loggedInUserId,
     createdBy: user.createdBy ?? loggedInUserId,

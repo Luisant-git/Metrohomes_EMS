@@ -22,6 +22,8 @@ export default function PWADashboard() {
     Dropped: myCustomers.filter(c => c.status === "Dropped").length,
   };
 
+  const bookCompleted = myCustomers.filter(c => c.status === "Booked" || c.status === "Payment Done").length;
+
   const quickActions = [
     { label: "View Sites", icon: Building2, path: "/sites", color: "bg-blue-500" },
     { label: "Register Customer", icon: Plus, path: "/customers/register", color: "bg-green-500" },
@@ -45,7 +47,7 @@ export default function PWADashboard() {
             { label: "My Customers", value: myCustomers.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
             { label: "Active Sites", value: myActiveSites.length, icon: Building2, color: "text-green-600", bg: "bg-green-50" },
             { label: "Visits Done", value: myVisits.filter(v => v.status === "Visit Completed").length, icon: CheckCircle, color: "text-purple-600", bg: "bg-purple-50" },
-            { label: "Ready to Book", value: statusCounts.Ready, icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50" },
+            { label: "Book Completed", value: bookCompleted, icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50" },
           ].map(s => (
             <div key={s.label} className={`bg-white rounded-2xl p-4 shadow-sm border border-gray-100`}>
               <div className={`w-10 h-10 ${s.bg} rounded-xl flex items-center justify-center mb-2`}>

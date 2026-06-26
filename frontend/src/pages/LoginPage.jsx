@@ -1,19 +1,13 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useData } from "../context/DataContext.jsx";
 import { Building2, Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
 import toast from "react-hot-toast";
 
-const DEMO_CREDS = [
-  { role: "Admin", email: "admin@realestate.com", password: "admin123", color: "bg-red-50 text-red-700 border-red-200" },
-  { role: "Director", email: "director@realestate.com", password: "dir123", color: "bg-purple-50 text-purple-700 border-purple-200" },
-  { role: "Regional Manager", email: "rm@realestate.com", password: "rm123", color: "bg-blue-50 text-blue-700 border-blue-200" },
-  { role: "Branch Manager", email: "bm@realestate.com", password: "bm123", color: "bg-green-50 text-green-700 border-green-200" },
-  { role: "BDM", email: "bdm@realestate.com", password: "bdm123", color: "bg-yellow-50 text-yellow-700 border-yellow-200" },
-  { role: "Sales Manager", email: "sm@realestate.com", password: "sm123", color: "bg-orange-50 text-orange-700 border-orange-200" },
-];
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const { users } = useData();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -23,17 +17,13 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setTimeout(() => {
-      const res = login(email, password);
+      const res = login(email, password, users);
       if (!res.success) { toast.error(res.error); }
       else { toast.success(`Welcome back, ${res.user.name}!`); }
       setLoading(false);
     }, 600);
   };
 
-  const fillCreds = (cred) => {
-    setEmail(cred.email);
-    setPassword(cred.password);
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
@@ -84,7 +74,7 @@ export default function LoginPage() {
           <h3 className="text-2xl font-bold text-gray-900 mb-1">Sign In</h3>
           <p className="text-gray-500 text-sm mb-6">Enter your credentials to access the system</p>
 
-          <form onSubmit={handleLogin} className="space-y-4 mb-6">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="label">Email Address</label>
               <div className="relative">
@@ -115,19 +105,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Demo credentials */}
-          <div className="border-t border-gray-100 pt-5">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Quick Demo Login</p>
-            <div className="grid grid-cols-2 gap-2">
-              {DEMO_CREDS.map(c => (
-                <button key={c.role} onClick={() => fillCreds(c)}
-                  className={`border text-left px-3 py-2 rounded-xl text-xs font-medium transition-all hover:shadow-sm ${c.color}`}>
-                  <div className="font-bold">{c.role}</div>
-                  <div className="opacity-70 truncate">{c.email}</div>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>

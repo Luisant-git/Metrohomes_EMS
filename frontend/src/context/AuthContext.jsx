@@ -150,8 +150,21 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  const login = (email, password) => {
-    const found = MOCK_USERS.find(u => u.email === email && u.password === password);
+  const login = (email, password, dynamicUsers = []) => {
+    // Only check MOCK_USERS - default users always have passwords
+    let found = MOCK_USERS.find(u => u.email === email && u.password === password);
+    // Also check dynamic users with passwords (skip entries without passwords to avoid conflicts)
+    if (!found && dynamicUsers.length > 0) {
+      found = dynamicUsers.find(u => u.password && u.email === email && u.password === password);
+    }
+    // If still not found, try case-insensitive email match
+    if (!found) {
+      const lowerEmail = email.toLowerCase();
+      found = dynamicUsers.find(u => u.email.toLowerCase() === lowerEmail && u.password === password);
+      if (!found) {
+        found = MOCK_USERS.find(u => u.email.toLowerCase() === lowerEmail && u.password === password);
+      }
+    }
     if (found) {
       const { password: _, ...safeUser } = found;
       setUser(safeUser);

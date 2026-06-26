@@ -15,7 +15,7 @@ import toast from "react-hot-toast";
 const REGIONS = ["North", "South", "East", "West", "Central", "Head Office"];
 const BRANCHES = ["Delhi HQ", "Mumbai HQ", "Bangalore Branch", "Hyderabad Branch", "Chennai Branch", "Noida Branch", "Gurgaon Branch"];
 
-const emptyForm = { name: "", email: "", mobile: "", role: "Sales Manager", region: "", branch: "", status: "Active" };
+const emptyForm = { name: "", email: "", mobile: "", role: "Sales Manager", region: "", branch: "", status: "Active", password: "" };
 
 function FormField({ label, children }) {
   return (
@@ -262,6 +262,7 @@ export default function UserManagement() {
       const code = roleCode(form.role);
       const existingCount = users.filter(u => u.role === form.role).length;
       const employeeCode = `${code}-${String(existingCount + 1).padStart(3, "0")}`;
+      // Note: This uses total count of role in system, which is correct
       addUser({
         ...form,
         parentUserId: user?.id,
@@ -555,6 +556,9 @@ export default function UserManagement() {
               <option value="">{user?.branch || "Select Branch"}</option>
               {BRANCHES.filter(b => b !== form.branch).map(b => <option key={b}>{b}</option>)}
             </select>
+          </FormField>
+          <FormField label="Password">
+            <input type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} className="input-field" placeholder="Set password" autoComplete="off" />
           </FormField>
           <FormField label="Status">
             <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="input-field">

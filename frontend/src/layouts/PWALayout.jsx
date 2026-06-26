@@ -1,14 +1,37 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { LayoutDashboard, Building2, Users, MapPin, User, LogOut, Bell, ChevronLeft } from "lucide-react";
+import { LayoutDashboard, Building2, Users, MapPin, User, LogOut, Bell, ChevronLeft, TrendingUp, BarChart3, Target } from "lucide-react";
 
-const BOTTOM_NAV = [
-  { path: "/", icon: LayoutDashboard, label: "Home" },
-  { path: "/sites", icon: Building2, label: "Sites" },
-  { path: "/customers", icon: Users, label: "Customers" },
-  { path: "/visits", icon: MapPin, label: "Visits" },
-  { path: "/profile", icon: User, label: "Profile" },
-];
+const ROLE_BOTTOM_NAV = {
+  "Regional Manager": [
+    { path: "/", icon: LayoutDashboard, label: "Dashboard" },
+    { path: "/my-team", icon: Users, label: "My Team" },
+    { path: "/targets", icon: TrendingUp, label: "Targets" },
+    { path: "/sales-report", icon: BarChart3, label: "Reports" },
+    { path: "/profile", icon: User, label: "Profile" },
+  ],
+  "Branch Manager": [
+    { path: "/", icon: LayoutDashboard, label: "Dashboard" },
+    { path: "/my-team", icon: Users, label: "My Team" },
+    { path: "/assign-targets", icon: Target, label: "Targets" },
+    { path: "/sales-report", icon: BarChart3, label: "Reports" },
+    { path: "/profile", icon: User, label: "Profile" },
+  ],
+  "BDM": [
+    { path: "/", icon: LayoutDashboard, label: "Dashboard" },
+    { path: "/my-team", icon: Users, label: "My Team" },
+    { path: "/sales-targets", icon: TrendingUp, label: "Targets" },
+    { path: "/customers", icon: Users, label: "Customers" },
+    { path: "/profile", icon: User, label: "Profile" },
+  ],
+  "Sales Manager": [
+    { path: "/", icon: LayoutDashboard, label: "Home" },
+    { path: "/sites", icon: Building2, label: "Sites" },
+    { path: "/customers", icon: Users, label: "Customers" },
+    { path: "/visits", icon: MapPin, label: "Visits" },
+    { path: "/profile", icon: User, label: "Profile" },
+  ],
+};
 
 export default function PWALayout({ children }) {
   const { user, logout } = useAuth();
@@ -69,7 +92,7 @@ export default function PWALayout({ children }) {
       {/* Bottom Navigation */}
       <nav className="bg-white border-t border-gray-100 flex-shrink-0 shadow-xl pwa-safe-bottom">
         <div className="flex items-stretch">
-          {BOTTOM_NAV.map(item => {
+          {(ROLE_BOTTOM_NAV[user?.role] || ROLE_BOTTOM_NAV["Sales Manager"]).map(item => {
             const active = location.pathname === item.path;
             return (
               <button key={item.path} onClick={() => navigate(item.path)}
