@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { DataProvider } from "./context/DataContext.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -185,12 +186,10 @@ export default function App() {
       <AuthProvider>
         <DataProvider>
           <AppRoutes />
-          <Toaster
+          <ToastContainer
             position="top-right"
-            toastOptions={{
-              duration: 3000,
-              style: { borderRadius: "12px", fontSize: "14px" },
-            }}
+            autoClose={3000}
+            toastStyle={{ borderRadius: "12px", fontSize: "14px" }}
           />
         </DataProvider>
       </AuthProvider>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useData } from "../context/DataContext.jsx";
 import { Building2, Eye, EyeOff, Lock, UserCircle2, ShieldCheck } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 
 export default function LoginPage() {
   const { login } = useAuth();

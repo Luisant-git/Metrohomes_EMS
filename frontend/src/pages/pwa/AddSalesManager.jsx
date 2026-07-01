@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
 import { ArrowLeft, User, Phone, Mail, Lock, MapPin } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 
 function FormField({ label, icon: Icon, children, required }) {
   return (
