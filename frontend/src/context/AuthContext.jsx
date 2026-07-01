@@ -33,46 +33,59 @@ const ROLE_LEVEL = {
 const CAN_CREATE = {
   [ROLES.ADMIN]: [ROLES.DIRECTOR, ROLES.REGIONAL_MANAGER, ROLES.BRANCH_MANAGER, ROLES.BDM, ROLES.SALES_MANAGER],
   [ROLES.DIRECTOR]: [ROLES.REGIONAL_MANAGER, ROLES.BRANCH_MANAGER, ROLES.BDM, ROLES.SALES_MANAGER],
-  [ROLES.REGIONAL_MANAGER]: [ROLES.BRANCH_MANAGER],
-  [ROLES.BRANCH_MANAGER]: [ROLES.BDM],
+  [ROLES.REGIONAL_MANAGER]: [ROLES.BRANCH_MANAGER, ROLES.BDM, ROLES.SALES_MANAGER],
+  [ROLES.BRANCH_MANAGER]: [ROLES.BDM, ROLES.SALES_MANAGER],
   [ROLES.BDM]: [ROLES.SALES_MANAGER],
   [ROLES.SALES_MANAGER]: [],
 };
 
+// Which parent role is required for each role
+const REQUIRED_PARENT_ROLE = {
+  [ROLES.REGIONAL_MANAGER]: ROLES.ADMIN,
+  [ROLES.BRANCH_MANAGER]: ROLES.REGIONAL_MANAGER,
+  [ROLES.BDM]: ROLES.BRANCH_MANAGER,
+  [ROLES.SALES_MANAGER]: ROLES.BDM,
+};
+
+/** Get the required parent role for a given role */
+function getRequiredParentRole(role) {
+  return REQUIRED_PARENT_ROLE[role] || null;
+}
+
 // Mock users with hierarchy fields — exact counts per role
 const MOCK_USERS = [
   // Admin (1)
-  { id: 1, name: "Arjun Mehta", email: "admin@realestate.com", password: "admin123", role: ROLES.ADMIN, mobile: "9876543210", employeeCode: "ADM-001", avatar: null, status: "Active", region: "Head Office", branch: null, parentUserId: null, createdBy: null },
+  { id: 1, name: "Arjun Mehta", email: "admin@realestate.com", password: "admin123", role: ROLES.ADMIN, mobile: "9876543210", employeeCode: "AD001", avatar: null, status: "Active", region: "Head Office", branch: null, parentUserId: null, createdBy: null },
 
   // Directors (2)
-  { id: 2, name: "Priya Sharma", email: "director@realestate.com", password: "dir123", role: ROLES.DIRECTOR, mobile: "9876543211", employeeCode: "DIR-001", avatar: null, status: "Active", region: "North", branch: null, parentUserId: 1, createdBy: 1 },
-  { id: 7, name: "Rahul Verma", email: "rahul.dir@realestate.com", password: "dir123", role: ROLES.DIRECTOR, mobile: "9876543240", employeeCode: "DIR-002", avatar: null, status: "Active", region: "South", branch: null, parentUserId: 1, createdBy: 1 },
+  { id: 2, name: "Priya Sharma", email: "director@realestate.com", password: "dir123", role: ROLES.DIRECTOR, mobile: "9876543211", employeeCode: "D001", avatar: null, status: "Active", region: "North", branch: null, parentUserId: 1, createdBy: 1 },
+  { id: 7, name: "Rahul Verma", email: "rahul.dir@realestate.com", password: "dir123", role: ROLES.DIRECTOR, mobile: "9876543240", employeeCode: "D002", avatar: null, status: "Active", region: "South", branch: null, parentUserId: 1, createdBy: 1 },
 
   // Regional Managers (3)
-  { id: 3, name: "Rajesh Kumar", email: "rm@realestate.com", password: "rm123", role: ROLES.REGIONAL_MANAGER, mobile: "9876543212", employeeCode: "RM-001", avatar: null, status: "Active", region: "North", branch: null, parentUserId: 2, createdBy: 2 },
-  { id: 8, name: "Sanjay Gupta", email: "sanjay.rm@realestate.com", password: "rm123", role: ROLES.REGIONAL_MANAGER, mobile: "9876543241", employeeCode: "RM-002", avatar: null, status: "Active", region: "South", branch: null, parentUserId: 7, createdBy: 7 },
-  { id: 9, name: "Meena Joshi", email: "meena.rm@realestate.com", password: "rm123", role: ROLES.REGIONAL_MANAGER, mobile: "9876543242", employeeCode: "RM-003", avatar: null, status: "Active", region: "East", branch: null, parentUserId: 7, createdBy: 7 },
+  { id: 3, name: "Rajesh Kumar", email: "rm@realestate.com", password: "rm123", role: ROLES.REGIONAL_MANAGER, mobile: "9876543212", employeeCode: "RM001", avatar: null, status: "Active", region: "North", branch: null, parentUserId: 2, createdBy: 2 },
+  { id: 8, name: "Sanjay Gupta", email: "sanjay.rm@realestate.com", password: "rm123", role: ROLES.REGIONAL_MANAGER, mobile: "9876543241", employeeCode: "RM002", avatar: null, status: "Active", region: "South", branch: null, parentUserId: 7, createdBy: 7 },
+  { id: 9, name: "Meena Joshi", email: "meena.rm@realestate.com", password: "rm123", role: ROLES.REGIONAL_MANAGER, mobile: "9876543242", employeeCode: "RM003", avatar: null, status: "Active", region: "East", branch: null, parentUserId: 7, createdBy: 7 },
 
   // Branch Managers (4)
-  { id: 4, name: "Sunita Patel", email: "bm@realestate.com", password: "bm123", role: ROLES.BRANCH_MANAGER, mobile: "9876543213", employeeCode: "BM-001", avatar: null, status: "Active", region: "North", branch: "Delhi HQ", parentUserId: 3, createdBy: 3 },
-  { id: 10, name: "Amit Patel", email: "amit.bm@realestate.com", password: "bm123", role: ROLES.BRANCH_MANAGER, mobile: "9876543243", employeeCode: "BM-002", avatar: null, status: "Active", region: "South", branch: "Mumbai HQ", parentUserId: 8, createdBy: 8 },
-  { id: 11, name: "Pooja Singh", email: "pooja.bm@realestate.com", password: "bm123", role: ROLES.BRANCH_MANAGER, mobile: "9876543244", employeeCode: "BM-003", avatar: null, status: "Active", region: "South", branch: "Bangalore Branch", parentUserId: 8, createdBy: 8 },
-  { id: 12, name: "Ramesh Yadav", email: "ramesh.bm@realestate.com", password: "bm123", role: ROLES.BRANCH_MANAGER, mobile: "9876543245", employeeCode: "BM-004", avatar: null, status: "Active", region: "East", branch: "Hyderabad Branch", parentUserId: 9, createdBy: 9 },
+  { id: 4, name: "Sunita Patel", email: "bm@realestate.com", password: "bm123", role: ROLES.BRANCH_MANAGER, mobile: "9876543213", employeeCode: "BM001", avatar: null, status: "Active", region: "North", branch: "Delhi HQ", parentUserId: 3, createdBy: 3 },
+  { id: 10, name: "Amit Patel", email: "amit.bm@realestate.com", password: "bm123", role: ROLES.BRANCH_MANAGER, mobile: "9876543243", employeeCode: "BM002", avatar: null, status: "Active", region: "South", branch: "Mumbai HQ", parentUserId: 8, createdBy: 8 },
+  { id: 11, name: "Pooja Singh", email: "pooja.bm@realestate.com", password: "bm123", role: ROLES.BRANCH_MANAGER, mobile: "9876543244", employeeCode: "BM003", avatar: null, status: "Active", region: "South", branch: "Bangalore Branch", parentUserId: 8, createdBy: 8 },
+  { id: 12, name: "Ramesh Yadav", email: "ramesh.bm@realestate.com", password: "bm123", role: ROLES.BRANCH_MANAGER, mobile: "9876543245", employeeCode: "BM004", avatar: null, status: "Active", region: "East", branch: "Hyderabad Branch", parentUserId: 9, createdBy: 9 },
 
   // BDMs (5)
-  { id: 5, name: "Vikram Singh", email: "bdm@realestate.com", password: "bdm123", role: ROLES.BDM, mobile: "9876543214", employeeCode: "BDM-001", avatar: null, status: "Active", region: "North", branch: "Delhi HQ", parentUserId: 4, createdBy: 4 },
-  { id: 13, name: "Kiran Kumar", email: "kiran.bdm@realestate.com", password: "bdm123", role: ROLES.BDM, mobile: "9876543246", employeeCode: "BDM-002", avatar: null, status: "Active", region: "South", branch: "Mumbai HQ", parentUserId: 10, createdBy: 10 },
-  { id: 14, name: "Ritu Sharma", email: "ritu.bdm@realestate.com", password: "bdm123", role: ROLES.BDM, mobile: "9876543247", employeeCode: "BDM-003", avatar: null, status: "Active", region: "South", branch: "Bangalore Branch", parentUserId: 11, createdBy: 11 },
-  { id: 15, name: "Anil Bose", email: "anil.bdm@realestate.com", password: "bdm123", role: ROLES.BDM, mobile: "9876543248", employeeCode: "BDM-004", avatar: null, status: "Active", region: "East", branch: "Hyderabad Branch", parentUserId: 12, createdBy: 12 },
-  { id: 16, name: "Deepa Rao", email: "deepa.bdm@realestate.com", password: "bdm123", role: ROLES.BDM, mobile: "9876543249", employeeCode: "BDM-005", avatar: null, status: "Active", region: "South", branch: "Mumbai HQ", parentUserId: 10, createdBy: 10 },
+  { id: 5, name: "Vikram Singh", email: "bdm@realestate.com", password: "bdm123", role: ROLES.BDM, mobile: "9876543214", employeeCode: "BD001", avatar: null, status: "Active", region: "North", branch: "Delhi HQ", parentUserId: 4, createdBy: 4 },
+  { id: 13, name: "Kiran Kumar", email: "kiran.bdm@realestate.com", password: "bdm123", role: ROLES.BDM, mobile: "9876543246", employeeCode: "BD002", avatar: null, status: "Active", region: "South", branch: "Mumbai HQ", parentUserId: 10, createdBy: 10 },
+  { id: 14, name: "Ritu Sharma", email: "ritu.bdm@realestate.com", password: "bdm123", role: ROLES.BDM, mobile: "9876543247", employeeCode: "BD003", avatar: null, status: "Active", region: "South", branch: "Bangalore Branch", parentUserId: 11, createdBy: 11 },
+  { id: 15, name: "Anil Bose", email: "anil.bdm@realestate.com", password: "bdm123", role: ROLES.BDM, mobile: "9876543248", employeeCode: "BD004", avatar: null, status: "Active", region: "East", branch: "Hyderabad Branch", parentUserId: 12, createdBy: 12 },
+  { id: 16, name: "Deepa Rao", email: "deepa.bdm@realestate.com", password: "bdm123", role: ROLES.BDM, mobile: "9876543249", employeeCode: "BD005", avatar: null, status: "Active", region: "South", branch: "Mumbai HQ", parentUserId: 10, createdBy: 10 },
 
   // Sales Managers (6)
-  { id: 6, name: "Anjali Verma", email: "sm@realestate.com", password: "sm123", role: ROLES.SALES_MANAGER, mobile: "9876543215", employeeCode: "SM-001", avatar: null, status: "Active", region: "North", branch: "Delhi HQ", parentUserId: 5, createdBy: 5 },
-  { id: 17, name: "Manoj Tiwari", email: "manoj.sm@realestate.com", password: "sm123", role: ROLES.SALES_MANAGER, mobile: "9876543250", employeeCode: "SM-002", avatar: null, status: "Active", region: "South", branch: "Mumbai HQ", parentUserId: 13, createdBy: 13 },
-  { id: 18, name: "Sonia Kapoor", email: "sonia.sm@realestate.com", password: "sm123", role: ROLES.SALES_MANAGER, mobile: "9876543251", employeeCode: "SM-003", avatar: null, status: "Active", region: "South", branch: "Bangalore Branch", parentUserId: 14, createdBy: 14 },
-  { id: 19, name: "Vijay Menon", email: "vijay.sm@realestate.com", password: "sm123", role: ROLES.SALES_MANAGER, mobile: "9876543252", employeeCode: "SM-004", avatar: null, status: "Active", region: "East", branch: "Hyderabad Branch", parentUserId: 15, createdBy: 15 },
-  { id: 20, name: "Rekha Das", email: "rekha.sm@realestate.com", password: "sm123", role: ROLES.SALES_MANAGER, mobile: "9876543253", employeeCode: "SM-005", avatar: null, status: "Active", region: "South", branch: "Mumbai HQ", parentUserId: 16, createdBy: 16 },
-  { id: 21, name: "Arjun Reddy", email: "arjun.sm@realestate.com", password: "sm123", role: ROLES.SALES_MANAGER, mobile: "9876543254", employeeCode: "SM-006", avatar: null, status: "Active", region: "South", branch: "Mumbai HQ", parentUserId: 13, createdBy: 13 },
+  { id: 6, name: "Anjali Verma", email: "sm@realestate.com", password: "sm123", role: ROLES.SALES_MANAGER, mobile: "9876543215", employeeCode: "SM001", avatar: null, status: "Active", region: "North", branch: "Delhi HQ", parentUserId: 5, createdBy: 5 },
+  { id: 17, name: "Manoj Tiwari", email: "manoj.sm@realestate.com", password: "sm123", role: ROLES.SALES_MANAGER, mobile: "9876543250", employeeCode: "SM002", avatar: null, status: "Active", region: "South", branch: "Mumbai HQ", parentUserId: 13, createdBy: 13 },
+  { id: 18, name: "Sonia Kapoor", email: "sonia.sm@realestate.com", password: "sm123", role: ROLES.SALES_MANAGER, mobile: "9876543251", employeeCode: "SM003", avatar: null, status: "Active", region: "South", branch: "Bangalore Branch", parentUserId: 14, createdBy: 14 },
+  { id: 19, name: "Vijay Menon", email: "vijay.sm@realestate.com", password: "sm123", role: ROLES.SALES_MANAGER, mobile: "9876543252", employeeCode: "SM004", avatar: null, status: "Active", region: "East", branch: "Hyderabad Branch", parentUserId: 15, createdBy: 15 },
+  { id: 20, name: "Rekha Das", email: "rekha.sm@realestate.com", password: "sm123", role: ROLES.SALES_MANAGER, mobile: "9876543253", employeeCode: "SM005", avatar: null, status: "Active", region: "South", branch: "Mumbai HQ", parentUserId: 16, createdBy: 16 },
+  { id: 21, name: "Arjun Reddy", email: "arjun.sm@realestate.com", password: "sm123", role: ROLES.SALES_MANAGER, mobile: "9876543254", employeeCode: "SM006", avatar: null, status: "Active", region: "South", branch: "Mumbai HQ", parentUserId: 13, createdBy: 13 },
 ];
 
 // ─── Hierarchy utility functions ───────────────────────────────────────────
@@ -136,6 +149,25 @@ function getParentRoleName(role) {
     if (l === currentLevel - 1) return r;
   }
   return null;
+}
+
+/** Verify if a user can be created by a given role with a specific parent */
+function verifyUserCreation(parentRole, childRole) {
+  const parentLevel = ROLE_LEVEL[parentRole];
+  const childLevel = ROLE_LEVEL[childRole];
+
+  if (parentLevel === undefined || childLevel === undefined) {
+    return { valid: false, error: "Invalid role selected" };
+  }
+
+  if (childLevel <= parentLevel) {
+    return {
+      valid: false,
+      error: `${parentRole} cannot create ${childRole} role.`
+    };
+  }
+
+  return { valid: true };
 }
 
 export function AuthProvider({ children }) {
@@ -205,6 +237,8 @@ export function AuthProvider({ children }) {
     getTeamCountFor: (allUsers, uid) => getTeamCount(allUsers, uid),
     ROLE_LEVEL,
     CAN_CREATE,
+    verifyUserCreation,
+    getRequiredParentRole,
   };
 
   return (
