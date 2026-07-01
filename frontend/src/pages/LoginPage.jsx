@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useData } from "../context/DataContext.jsx";
-import { Building2, Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
+import { Building2, Eye, EyeOff, Lock, UserCircle2, ShieldCheck } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const { users } = useData();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -16,7 +16,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setTimeout(() => {
-      const res = login(email, password, users);
+      const res = login(identifier, password, users);
       if (!res.success) { toast.error(res.error); }
       else { toast.success(`Welcome back, ${res.user.name}!`); }
       setLoading(false);
@@ -86,14 +86,14 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Address</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">User ID</label>
               <div className="relative group">
-                <Mail size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                <UserCircle2 size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                 <input
-                  type="email" 
-                  value={email} 
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="your@email.com" 
+                  type="text"
+                  value={identifier}
+                  onChange={e => setIdentifier(e.target.value)}
+                  placeholder="Enter the user ID"
                   required
                   className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white/50 outline-none transition-all duration-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-100/50 group-hover:border-gray-300"
                 />

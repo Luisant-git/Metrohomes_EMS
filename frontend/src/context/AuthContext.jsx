@@ -55,11 +55,11 @@ function getRequiredParentRole(role) {
 // Mock users with hierarchy fields — exact counts per role
 const MOCK_USERS = [
   // Admin (1)
-  { id: 1, name: "Arjun Mehta", email: "admin@realestate.com", password: "admin123", role: ROLES.ADMIN, mobile: "9876543210", employeeCode: "AD001", avatar: null, status: "Active", region: "Head Office", branch: null, parentUserId: null, createdBy: null },
+  { id: 1, name: "Arjun Mehta", email: "admin@realestate.com", password: "1234", role: ROLES.ADMIN, mobile: "9876543210", employeeCode: "AD001", avatar: null, status: "Active", region: "Head Office", branch: null, parentUserId: null, createdBy: null },
 
   // Directors (2)
-  { id: 2, name: "Priya Sharma", email: "director@realestate.com", password: "dir123", role: ROLES.DIRECTOR, mobile: "9876543211", employeeCode: "D001", avatar: null, status: "Active", region: "North", branch: null, parentUserId: 1, createdBy: 1 },
-  { id: 7, name: "Rahul Verma", email: "rahul.dir@realestate.com", password: "dir123", role: ROLES.DIRECTOR, mobile: "9876543240", employeeCode: "D002", avatar: null, status: "Active", region: "South", branch: null, parentUserId: 1, createdBy: 1 },
+  { id: 2, name: "Priya Sharma", email: "director@realestate.com", password: "1234", role: ROLES.DIRECTOR, mobile: "9876543211", employeeCode: "D001", avatar: null, status: "Active", region: "North", branch: null, parentUserId: 1, createdBy: 1 },
+  { id: 7, name: "Rahul Verma", email: "rahul.dir@realestate.com", password: "1234", role: ROLES.DIRECTOR, mobile: "9876543240", employeeCode: "D002", avatar: null, status: "Active", region: "South", branch: null, parentUserId: 1, createdBy: 1 },
 
   // Regional Managers (3)
   { id: 3, name: "Rajesh Kumar", email: "rm@realestate.com", password: "rm123", role: ROLES.REGIONAL_MANAGER, mobile: "9876543212", employeeCode: "RM001", avatar: null, status: "Active", region: "North", branch: null, parentUserId: 2, createdBy: 2 },
@@ -182,28 +182,30 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  const login = (email, password, dynamicUsers = []) => {
-    // Only check MOCK_USERS - default users always have passwords
-    let found = MOCK_USERS.find(u => u.email === email && u.password === password);
-    // Also check dynamic users with passwords (skip entries without passwords to avoid conflicts)
+  const login = (identifier, password, dynamicUsers = []) => {
+    const normalizedIdentifier = identifier?.trim().toLowerCase();
+
+    const matchesCredential = (user) => {
+      if (!user?.password) return false;
+      const emailMatches = user.email?.toLowerCase() === normalizedIdentifier;
+      const userIdMatches = user.employeeCode?.toLowerCase() === normalizedIdentifier || user.userId?.toLowerCase() === normalizedIdentifier;
+      return (emailMatches || userIdMatches) && user.password === password;
+    };
+
+    let found = MOCK_USERS.find(matchesCredential);
+
     if (!found && dynamicUsers.length > 0) {
-      found = dynamicUsers.find(u => u.password && u.email === email && u.password === password);
+      found = dynamicUsers.find(matchesCredential);
     }
-    // If still not found, try case-insensitive email match
-    if (!found) {
-      const lowerEmail = email.toLowerCase();
-      found = dynamicUsers.find(u => u.email.toLowerCase() === lowerEmail && u.password === password);
-      if (!found) {
-        found = MOCK_USERS.find(u => u.email.toLowerCase() === lowerEmail && u.password === password);
-      }
-    }
+
     if (found) {
       const { password: _, ...safeUser } = found;
       setUser(safeUser);
       localStorage.setItem("re_user", JSON.stringify(safeUser));
       return { success: true, user: safeUser };
     }
-    return { success: false, error: "Invalid email or password" };
+
+    return { success: false, error: "Invalid user ID or password" };
   };
 
   const logout = () => {
