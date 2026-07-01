@@ -1017,7 +1017,23 @@ export default function UserManagement() {
         ].map(({ role, icon: Icon, color }) => {
           const count = visibleUsers.filter(u => u.role === role).length;
           const isActive = filterRole === role;
-          const colorClasses = {
+          const activeStyles = {
+            indigo: "bg-indigo-50 border border-indigo-200 shadow-lg shadow-indigo-100/40",
+            blue: "bg-blue-50 border border-blue-200 shadow-lg shadow-blue-100/40",
+            purple: "bg-purple-50 border border-purple-200 shadow-lg shadow-purple-100/40",
+            cyan: "bg-cyan-50 border border-cyan-200 shadow-lg shadow-cyan-100/40",
+            orange: "bg-orange-50 border border-orange-200 shadow-lg shadow-orange-100/40",
+            green: "bg-green-50 border border-green-200 shadow-lg shadow-green-100/40",
+          };
+          const iconWrapperClasses = {
+            indigo: "bg-indigo-50 ring-1 ring-indigo-100",
+            blue: "bg-blue-50 ring-1 ring-blue-100",
+            purple: "bg-purple-50 ring-1 ring-purple-100",
+            cyan: "bg-cyan-50 ring-1 ring-cyan-100",
+            orange: "bg-orange-50 ring-1 ring-orange-100",
+            green: "bg-green-50 ring-1 ring-green-100",
+          };
+          const colorTextClasses = {
             indigo: "text-indigo-600",
             blue: "text-blue-600",
             purple: "text-purple-600",
@@ -1027,16 +1043,16 @@ export default function UserManagement() {
           };
           return (
             <div key={role} onClick={() => setFilterRole(prev => prev === role ? "" : role)} className="min-w-[180px]">
-              <div className="card p-5">
+              <div className={`card p-5 transition-all duration-200 ${isActive ? activeStyles[color] : "bg-white hover:shadow-md"}`}>
                 <div className="flex items-start justify-between mb-3">
-                  <div className={`w-12 h-12 rounded-2xl bg-${color}-50 ring-1 ring-${color}-100 flex items-center justify-center`}>
-                    <Icon size={22} className={`text-${color}-600`} />
+                  <div className={`w-12 h-12 rounded-2xl ${iconWrapperClasses[color]} flex items-center justify-center`}>
+                    <Icon size={22} className={colorTextClasses[color]} />
                   </div>
                 </div>
                 <div className="text-2xl font-extrabold text-gray-900 tabular-nums mb-0.5">
                   {count}
                 </div>
-                <div className={`text-xs ${isActive ? `font-bold ${colorClasses[color]}` : "font-medium text-gray-500"}`}>
+                <div className={`${isActive ? `font-bold ${colorTextClasses[color]}` : "font-medium text-gray-500"} text-xs`}>
                   {role}
                 </div>
               </div>
