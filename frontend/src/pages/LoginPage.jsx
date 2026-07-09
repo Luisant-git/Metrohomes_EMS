@@ -20,8 +20,11 @@ export default function LoginPage() {
       }
       if (data.user) {
         localStorage.setItem("re_user", JSON.stringify(data.user));
+        toast.success(`Welcome back, ${data.user.name}!`);
+      } else {
+        toast.success("Login successful!");
       }
-      window.location.reload();
+      setTimeout(() => window.location.reload(), 800);
     } catch (err) {
       toast.error(err.message || "Login failed. Please check your credentials.");
     } finally {

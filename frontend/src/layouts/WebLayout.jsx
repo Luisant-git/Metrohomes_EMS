@@ -6,6 +6,7 @@ import {
   Trophy, Coins, LogOut, Bell, Search, Menu, X, ChevronDown, User,
   FileText, UserCheck, Settings, UserPlus,
 } from "lucide-react";
+import logo from "../assests/logo 1.png";
 
 const NAV_ITEMS = [
   { path: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["Admin", "Director"] },
@@ -36,15 +37,11 @@ export default function WebLayout({ children }) {
       {/* Sidebar */}
       <aside className={`${sidebarOpen ? "w-64" : "w-16"} bg-white border-r border-gray-100 flex flex-col transition-all duration-300 shadow-sm flex-shrink-0`}>
         {/* Logo */}
-        <div className="h-16 flex items-center px-4 border-b border-gray-100 gap-3">
-          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md shadow-blue-200">
-            <Building2 size={18} className="text-white" />
-          </div>
-          {sidebarOpen && (
-            <div className="overflow-hidden">
-              <div className="font-bold text-gray-900 text-sm leading-tight">RealEstate EMS</div>
-              <div className="text-xs text-gray-400">Enterprise Suite</div>
-            </div>
+        <div className="h-28 flex items-center justify-center px-4 border-b border-gray-100 bg-white">
+          {sidebarOpen ? (
+            <img src={logo} alt="Logo" className="h-45 w-auto max-w-[220px]" />
+          ) : (
+            <img src={logo} alt="Logo" className="w-20 h-30" />
           )}
         </div>
 
