@@ -1,7 +1,7 @@
 // src/user/dto/update-user.dto.ts
 import { PartialType, OmitType } from '@nestjs/mapped-types';
 import { CreateUserDto, UserStatus } from './create-user.dto';
-import { IsOptional, IsEnum } from 'class-validator';
+import { IsOptional, IsEnum, IsNumber } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateUserDto extends PartialType(
@@ -15,4 +15,12 @@ export class UpdateUserDto extends PartialType(
   @IsOptional()
   @IsEnum(UserStatus)
   status?: UserStatus;
+
+  @ApiPropertyOptional({
+    description: 'Parent/Manager user ID',
+    example: 1,
+  })
+  @IsOptional()
+  @IsNumber()
+  parentUserId?: number;
 }

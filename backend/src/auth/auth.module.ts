@@ -12,7 +12,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     UserModule,
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'your-secret-key',
+      secret: process.env.JWT_SECRET || 'metrohomes-secret-key',
       signOptions: { expiresIn: '7d' },
     }),
   ],

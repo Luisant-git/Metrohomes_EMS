@@ -1,4 +1,4 @@
-
+// src/api/auth.api.js
 const VITE_API_URL = import.meta.env.VITE_API_URL;
 
 const handleResponse = async (response) => {
@@ -16,7 +16,7 @@ const getAuthHeaders = () => ({
 });
 
 export const auth = {
-  // Register Admin (First Time)
+  // Register Admin (First Time Only)
   async registerAdmin(userData) {
     const response = await fetch(`${VITE_API_URL}/auth/register-admin`, {
       method: "POST",
@@ -40,6 +40,15 @@ export const auth = {
     return data;
   },
 
+  // Get current user profile
+  async getProfile() {
+    const response = await fetch(`${VITE_API_URL}/auth/me`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   // Logout
   logout() {
     localStorage.removeItem("authToken");
@@ -52,7 +61,7 @@ export const auth = {
     return !!localStorage.getItem("authToken");
   },
 
-  // Get current user
+  // Get current user from localStorage
   getCurrentUser() {
     const user = localStorage.getItem("user");
     return user ? JSON.parse(user) : null;
@@ -61,5 +70,10 @@ export const auth = {
   // Get auth token
   getToken() {
     return localStorage.getItem("authToken");
+  },
+
+  // Update user in localStorage
+  updateUser(userData) {
+    localStorage.setItem("user", JSON.stringify(userData));
   },
 };

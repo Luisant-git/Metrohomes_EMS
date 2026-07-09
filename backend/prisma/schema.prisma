@@ -10,14 +10,14 @@ datasource db {
 }
 
 model User {
-  id                    String    @id @default(cuid())
-  employeeCode          String    @unique    // AD001, D001, RM001, SM001, etc.
+  id                    Int      @id @default(autoincrement())
+  employeeCode          String   @unique    // AD001, D001, RM001, SM001, etc.
   name                  String
-  email                 String    @unique
-  mobile                String    @unique
+  email                 String   @unique
+  mobile                String   @unique
   pin                   String               // 4-digit PIN (hashed)
   role                  String               // Admin, Director, Regional Manager, etc.
-  status                String    @default("Active")
+  status                String   @default("Active")
   
   // Personal Information
   fatherHusbandName     String?
@@ -36,13 +36,13 @@ model User {
   panNo                 String?
   
   // Hierarchy (Self-referencing)
-  parentUserId          String?   @map("parentUserId")
-  parent                User?     @relation("UserHierarchy", fields: [parentUserId], references: [id])
-  children              User[]    @relation("UserHierarchy")
+  parentUserId          Int?
+  parent                User?    @relation("UserHierarchy", fields: [parentUserId], references: [id])
+  children              User[]   @relation("UserHierarchy")
   
-  createdBy             String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdBy             Int?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
   
   @@map("users")
 }

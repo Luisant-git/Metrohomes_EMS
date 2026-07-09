@@ -5,8 +5,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class LoginDto {
   @ApiProperty({
     description: 'Login identifier (employeeCode, email, or mobile)',
-    example: 'SM001',
-    examples: ['SM001', 'john@example.com', '9876543210'],
+    example: 'KD001',
   })
   @IsString()
   @IsNotEmpty()
@@ -14,9 +13,7 @@ export class LoginDto {
 
   @ApiProperty({
     description: '4-digit PIN',
-    example: '1234',
-    minLength: 4,
-    maxLength: 4,
+    example: '4234',
   })
   @IsString()
   @IsNotEmpty()

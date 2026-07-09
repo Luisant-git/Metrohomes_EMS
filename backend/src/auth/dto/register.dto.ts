@@ -6,8 +6,6 @@ export class RegisterDto {
   @ApiProperty({
     description: 'Full name of the admin',
     example: 'Super Admin',
-    minLength: 2,
-    maxLength: 100,
   })
   @IsString()
   @IsNotEmpty()
@@ -16,7 +14,7 @@ export class RegisterDto {
 
   @ApiProperty({
     description: 'Email address of the admin',
-    example: 'admin@realestate.com',
+    example: 'admin@metrohomes.com',
   })
   @IsEmail()
   @IsNotEmpty()

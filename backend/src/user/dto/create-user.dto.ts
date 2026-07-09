@@ -10,6 +10,7 @@ import {
   Matches,
   Length,
   IsNotEmpty,
+  IsNumber,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -168,17 +169,17 @@ export class CreateUserDto {
 
   @ApiPropertyOptional({
     description: 'Parent/Manager user ID (for hierarchy)',
-    example: 'cm8j8...',
+    example: 1,
   })
   @IsOptional()
-  @IsString()
-  parentUserId?: string;
+  @IsNumber()
+  parentUserId?: number;
 
   @ApiPropertyOptional({
     description: 'User who created this user',
-    example: 'cm8j8...',
+    example: 1,
   })
   @IsOptional()
-  @IsString()
-  createdBy?: string;
+  @IsNumber()
+  createdBy?: number;
 }

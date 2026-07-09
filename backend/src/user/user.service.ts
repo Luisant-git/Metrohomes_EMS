@@ -4,32 +4,43 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, UserRole, UserStatus } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserResponseDto } from './dto/user-response.dto';
 
 @Injectable()
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
   private roleCodes: Record<string, string> = {
-    [UserRole.ADMIN]: 'AD',
-    [UserRole.DIRECTOR]: 'D',
-    [UserRole.REGIONAL_MANAGER]: 'RM',
-    [UserRole.BRANCH_MANAGER]: 'BM',
-    [UserRole.BDM]: 'BD',
-    [UserRole.SALES_MANAGER]: 'SM',
+    'Admin': 'AD',
+    'Director': 'D',
+    'Regional Manager': 'RM',
+    'Branch Manager': 'BM',
+    'BDM': 'BD',
+    'Sales Manager': 'SM',
   };
 
   private roleLevels: Record<string, number> = {
-    [UserRole.ADMIN]: 0,
-    [UserRole.DIRECTOR]: 1,
-    [UserRole.REGIONAL_MANAGER]: 2,
-    [UserRole.BRANCH_MANAGER]: 3,
-    [UserRole.BDM]: 4,
-    [UserRole.SALES_MANAGER]: 5,
+    'Admin': 0,
+    'Director': 1,
+    'Regional Manager': 2,
+    'Branch Manager': 3,
+    'BDM': 4,
+    'Sales Manager': 5,
   };
 
   // ─── CREATE USER ────────────────────────────────────────────────
-  async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
+  async create(createUserDto: CreateUserDto, currentUser?: any) {
+    const userCount = await this.prisma.user.count();
+    const isFirstUser = userCount === 0;
+
+    if (!isFirstUser && currentUser) {
+      const creatableRoles = this.getCreatableRoles(currentUser.role);
+      if (!creatableRoles.includes(createUserDto.role)) {
+        throw new BadRequestException(
+          `${currentUser.role} cannot create ${createUserDto.role} role`
+        );
+      }
+    }
+
     const existingUser = await this.prisma.user.findFirst({
       where: {
         OR: [
@@ -74,6 +85,9 @@ export class UserService {
 
     const hashedPin = await bcrypt.hash(createUserDto.pin, 10);
 
+    const parentId = isFirstUser ? null : (createUserDto.parentUserId || currentUser?.id || null);
+    const createdById = isFirstUser ? null : (currentUser?.id || null);
+
     const user = await this.prisma.user.create({
       data: {
         employeeCode,
@@ -92,8 +106,8 @@ export class UserService {
         ifscCode: createUserDto.ifscCode,
         bankBranch: createUserDto.bankBranch,
         panNo: createUserDto.panNo,
-        parentUserId: createUserDto.parentUserId,
-        createdBy: createUserDto.createdBy,
+        parentUserId: parentId,
+        createdBy: createdById,
         status: 'Active',
       },
       include: {
@@ -103,49 +117,27 @@ export class UserService {
     });
 
     const { pin, ...result } = user;
-    return result as UserResponseDto;
-  }
-
-  // ─── FIND BY IDENTIFIER ──────────────────────────────────────────
-  async findByIdentifier(identifier: string): Promise<any> {
-    return this.prisma.user.findFirst({
-      where: {
-        OR: [
-          { employeeCode: identifier },
-          { email: identifier },
-          { mobile: identifier },
-        ],
-      },
-      include: {
-        parent: true,
-        children: true,
-      },
-    });
+    return result;
   }
 
   // ─── FIND ALL USERS ──────────────────────────────────────────────
-  async findAll(params?: {
-    role?: string;
-    status?: string;
-    search?: string;
-    parentUserId?: string;
-  }): Promise<UserResponseDto[]> {
+  async findAll(role?: string, status?: string, search?: string, parentUserId?: number, currentUser?: any) {
     const where: any = {};
 
-    if (params?.role) where.role = params.role;
-    if (params?.status) where.status = params.status;
-    if (params?.parentUserId) where.parentUserId = params.parentUserId;
+    if (role) where.role = role;
+    if (status) where.status = status;
+    if (parentUserId) where.parentUserId = parentUserId;
 
-    if (params?.search) {
+    if (search) {
       where.OR = [
-        { name: { contains: params.search, mode: 'insensitive' } },
-        { email: { contains: params.search, mode: 'insensitive' } },
-        { mobile: { contains: params.search } },
-        { employeeCode: { contains: params.search, mode: 'insensitive' } },
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { mobile: { contains: search } },
+        { employeeCode: { contains: search, mode: 'insensitive' } },
       ];
     }
 
-    const users = await this.prisma.user.findMany({
+    let users = await this.prisma.user.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       include: {
@@ -154,11 +146,16 @@ export class UserService {
       },
     });
 
-    return users.map(({ pin, ...user }) => user as UserResponseDto);
+    if (currentUser && !['Admin', 'Director'].includes(currentUser?.role)) {
+      const teamIds = await this.getTeamMembers(currentUser.id);
+      users = users.filter((user) => user.id === currentUser.id || teamIds.includes(user.id));
+    }
+
+    return users.map(({ pin, ...user }) => user);
   }
 
   // ─── FIND ONE USER ───────────────────────────────────────────────
-  async findOne(id: string): Promise<UserResponseDto> {
+  async findOne(id: number, currentUser?: any) {
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
@@ -175,25 +172,53 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
 
+    if (currentUser && !['Admin', 'Director'].includes(currentUser?.role)) {
+      const teamIds = await this.getTeamMembers(currentUser.id);
+      if (user.id !== currentUser.id && !teamIds.includes(user.id)) {
+        throw new BadRequestException('You do not have access to this user');
+      }
+    }
+
     const { pin, ...result } = user;
-    return result as UserResponseDto;
+    return result;
+  }
+
+  // ─── FIND BY IDENTIFIER ──────────────────────────────────────────
+  async findByIdentifier(identifier: string) {
+    return this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { employeeCode: identifier },
+          { email: identifier },
+          { mobile: identifier },
+        ],
+      },
+      include: {
+        parent: true,
+        children: true,
+      },
+    });
   }
 
   // ─── FIND BY ROLE ─────────────────────────────────────────────────
-  async findByRole(role: string): Promise<any> {
+  async findByRole(role: string) {
     return this.prisma.user.findFirst({
       where: { role },
     });
   }
 
   // ─── UPDATE USER ──────────────────────────────────────────────────
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<UserResponseDto> {
+  async update(id: number, updateUserDto: UpdateUserDto, currentUser?: any) {
     const user = await this.prisma.user.findUnique({
       where: { id },
     });
 
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    if (updateUserDto.role && currentUser && currentUser.role !== 'Admin') {
+      throw new BadRequestException('Only Admin can change roles');
     }
 
     if (updateUserDto.parentUserId) {
@@ -248,17 +273,23 @@ export class UserService {
     });
 
     const { pin, ...result } = updatedUser;
-    return result as UserResponseDto;
+    return result;
   }
 
   // ─── UPDATE PIN ────────────────────────────────────────────────────
-  async updatePin(id: string, oldPin: string, newPin: string): Promise<UserResponseDto> {
+  async updatePin(id: number, oldPin: string, newPin: string, currentUser?: any) {
     const user = await this.prisma.user.findUnique({
       where: { id },
     });
 
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    if (!['Admin', 'Director'].includes(currentUser?.role)) {
+      if (user.id !== currentUser.id) {
+        throw new BadRequestException('You can only update your own PIN');
+      }
     }
 
     const isPinValid = await bcrypt.compare(oldPin, user.pin);
@@ -278,11 +309,11 @@ export class UserService {
     });
 
     const { pin, ...result } = updatedUser;
-    return result as UserResponseDto;
+    return result;
   }
 
   // ─── RESET PIN ─────────────────────────────────────────────────────
-  async resetPin(id: string, newPin: string): Promise<UserResponseDto> {
+  async resetPin(id: number, newPin: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
     });
@@ -303,11 +334,11 @@ export class UserService {
     });
 
     const { pin, ...result } = updatedUser;
-    return result as UserResponseDto;
+    return result;
   }
 
   // ─── UPDATE STATUS ────────────────────────────────────────────────
-  async updateStatus(id: string, status: UserStatus): Promise<UserResponseDto> {
+  async updateStatus(id: number, status: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
     });
@@ -326,11 +357,11 @@ export class UserService {
     });
 
     const { pin, ...result } = updatedUser;
-    return result as UserResponseDto;
+    return result;
   }
 
   // ─── DELETE USER ──────────────────────────────────────────────────
-  async remove(id: string): Promise<void> {
+  async remove(id: number) {
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
@@ -354,7 +385,7 @@ export class UserService {
   }
 
   // ─── GET CREATABLE ROLES ─────────────────────────────────────────
-  async getCreatableRoles(currentUserRole: string): Promise<string[]> {
+  getCreatableRoles(currentUserRole: string): string[] {
     const roles = ['Admin', 'Director', 'Regional Manager', 'Branch Manager', 'BDM', 'Sales Manager'];
     const currentLevel = this.roleLevels[currentUserRole];
 
@@ -373,61 +404,56 @@ export class UserService {
     return [];
   }
 
-  // ─── GET DOWNLINE ──────────────────────────────────────────────────
-  async getDownline(parentId: string): Promise<UserResponseDto[]> {
-    const users: any[] = [];
-    const queue = [parentId];
-
-    while (queue.length > 0) {
-      const currentId = queue.shift();
-      const children = await this.prisma.user.findMany({
-        where: { parentUserId: currentId },
-      });
-
-      for (const child of children) {
-        users.push(child);
-        queue.push(child.id);
-      }
-    }
-
-    return users.map(({ pin, ...user }) => user as UserResponseDto);
-  }
-
   // ─── GET HIERARCHY ─────────────────────────────────────────────────
-  async getHierarchy(): Promise<UserResponseDto[]> {
-    const users = await this.prisma.user.findMany({
-      where: {
-        parentUserId: null,
-      },
-      include: {
-        children: {
-          include: {
-            children: {
-              include: {
-                children: {
-                  include: {
-                    children: true,
+  async getHierarchy(currentUser?: any) {
+    if (['Admin', 'Director'].includes(currentUser?.role)) {
+      const users = await this.prisma.user.findMany({
+        where: {
+          parentUserId: null,
+        },
+        include: {
+          children: {
+            include: {
+              children: {
+                include: {
+                  children: {
+                    include: {
+                      children: true,
+                    },
                   },
                 },
               },
             },
           },
         },
-      },
-      orderBy: [
-        { role: 'asc' },
-        { name: 'asc' },
-      ],
-    });
+        orderBy: [
+          { role: 'asc' },
+          { name: 'asc' },
+        ],
+      });
+      return users.map(({ pin, ...user }) => user);
+    }
 
-    return users.map(({ pin, ...user }) => user as UserResponseDto);
+    const user = await this.findOne(currentUser.id);
+    return [user];
+  }
+
+  // ─── GET TEAM ──────────────────────────────────────────────────────
+  async getTeam(userId: number, currentUser?: any) {
+    if (!['Admin', 'Director'].includes(currentUser?.role)) {
+      const teamIds = await this.getTeamMembers(currentUser.id);
+      if (userId !== currentUser.id && !teamIds.includes(userId)) {
+        throw new BadRequestException('You do not have access to this team');
+      }
+    }
+    return this.findAll(undefined, undefined, undefined, userId, currentUser);
   }
 
   // ─── GET TEAM MEMBERS ─────────────────────────────────────────────
-  async getTeamMembers(userId: string): Promise<string[]> {
-    const teamMembers: string[] = [];
+  async getTeamMembers(userId: number): Promise<number[]> {
+    const teamMembers: number[] = [];
     const queue = [userId];
-    const visited = new Set<string>();
+    const visited = new Set<number>();
 
     while (queue.length > 0) {
       const currentId = queue.shift();
@@ -446,6 +472,11 @@ export class UserService {
     }
 
     return teamMembers;
+  }
+
+  // ─── SEARCH ────────────────────────────────────────────────────────
+  async search(query: string, currentUser?: any) {
+    return this.findAll(undefined, undefined, query, undefined, currentUser);
   }
 
   // ─── GET STATS ─────────────────────────────────────────────────────
