@@ -1,11 +1,48 @@
-
+// prisma/schema.prisma
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    String    @id @default(cuid())
+  employeeCode          String    @unique    // AD001, D001, RM001, SM001, etc.
+  name                  String
+  email                 String    @unique
+  mobile                String    @unique
+  pin                   String               // 4-digit PIN (hashed)
+  role                  String               // Admin, Director, Regional Manager, etc.
+  status                String    @default("Active")
+  
+  // Personal Information
+  fatherHusbandName     String?
+  address               String?
+  dob                   DateTime?
+  
+  // Nominee Information
+  nomineeName           String?
+  nomineeRelationship   String?
+  
+  // Bank Information
+  bankName              String?
+  bankAccountNo         String?
+  ifscCode              String?
+  bankBranch            String?
+  panNo                 String?
+  
+  // Hierarchy (Self-referencing)
+  parentUserId          String?   @map("parentUserId")
+  parent                User?     @relation("UserHierarchy", fields: [parentUserId], references: [id])
+  children              User[]    @relation("UserHierarchy")
+  
+  createdBy             String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@map("users")
 }
