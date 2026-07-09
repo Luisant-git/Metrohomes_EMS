@@ -578,7 +578,7 @@ function AddUserModal({
                   autoComplete="off"
                 />
               </FormField>
-              <FormField label="PAN No">
+              <FormField label="PAN No" required>
                 <input
                   value={form.panNo}
                   onChange={e => setForm(p => ({ ...p, panNo: e.target.value.toUpperCase() }))}
@@ -890,6 +890,10 @@ export default function UserManagement() {
   const handleSave = () => {
     if (!form.name || !form.mobile) {
       toast.error("Full Name and Mobile are required");
+      return;
+    }
+    if (!form.panNo) {
+      toast.error("PAN No is required");
       return;
     }
     if (modal === "add") {
