@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import DataTable from "../../components/DataTable.jsx";
@@ -12,17 +12,14 @@ import {
   User, Mail, Phone, MapPin, Calendar, CreditCard, Building, Hash, ArrowRight, Loader2,
   UserCog, UserCheck as UserVerify, FileText, Banknote, Users as UsersGroup
 } from "lucide-react";
-import toast from "react-hot-toast";
-
-const REGIONS = ["North", "South", "East", "West", "Central", "Head Office"];
-const BRANCHES = ["Delhi HQ", "Mumbai HQ", "Bangalore Branch", "Hyderabad Branch", "Chennai Branch", "Noida Branch", "Gurgaon Branch"];
+import { toast } from "react-toastify";
 
 const emptyForm = { 
   name: "", 
   email: "", 
   mobile: "", 
   role: "Sales Manager", 
-  password: "",
+  pin: "",
   fatherHusbandName: "",
   address: "",
   dob: "",
@@ -37,6 +34,18 @@ const emptyForm = {
   referredByName: "",
   parentUserId: ""
 };
+
+const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+
+function validatePanNo(panNo) {
+  if (!panNo?.trim()) {
+    return "PAN number is required";
+  }
+  if (!PAN_REGEX.test(panNo.trim().toUpperCase())) {
+    return "Invalid PAN format. Expected: ABCDE1234F";
+  }
+  return null;
+}
 
 function FormField({ label, children, span, required }) {
   return (
@@ -58,7 +67,6 @@ function SuccessModal({ isOpen, onClose, userData }) {
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
       <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full">
-        {/* Header with Close Button */}
         <div className="px-6 pt-6 pb-4 border-b border-gray-100">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -79,7 +87,6 @@ function SuccessModal({ isOpen, onClose, userData }) {
           </div>
         </div>
 
-        {/* Body */}
         <div className="px-6 py-4 space-y-3">
           <div className="bg-gray-50 rounded-lg p-3 text-center">
             <p className="text-xs text-gray-500">User ID</p>
@@ -99,6 +106,18 @@ function SuccessModal({ isOpen, onClose, userData }) {
               <span className="text-sm text-gray-500">Email</span>
               <span className="text-sm text-gray-900">{userData.email || '—'}</span>
             </div>
+            {userData.dob && (
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-500">Date of Birth</span>
+                <span className="text-sm text-gray-900">{(() => { const d = new Date(userData.dob); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })()}</span>
+              </div>
+            )}
+            {userData.joinDate && (
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-500">Joined</span>
+                <span className="text-sm text-gray-900">{new Date(userData.joinDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+              </div>
+            )}
             {userData.referredByName && userData.referredByName !== "User not found" && (
               <div className="flex justify-between items-center pt-2 border-t border-gray-100">
                 <span className="text-sm text-gray-500">Referred By</span>
@@ -111,7 +130,6 @@ function SuccessModal({ isOpen, onClose, userData }) {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="px-6 py-4 bg-gray-50 rounded-b-2xl">
           <button 
             onClick={onClose} 
@@ -124,6 +142,7 @@ function SuccessModal({ isOpen, onClose, userData }) {
     </div>
   );
 }
+
 // ─── Professional Add User Modal Component ────────────────────────────────
 
 function AddUserModal({ 
@@ -132,7 +151,7 @@ function AddUserModal({
   form, 
   setForm, 
   handleSave, 
-  createdUser, 
+  isSaving,
   creatableRoles, 
   users, 
   fetchReferredByName,
@@ -143,6 +162,73 @@ function AddUserModal({
   const [verificationError, setVerificationError] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!isVerified) {
+      newErrors.referredById = "Please verify the Reporting Manager first.";
+    }
+
+    if (!form.name?.trim()) {
+      newErrors.name = "Full Name is required";
+    }
+
+    if (!form.email?.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      newErrors.email = "Invalid email format";
+    }
+
+    if (!form.mobile?.trim()) {
+      newErrors.mobile = "Mobile is required";
+    } else if (!/^\d{10}$/.test(form.mobile.replace(/\D/g, ''))) {
+      newErrors.mobile = "Mobile must contain exactly 10 digits";
+    }
+
+    if (!form.pin?.trim()) {
+      newErrors.pin = "PIN is required";
+    } else if (!/^\d{4}$/.test(form.pin)) {
+      newErrors.pin = "PIN must contain exactly 4 numeric digits";
+    }
+
+    if (form.ifscCode?.trim() && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(form.ifscCode)) {
+      newErrors.ifscCode = "Invalid IFSC code format. Expected: SBIN0001234";
+    }
+
+    if (!form.referredById?.trim()) {
+      newErrors.referredById = "Referred User ID is mandatory";
+    }
+
+    if (!form.role?.trim()) {
+      newErrors.role = "Selected Role is mandatory";
+    }
+
+    const panError = validatePanNo(form.panNo);
+    if (panError) {
+      newErrors.panNo = panError;
+    }
+
+    return newErrors;
+  };
+
+  const handleCreateClick = () => {
+    if (isSaving) return;
+    setErrors({});
+    const validationErrors = validateForm();
+    const errorKeys = Object.keys(validationErrors);
+    if (errorKeys.length > 0) {
+      setErrors(validationErrors);
+      if (errorKeys.length === 1) {
+        toast.error(validationErrors[errorKeys[0]]);
+      } else {
+        toast.error("Please correct the highlighted fields.");
+      }
+      return;
+    }
+    handleSave();
+  };
 
   const roleLevelMap = roleLevels || {
     "Admin": 0,
@@ -154,7 +240,7 @@ function AddUserModal({
   };
 
   const handleVerifyEmployee = () => {
-    const userId = form.referredById?.trim();
+    const userId = form.referredById?.trim().toUpperCase();
     
     if (!userId) {
       setVerificationError("Please enter a User ID");
@@ -168,24 +254,23 @@ function AddUserModal({
     setIsVerified(false);
     setVerifiedManager(null);
 
-    // Find the user by user id or employeeCode
     const foundUser = users.find(u => 
-      u.employeeCode?.toLowerCase() === userId.toLowerCase() || 
-      u.id === userId
+      u.employeeCode?.toUpperCase() === userId || 
+      String(u.id) === userId ||
+      u.userId?.toUpperCase() === userId
     );
 
     setTimeout(() => {
       if (!foundUser) {
-        setVerificationError("❌ User not found. Please check the User ID.");
+        setVerificationError("User not found. Please check the User ID.");
         setIsVerified(false);
         setVerifiedManager(null);
         setIsVerifying(false);
         return;
       }
 
-      // Check if user is active
       if (foundUser.status !== "Active") {
-        setVerificationError("❌ This user is not active. Please contact HR.");
+        setVerificationError("This user is not active. Please contact ADMIN.");
         setIsVerified(false);
         setVerifiedManager(null);
         setIsVerifying(false);
@@ -197,7 +282,7 @@ function AddUserModal({
       const managerRoleLevel = roleLevelMap[foundUser.role];
 
       if (currentRoleLevel === undefined || selectedRoleLevel === undefined) {
-        setVerificationError("❌ Invalid role selected.");
+        setVerificationError("Invalid role selected.");
         setIsVerified(false);
         setVerifiedManager(null);
         setIsVerifying(false);
@@ -205,7 +290,7 @@ function AddUserModal({
       }
 
       if (selectedRoleLevel <= currentRoleLevel) {
-        setVerificationError(`❌ ${currentUserRole} cannot create ${form.role} role.`);
+        setVerificationError(`${currentUserRole} cannot create ${form.role} role.`);
         setIsVerified(false);
         setVerifiedManager(null);
         setIsVerifying(false);
@@ -213,7 +298,7 @@ function AddUserModal({
       }
 
       if (managerRoleLevel === undefined || selectedRoleLevel <= managerRoleLevel) {
-        setVerificationError(`❌ ${foundUser.role} cannot create ${form.role} role.`);
+        setVerificationError(`${foundUser.role} cannot create ${form.role} role.`);
         setIsVerified(false);
         setVerifiedManager(null);
         setIsVerifying(false);
@@ -228,12 +313,11 @@ function AddUserModal({
         referredByName: foundUser.name,
         parentUserId: foundUser.id 
       }));
-      toast.success(`✅ User verified successfully. ${form.role} will report to ${foundUser.name}.`);
+      toast.success(`User verified successfully. ${form.role} will report to ${foundUser.name}.`);
       setIsVerifying(false);
     }, 500);
   };
 
-  // Reset verification when role changes
   const handleRoleChange = (newRole) => {
     setForm(p => ({ ...p, role: newRole }));
     setIsVerified(false);
@@ -242,19 +326,15 @@ function AddUserModal({
     setForm(p => ({ ...p, referredById: "", referredByName: "", parentUserId: "" }));
   };
 
-  // Reset verification when employee ID changes
   const handleEmployeeIdChange = (value) => {
-    setForm(p => ({ ...p, referredById: value }));
+    const upperValue = value.toUpperCase();
+    setForm(p => ({ ...p, referredById: upperValue }));
     setIsVerified(false);
     setVerifiedManager(null);
     setVerificationError("");
   };
 
   if (!isOpen) return null;
-
-  if (createdUser) {
-    return <SuccessModal isOpen={true} onClose={onClose} userData={createdUser} />;
-  }
 
   return (
     <Modal open={isOpen} onClose={onClose} title="Create New User" size="lg">
@@ -272,10 +352,11 @@ function AddUserModal({
             <select
               value={form.role}
               onChange={e => handleRoleChange(e.target.value)}
-              className="input-field"
+              className={`input-field ${errors.role ? "border-red-500 focus:ring-red-500" : ""}`}
             >
               {creatableRoles.map(r => <option key={r}>{r}</option>)}
             </select>
+            {errors.role && <p className="text-red-500 text-xs mt-1">{errors.role}</p>}
           </FormField>
         </div>
 
@@ -315,7 +396,7 @@ function AddUserModal({
             {isVerified && (
               <span className="text-xs text-green-600 ml-auto flex items-center gap-1">
                 <CheckCircle size={14} />
-                Verified ✓
+                Verified
               </span>
             )}
             {!isVerified && !verificationError && (
@@ -329,7 +410,7 @@ function AddUserModal({
                 <input
                   value={form.referredById}
                   onChange={e => handleEmployeeIdChange(e.target.value)}
-                  className={`input-field ${
+                  className={`input-field uppercase ${
                     isVerified 
                       ? 'border-green-300 bg-green-50' 
                       : verificationError 
@@ -371,7 +452,6 @@ function AddUserModal({
             </div>
           </div>
 
-          {/* Verification Messages */}
           {verificationError && (
             <div className="mt-3 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
               <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
@@ -381,13 +461,12 @@ function AddUserModal({
             </div>
           )}
 
-          {/* Verified Manager Card */}
           {isVerified && verifiedManager && (
             <div className="mt-3 border-2 border-green-200 rounded-xl overflow-hidden bg-white shadow-lg shadow-green-100">
               <div className="bg-green-50 px-4 py-2 border-b border-green-200 flex items-center gap-2">
                 <CheckCircle size={16} className="text-green-600" />
                 <span className="text-sm font-semibold text-green-700">
-                  Reporting Manager Verified ✓
+                  Reporting Manager Verified
                 </span>
               </div>
               <div className="p-4">
@@ -443,10 +522,11 @@ function AddUserModal({
                 <input
                   value={form.name}
                   onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                  className="input-field"
+                  className={`input-field ${errors.name ? "border-red-500 focus:ring-red-500" : ""}`}
                   placeholder="Enter full name"
                   autoComplete="off"
                 />
+                {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
               </FormField>
               <FormField label="Father's/Husband">
                 <input
@@ -462,19 +542,26 @@ function AddUserModal({
                   type="email"
                   value={form.email}
                   onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                  className="input-field"
+                  className={`input-field ${errors.email ? "border-red-500 focus:ring-red-500" : ""}`}
                   placeholder="email@company.com"
                   autoComplete="off"
                 />
+                {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
               </FormField>
               <FormField label="Mobile" required>
                 <input
                   value={form.mobile}
-                  onChange={e => setForm(p => ({ ...p, mobile: e.target.value }))}
-                  className="input-field"
+                  onChange={e => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setForm(p => ({ ...p, mobile: val }));
+                  }}
+                  className={`input-field ${errors.mobile ? "border-red-500 focus:ring-red-500" : ""}`}
                   placeholder="Enter 10-digit mobile"
                   autoComplete="off"
+                  maxLength={10}
+                  inputMode="numeric"
                 />
+                {errors.mobile && <p className="text-red-500 text-xs mt-1">{errors.mobile}</p>}
               </FormField>
               <FormField label="Date of Birth">
                 <input
@@ -485,15 +572,21 @@ function AddUserModal({
                   autoComplete="off"
                 />
               </FormField>
-              <FormField label="Password" required>
+              <FormField label="PIN (4 digits)" required>
                 <input
                   type="password"
-                  value={form.password}
-                  onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
-                  className="input-field"
-                  placeholder="Set password"
+                  value={form.pin}
+                  onChange={e => {
+                    const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 4);
+                    setForm(p => ({ ...p, pin: val }));
+                  }}
+                  className={`input-field ${errors.pin ? "border-red-500 focus:ring-red-500" : ""}`}
+                  placeholder="Enter 4-digit PIN"
                   autoComplete="off"
+                  maxLength={4}
+                  inputMode="numeric"
                 />
+                {errors.pin && <p className="text-red-500 text-xs mt-1">{errors.pin}</p>}
               </FormField>
               <FormField label="Address" span>
                 <textarea
@@ -564,10 +657,11 @@ function AddUserModal({
                 <input
                   value={form.ifscCode}
                   onChange={e => setForm(p => ({ ...p, ifscCode: e.target.value.toUpperCase() }))}
-                  className="input-field uppercase"
+                  className={`input-field uppercase ${errors.ifscCode ? "border-red-500 focus:ring-red-500" : ""}`}
                   placeholder="Enter IFSC code"
                   autoComplete="off"
                 />
+                {errors.ifscCode && <p className="text-red-500 text-xs mt-1">{errors.ifscCode}</p>}
               </FormField>
               <FormField label="Branch">
                 <input
@@ -582,10 +676,12 @@ function AddUserModal({
                 <input
                   value={form.panNo}
                   onChange={e => setForm(p => ({ ...p, panNo: e.target.value.toUpperCase() }))}
-                  className="input-field uppercase"
-                  placeholder="Enter PAN number"
+                  className={`input-field uppercase ${errors.panNo ? "border-red-500 focus:ring-red-500" : ""}`}
+                  placeholder="Enter PAN number (e.g., ABCDE1234F)"
                   autoComplete="off"
+                  maxLength={10}
                 />
+                {errors.panNo && <p className="text-red-500 text-xs mt-1">{errors.panNo}</p>}
               </FormField>
             </div>
           </div>
@@ -594,18 +690,30 @@ function AddUserModal({
         {/* Footer Actions */}
         <div className="flex gap-3 pt-4 border-t border-gray-200">
           <button 
-            onClick={handleSave} 
-            disabled={!isVerified}
+            onClick={handleCreateClick}
+            disabled={isSaving || !isVerified}
             className={`flex-1 justify-center py-2.5 text-sm font-semibold rounded-lg transition-all ${
-              isVerified 
+              isSaving
+                ? 'bg-blue-500 text-white cursor-wait'
+                : isVerified 
                 ? 'btn-primary shadow-lg shadow-blue-200' 
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-gray-300 text-gray-500 hover:bg-gray-400 hover:text-gray-700'
             }`}
           >
-            {isVerified ? `Create ${form.role}` : 'Verify Reporting Manager First'}
+            {isSaving ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 size={16} className="animate-spin" />
+                Creating...
+              </span>
+            ) : isVerified ? (
+              `Create ${form.role}`
+            ) : (
+              'Verify Reporting Manager First'
+            )}
           </button>
           <button 
-            onClick={onClose} 
+            onClick={onClose}
+            disabled={isSaving}
             className="flex-1 btn-secondary justify-center py-2.5"
           >
             Cancel
@@ -638,7 +746,6 @@ function TreeNode({ node, users, customers, bookings, depth = 0, onViewTeam }) {
   const children = users.filter(u => u.parentUserId === node.id);
   const downline = [];
 
-  // Calculate downline
   const queue = [...children];
   while (queue.length > 0) {
     const c = queue.shift();
@@ -646,7 +753,6 @@ function TreeNode({ node, users, customers, bookings, depth = 0, onViewTeam }) {
     queue.push(...users.filter(u => u.parentUserId === c.id));
   }
 
-  // Get all sales manager IDs in this user's downline (for counting customers/bookings)
   const allSmIds = [];
   const smQueue = [...downline];
   while (smQueue.length > 0) {
@@ -670,7 +776,6 @@ function TreeNode({ node, users, customers, bookings, depth = 0, onViewTeam }) {
         style={{ paddingLeft: `${depth * 28 + 12}px` }}
         onClick={() => children.length > 0 && setExpanded(p => !p)}
       >
-        {/* Expand/Collapse */}
         {children.length > 0 ? (
           <span className="text-gray-400 flex-shrink-0 transition-transform duration-200">
             {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -679,12 +784,10 @@ function TreeNode({ node, users, customers, bookings, depth = 0, onViewTeam }) {
           <span className="w-[14px] flex-shrink-0" />
         )}
 
-        {/* Avatar */}
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-sm">
           {node.name?.charAt(0)}
         </div>
 
-        {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-gray-800 truncate">{node.name}</span>
@@ -699,7 +802,6 @@ function TreeNode({ node, users, customers, bookings, depth = 0, onViewTeam }) {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="flex items-center gap-1.5 flex-shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
           {teamCount > 0 && <NodeStat icon={UsersIcon} label="Direct" value={teamCount} color="blue" />}
           {totalDownline > 0 && <NodeStat icon={ChevronsDown} label="Team" value={totalDownline} color="purple" />}
@@ -707,7 +809,6 @@ function TreeNode({ node, users, customers, bookings, depth = 0, onViewTeam }) {
           {totalSales > 0 && <NodeStat icon={TrendingUp} label="Sales" value={`₹${(totalSales / 100000).toFixed(0)}L`} color="orange" />}
         </div>
 
-        {/* View Team button */}
         {children.length > 0 && (
           <button
             onClick={(e) => { e.stopPropagation(); onViewTeam && onViewTeam(node); }}
@@ -719,7 +820,6 @@ function TreeNode({ node, users, customers, bookings, depth = 0, onViewTeam }) {
         )}
       </div>
 
-      {/* Children */}
       {expanded && children.length > 0 && (
         <div>
           {children.map(child => (
@@ -742,7 +842,7 @@ function TreeNode({ node, users, customers, bookings, depth = 0, onViewTeam }) {
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function UserManagement() {
-  const { users, customers, bookings, addUser, updateUser, deleteUser } = useData();
+  const { users, customers, bookings, addUser, updateUser, deleteUser, refreshUsers, usersLoading } = useData();
   const { user, hierarchy } = useAuth();
   const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
@@ -755,15 +855,15 @@ export default function UserManagement() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [editErrors, setEditErrors] = useState({});
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   const creatableRoles = useMemo(() => hierarchy.getCreatableRoles(), [hierarchy]);
   
-  // Check if current user can create users (Only Admin and Director)
   const canCreateUser = useMemo(() => {
     return ["Admin", "Director"].includes(user?.role);
   }, [user]);
 
-  // Get team members for a specific user
   const getTeamMembers = (userId) => {
     const teamMembers = [];
     const queue = [userId];
@@ -782,7 +882,6 @@ export default function UserManagement() {
     return teamMembers;
   };
 
-  // Visible users to logged-in user
   const visibleUsers = useMemo(() => {
     const isAdminOrDirector = ["Admin", "Director"].includes(user?.role);
     if (isAdminOrDirector) return users;
@@ -791,7 +890,6 @@ export default function UserManagement() {
     return myself ? [myself, ...myTeam] : myTeam;
   }, [users, user, hierarchy]);
 
-  // Filtered users based on search/filter/team view
   const filteredUsers = useMemo(() => {
     let result = visibleUsers;
     
@@ -835,7 +933,6 @@ export default function UserManagement() {
     return result;
   }, [visibleUsers, treeSearch, filterRole, dateFrom, dateTo, viewingTeamId, users]);
 
-  // Tree roots
   const treeRoots = useMemo(() => {
     return users.filter(u => !u.parentUserId).sort((a, b) => {
       const order = ["Admin", "Director", "Regional Manager", "Branch Manager", "BDM", "Sales Manager"];
@@ -853,7 +950,6 @@ export default function UserManagement() {
     setModal("add");
   };
 
-  // Fetch referred by user name
   const fetchReferredByName = (userId) => {
     if (!userId) {
       setForm(p => ({ ...p, referredByName: "" }));
@@ -869,7 +965,28 @@ export default function UserManagement() {
 
   const openEdit = (u) => {
     setSelected(u);
-    setForm({ ...u });
+    setForm({
+      name: u.name || "",
+      email: u.email || "",
+      mobile: u.mobile || "",
+      role: u.role || "",
+      pin: u.pin || "",
+      fatherHusbandName: u.fatherHusbandName || "",
+      address: u.address || "",
+      dob: u.dob || "",
+      nomineeName: u.nomineeName || "",
+      nomineeRelationship: u.nomineeRelationship || "",
+      bankName: u.bankName || "",
+      bankAccountNo: u.bankAccountNo || "",
+      ifscCode: u.ifscCode || "",
+      bankBranch: u.bankBranch || "",
+      panNo: u.panNo || "",
+      referredById: u.referredById || "",
+      referredByName: u.referredByName || "",
+      parentUserId: u.parentUserId || "",
+      employeeCode: u.employeeCode || ""
+    });
+    setEditErrors({});
     setModal("edit");
   };
 
@@ -878,72 +995,126 @@ export default function UserManagement() {
     setModal("view");
   };
 
-  const roleCode = (role) => ({
-    "Admin": "AD",
-    "Director": "D",
-    "Regional Manager": "RM",
-    "Branch Manager": "BM",
-    "BDM": "BD",
-    "Sales Manager": "SM",
-  }[role] || "EMP");
+  const handleSave = async () => {
+    console.log("handleSave called, modal:", modal, "form:", form);
+    try {
+      const cleanMobile = form.mobile.replace(/\D/g, '');
 
-  const handleSave = () => {
-    if (!form.name || !form.mobile) {
-      toast.error("Full Name and Mobile are required");
-      return;
-    }
-    if (!form.panNo) {
-      toast.error("PAN No is required");
-      return;
-    }
-    if (modal === "add") {
-      const code = roleCode(form.role);
-      const existingCount = users.filter(u => u.role === form.role).length;
-      const employeeCode = `${code}${String(existingCount + 1).padStart(3, "0")}`;
-      const userId = `${form.name.split(' ')[0].toLowerCase()}${Date.now().toString().slice(-4)}`;
+      if (modal === "edit") {
+        const panError = validatePanNo(form.panNo);
+        if (panError) {
+          setEditErrors({ panNo: panError });
+          toast.error(panError);
+          return;
+        }
+        setEditErrors({});
+      }
       
-      const userData = {
-        ...form,
-        parentUserId: form.parentUserId || user?.id,
-        createdBy: user?.id,
-        employeeCode,
-        userId,
-        status: "Active"
-      };
-      
-      delete userData.referredById;
-      delete userData.referredByName;
-      
-      addUser(userData, user?.id);
-      
-      const userDataWithReferred = { ...userData };
-      setCreatedUser({
-        ...userDataWithReferred,
-        userId,
-        employeeCode,
-        password: form.password || 'Not set',
-        referredByName: form.referredByName,
-        referredById: form.referredById
-      });
-      
-      setShowSuccessModal(true);
-      toast.success(`${form.role} created successfully!`);
-      setModal(null);
-    } else {
-      updateUser(selected.id, form);
-      toast.success("User updated!");
-      setModal(null);
+      if (modal === "add") {
+        setIsCreatingUser(true);
+        const userData = {
+          name: form.name,
+          email: form.email,
+          mobile: cleanMobile,
+          role: form.role,
+          pin: form.pin,
+          parentUserId: Number(form.parentUserId) || Number(user?.id),
+          createdBy: Number(user?.id),
+        };
+        if (form.fatherHusbandName) userData.fatherHusbandName = form.fatherHusbandName;
+        if (form.address) userData.address = form.address;
+        if (form.dob) userData.dob = form.dob;
+        if (form.nomineeName) userData.nomineeName = form.nomineeName;
+        if (form.nomineeRelationship) userData.nomineeRelationship = form.nomineeRelationship;
+        if (form.bankName) userData.bankName = form.bankName;
+        if (form.bankAccountNo) userData.bankAccountNo = form.bankAccountNo;
+        if (form.ifscCode) userData.ifscCode = form.ifscCode;
+        if (form.bankBranch) userData.bankBranch = form.bankBranch;
+        userData.panNo = form.panNo.trim().toUpperCase();
+        
+        console.log("Creating user with payload:", JSON.stringify(userData));
+        const created = await addUser(userData, user?.id);
+        console.log("User created:", created);
+
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        setModal(null);
+        setIsCreatingUser(false);
+
+        toast.success(`${form.role} created successfully!`);
+
+        setCreatedUser({
+          ...created,
+          referredByName: form.referredByName,
+          referredById: form.referredById
+        });
+        setShowSuccessModal(true);
+      } else {
+        const updateData = {
+          name: form.name,
+          email: form.email,
+          mobile: cleanMobile,
+          role: form.role,
+          fatherHusbandName: form.fatherHusbandName,
+          address: form.address,
+          dob: form.dob,
+          nomineeName: form.nomineeName,
+          nomineeRelationship: form.nomineeRelationship,
+          bankName: form.bankName,
+          bankAccountNo: form.bankAccountNo,
+          ifscCode: form.ifscCode,
+          bankBranch: form.bankBranch,
+          panNo: form.panNo.trim().toUpperCase(),
+        };
+        Object.keys(updateData).forEach(k => {
+          if (!updateData[k]) delete updateData[k];
+        });
+        
+        console.log("Updating user with payload:", JSON.stringify(updateData));
+        await updateUser(selected.id, updateData);
+        toast.success(`User "${form.name}" updated successfully!`);
+        setModal(null);
+      }
+    } catch (err) {
+      console.error("handleSave error:", err);
+      if (modal === "add") {
+        setIsCreatingUser(false);
+      }
+      if (err.response?.data?.message && Array.isArray(err.response.data.message)) {
+        const realErrors = err.response.data.message.filter(
+          msg => !msg.startsWith('property ') && !msg.endsWith('should not exist')
+        );
+        if (realErrors.length > 0) {
+          realErrors.forEach(msg => toast.error(msg));
+        } else {
+          toast.error("Validation failed. Please check your input.");
+        }
+      } else if (err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else if (err.validationErrors && err.validationErrors.length > 0) {
+        err.validationErrors.forEach(msg => toast.error(msg));
+      } else {
+        toast.error(
+          err?.response?.data?.message || 
+          err.message || 
+          "Failed to save user"
+        );
+      }
     }
   };
 
-  const handleDelete = (u) => {
+  const handleDelete = async (u) => {
     const hasChildren = users.some(child => child.parentUserId === u.id);
     const msg = hasChildren
       ? `Delete ${u.name}? This user has ${users.filter(c => c.parentUserId === u.id).length} team member(s) reporting to them. They will become orphaned.`
       : `Delete ${u.name}?`;
     if (window.confirm(msg)) {
-      deleteUser(u.id);
-      toast.success("User deleted");
+      try {
+        await deleteUser(u.id);
+        toast.success(`User "${u.name}" deleted successfully!`);
+      } catch (err) {
+        toast.error(err.message || "Failed to delete user");
+      }
     }
   };
 
@@ -972,21 +1143,18 @@ export default function UserManagement() {
     { key: "status", label: "Status", render: v => <StatusBadge status={v} /> },
   ];
 
-  // View specific team
   const handleViewTeam = (node) => {
     setViewingTeamId(node.id);
     setShowTree(false);
     toast.success(`Showing ${node.name}'s team`, { duration: 2000 });
   };
 
-  // Clear team filter
   const clearTeamFilter = () => {
     setViewingTeamId(null);
   };
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-2">
@@ -1005,11 +1173,9 @@ export default function UserManagement() {
           >
             {showTree ? <Users size={14} /> : <Users size={14} />} {showTree ? "Tree View" : "Table View"}
           </button>
-          
         </div>
       </div>
 
-      {/* Role summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
           { role: "Admin", icon: Shield, color: "indigo" },
@@ -1065,7 +1231,6 @@ export default function UserManagement() {
         })}
       </div>
 
-      {/* Reporting info card */}
       <div className="card p-4 flex items-center gap-3">
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-sm">
           {user?.name?.charAt(0)}
@@ -1085,12 +1250,10 @@ export default function UserManagement() {
             ) : (
               <>Top-level user · Full organization access</>
             )}
-           
           </div>
         </div>
       </div>
 
-      {/* Team filter indicator */}
       {viewingTeamId && !showTree && (
         <div className="flex items-center gap-2 bg-blue-50 text-blue-700 text-sm font-semibold px-4 py-2.5 rounded-xl">
           <Users size={16} />
@@ -1101,7 +1264,6 @@ export default function UserManagement() {
         </div>
       )}
 
-      {/* Search & Filter Bar (for tree view) */}
       {showTree && (
         <div className="flex items-center gap-3">
           <div className="relative flex-1 max-w-md">
@@ -1138,7 +1300,6 @@ export default function UserManagement() {
         </div>
       )}
 
-      {/* Tree View */}
       {showTree ? (
         <div className="card p-5">
           <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -1170,10 +1331,8 @@ export default function UserManagement() {
         </div>
       ) : (
         <>
-          {/* Table Filters */}
           <div className="card p-4">
             <div className="flex flex-wrap items-center gap-3">
-              {/* Search */}
               <div className="relative flex-1 min-w-[200px]">
                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -1189,7 +1348,6 @@ export default function UserManagement() {
                 )}
               </div>
 
-              {/* Role Filter */}
               <div className="min-w-[180px]">
                 <select
                   value={filterRole}
@@ -1203,7 +1361,6 @@ export default function UserManagement() {
                 </select>
               </div>
 
-              {/* Date From */}
               <div>
                 <input
                   type="date"
@@ -1214,7 +1371,6 @@ export default function UserManagement() {
                 />
               </div>
 
-              {/* Date To */}
               <div>
                 <input
                   type="date"
@@ -1225,7 +1381,6 @@ export default function UserManagement() {
                 />
               </div>
 
-              {/* Clear Filters */}
               {(treeSearch || filterRole || dateFrom || dateTo) && (
                 <button
                   onClick={() => {
@@ -1246,7 +1401,6 @@ export default function UserManagement() {
             </div>
           </div>
 
-          {/* Table View */}
           <DataTable
             title="Team Members"
             columns={columns}
@@ -1271,15 +1425,14 @@ export default function UserManagement() {
         </>
       )}
 
-      {/* Add Modal */}
       <AddUserModal
         key={modal === "add" ? "add-modal" : "closed"}
         isOpen={modal === "add"}
-        onClose={() => { setModal(null); setCreatedUser(null); }}
+        onClose={() => { if (!isCreatingUser) { setModal(null); setCreatedUser(null); } }}
         form={form}
         setForm={setForm}
         handleSave={handleSave}
-        createdUser={createdUser}
+        isSaving={isCreatingUser}
         creatableRoles={creatableRoles}
         users={users}
         fetchReferredByName={fetchReferredByName}
@@ -1294,19 +1447,23 @@ export default function UserManagement() {
         }}
       />
 
-      {/* Success Modal */}
       <SuccessModal
         isOpen={showSuccessModal}
         onClose={() => { setShowSuccessModal(false); setCreatedUser(null); }}
         userData={createdUser}
       />
 
-      {/* Edit Modal */}
-      <Modal open={modal === "edit"} onClose={() => setModal(null)} title="Edit User" size="lg">
+      {/* Edit Modal with same icon styling as Create Modal */}
+      <Modal open={modal === "edit"} onClose={() => { setModal(null); setEditErrors({}); }} title="Edit User" size="lg">
         <div className="space-y-4">
           {/* Personal Information */}
           <div className="border border-gray-200 rounded-xl p-4">
-            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Personal Information</h4>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center shadow-sm">
+                <User size={16} className="text-white" />
+              </div>
+              <h4 className="text-sm font-bold text-gray-700">Personal Information</h4>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FormField label="Full Name" required>
                 <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="input-field" placeholder="Full name" autoComplete="off" />
@@ -1318,7 +1475,18 @@ export default function UserManagement() {
                 <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className="input-field" placeholder="email@company.com" autoComplete="off" />
               </FormField>
               <FormField label="Mobile" required>
-                <input value={form.mobile} onChange={e => setForm(p => ({ ...p, mobile: e.target.value }))} className="input-field" placeholder="10-digit mobile" autoComplete="off" />
+                <input
+                  value={form.mobile}
+                  onChange={e => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setForm(p => ({ ...p, mobile: val }));
+                  }}
+                  className="input-field"
+                  placeholder="10-digit mobile"
+                  autoComplete="off"
+                  maxLength={10}
+                  inputMode="numeric"
+                />
               </FormField>
               <FormField label="Date of Birth">
                 <input type="date" value={form.dob} onChange={e => setForm(p => ({ ...p, dob: e.target.value }))} className="input-field" autoComplete="off" />
@@ -1331,7 +1499,12 @@ export default function UserManagement() {
 
           {/* Professional Information */}
           <div className="border border-gray-200 rounded-xl p-4">
-            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Professional Information</h4>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-lg bg-purple-600 flex items-center justify-center shadow-sm">
+                <Briefcase size={16} className="text-white" />
+              </div>
+              <h4 className="text-sm font-bold text-gray-700">Professional Information</h4>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FormField label="Designation">
                 <input value={form.role} className="input-field bg-gray-50" disabled />
@@ -1347,7 +1520,12 @@ export default function UserManagement() {
 
           {/* Nominee Information */}
           <div className="border border-gray-200 rounded-xl p-4">
-            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Nominee Information</h4>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-lg bg-purple-600 flex items-center justify-center shadow-sm">
+                <UsersGroup size={16} className="text-white" />
+              </div>
+              <h4 className="text-sm font-bold text-gray-700">Nominee Information</h4>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FormField label="Nominee Name">
                 <input value={form.nomineeName} onChange={e => setForm(p => ({ ...p, nomineeName: e.target.value }))} className="input-field" placeholder="Enter nominee name" autoComplete="off" />
@@ -1360,7 +1538,12 @@ export default function UserManagement() {
 
           {/* Bank Information */}
           <div className="border border-gray-200 rounded-xl p-4">
-            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Bank Information</h4>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-lg bg-green-600 flex items-center justify-center shadow-sm">
+                <Banknote size={16} className="text-white" />
+              </div>
+              <h4 className="text-sm font-bold text-gray-700">Bank Information</h4>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FormField label="Bank Name">
                 <input value={form.bankName} onChange={e => setForm(p => ({ ...p, bankName: e.target.value }))} className="input-field" placeholder="Enter bank name" autoComplete="off" />
@@ -1374,8 +1557,19 @@ export default function UserManagement() {
               <FormField label="Branch">
                 <input value={form.bankBranch} onChange={e => setForm(p => ({ ...p, bankBranch: e.target.value }))} className="input-field" placeholder="Enter branch name" autoComplete="off" />
               </FormField>
-              <FormField label="PAN No">
-                <input value={form.panNo} onChange={e => setForm(p => ({ ...p, panNo: e.target.value.toUpperCase() }))} className="input-field uppercase" placeholder="Enter PAN number" autoComplete="off" />
+              <FormField label="PAN No" required>
+                <input
+                  value={form.panNo}
+                  onChange={e => {
+                    setForm(p => ({ ...p, panNo: e.target.value.toUpperCase() }));
+                    if (editErrors.panNo) setEditErrors(prev => ({ ...prev, panNo: undefined }));
+                  }}
+                  className={`input-field uppercase ${editErrors.panNo ? "border-red-500 focus:ring-red-500" : ""}`}
+                  placeholder="Enter PAN number (e.g., ABCDE1234F)"
+                  autoComplete="off"
+                  maxLength={10}
+                />
+                {editErrors.panNo && <p className="text-red-500 text-xs mt-1">{editErrors.panNo}</p>}
               </FormField>
             </div>
           </div>
@@ -1404,7 +1598,6 @@ export default function UserManagement() {
             </div>
 
             <div className="space-y-4">
-              {/* Professional Information */}
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
                   <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wider">Professional Information</h4>
@@ -1413,10 +1606,10 @@ export default function UserManagement() {
                   {[
                     ["User ID", selected.employeeCode || "—"],
                     ["Role", selected.role],
-                    ["Referred By", (() => { const p = users.find(u => u.id === selected.parentUserId); return p ? `${p.name} (${p.role})` : "—"; })()],
+                    ...(selected.role !== "Admin" ? [["Referred By", (() => { const p = users.find(u => u.id === selected.parentUserId); return p ? `${p.name} (${p.role})` : "—"; })()]] : []),
                     ["Status", selected.status],
-                    ["Joined", selected.joinDate],
-                    ["Created By", (() => { const c = users.find(u => u.id === selected.createdBy); return c ? c.name : "—"; })()],
+                    ["Joined", selected.createdAt ? new Date(selected.createdAt).toLocaleDateString('en-GB') : "—"],
+                    ...(selected.role !== "Admin" ? [["Created By", (() => { const c = users.find(u => u.id === selected.createdBy); return c ? c.name : "—"; })()]] : []),
                   ].map(([k, v]) => {
                     if (k === "Status") {
                       return (
@@ -1442,7 +1635,6 @@ export default function UserManagement() {
                 </div>
               </div>
 
-              {/* Personal Information */}
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
                   <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wider">Personal Information</h4>
@@ -1452,7 +1644,7 @@ export default function UserManagement() {
                     ["Email", selected.email],
                     ["Mobile", selected.mobile],
                     ["Father's/Husband", selected.fatherHusbandName || "—"],
-                    ["Date of Birth", selected.dob ? new Date(selected.dob).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : "—"],
+                    ["Date of Birth", selected.dob ? (() => { const d = new Date(selected.dob); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })() : "—"],
                     ["Address", selected.address || "—"],
                   ].map(([k, v]) => (
                     <div key={k} className="flex items-center justify-between py-1.5">
@@ -1463,7 +1655,6 @@ export default function UserManagement() {
                 </div>
               </div>
 
-              {/* Nominee Information */}
               {(selected.nomineeName || selected.nomineeRelationship) && (
                 <div className="border border-gray-200 rounded-xl overflow-hidden">
                   <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
@@ -1486,7 +1677,6 @@ export default function UserManagement() {
                 </div>
               )}
 
-              {/* Bank Information */}
               {(selected.bankName || selected.bankAccountNo) && (
                 <div className="border border-gray-200 rounded-xl overflow-hidden">
                   <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
@@ -1527,7 +1717,6 @@ export default function UserManagement() {
                 </div>
               )}
 
-              {/* Team Stats */}
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
                   <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wider">Team Statistics</h4>

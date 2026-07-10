@@ -2,10 +2,30 @@
 const VITE_API_URL = import.meta.env.VITE_API_URL;
 
 const handleResponse = async (response) => {
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || "Something went wrong");
+  // No content (204) — nothing to parse
+  if (response.status === 204) return null;
+
+  // Try to parse JSON if any content exists
+  let data = null;
+  try {
+    data = await response.json();
+  } catch (e) {
+    // If parsing fails and response is not ok, throw a generic error
+    if (!response.ok) {
+      throw new Error('Request failed');
+    }
+    // If parsing fails but response is ok, return null
+    return null;
   }
+
+  if (!response.ok) {
+    const error = new Error(
+      Array.isArray(data?.message) ? data.message[0] : (data?.message || "Something went wrong")
+    );
+    error.validationErrors = Array.isArray(data?.message) ? data.message : [data?.message || "Something went wrong"];
+    throw error;
+  }
+
   return data;
 };
 
@@ -139,4 +159,4 @@ export const user = {
     });
     return handleResponse(response);
   },
-};ght 
+};

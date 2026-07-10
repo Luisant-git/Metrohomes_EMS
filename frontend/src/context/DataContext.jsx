@@ -1,4 +1,5 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { user as userApi } from "../api/user.js";
 
 const DataContext = createContext(null);
 
@@ -66,36 +67,32 @@ const INITIAL_VISITS = [
   { id: 6, customerId: 12, customerName: "Vijay Malhotra", siteId: 1, siteName: "Green Valley Residency", visitDate: "2024-05-10", status: "Visit Scheduled", salesManagerId: 25, notes: "" },
 ];
 
-const INITIAL_USERS = [
-  { id: 1, name: "Arjun Mehta", email: "admin@realestate.com", role: "Admin", mobile: "9876543210", employeeCode: "AD001", status: "Active", region: "Head Office", branch: null, joinDate: "2023-01-10", parentUserId: null, createdBy: null },
-  { id: 2, name: "Priya Sharma", email: "director@realestate.com", role: "Director", mobile: "9876543211", employeeCode: "D001", status: "Active", region: "North", branch: null, joinDate: "2023-02-15", parentUserId: 1, createdBy: 1 },
-  { id: 7, name: "Rahul Verma", email: "rahul.dir@realestate.com", role: "Director", mobile: "9876543240", employeeCode: "D002", status: "Active", region: "South", branch: null, joinDate: "2023-03-01", parentUserId: 1, createdBy: 1 },
-  { id: 3, name: "Rajesh Kumar", email: "rm@realestate.com", role: "Regional Manager", mobile: "9876543212", employeeCode: "RM001", status: "Active", region: "North", branch: null, joinDate: "2023-03-20", parentUserId: 2, createdBy: 2 },
-  { id: 8, name: "Sanjay Gupta", email: "sanjay.rm@realestate.com", role: "Regional Manager", mobile: "9876543241", employeeCode: "RM002", status: "Active", region: "South", branch: null, joinDate: "2023-04-01", parentUserId: 7, createdBy: 7 },
-  { id: 9, name: "Meena Joshi", email: "meena.rm@realestate.com", role: "Regional Manager", mobile: "9876543242", employeeCode: "RM003", status: "Active", region: "East", branch: null, joinDate: "2023-04-05", parentUserId: 7, createdBy: 7 },
-  { id: 4, name: "Sunita Patel", email: "bm@realestate.com", role: "Branch Manager", mobile: "9876543213", employeeCode: "BM001", status: "Active", region: "North", branch: "Delhi HQ", joinDate: "2023-04-01", parentUserId: 3, createdBy: 3 },
-  { id: 10, name: "Amit Patel", email: "amit.bm@realestate.com", role: "Branch Manager", mobile: "9876543243", employeeCode: "BM002", status: "Active", region: "South", branch: "Mumbai HQ", joinDate: "2023-04-15", parentUserId: 8, createdBy: 8 },
-  { id: 11, name: "Pooja Singh", email: "pooja.bm@realestate.com", role: "Branch Manager", mobile: "9876543244", employeeCode: "BM003", status: "Active", region: "South", branch: "Bangalore Branch", joinDate: "2023-04-20", parentUserId: 8, createdBy: 8 },
-  { id: 12, name: "Ramesh Yadav", email: "ramesh.bm@realestate.com", role: "Branch Manager", mobile: "9876543245", employeeCode: "BM004", status: "Active", region: "East", branch: "Hyderabad Branch", joinDate: "2023-05-01", parentUserId: 9, createdBy: 9 },
-  { id: 5, name: "Vikram Singh", email: "bdm@realestate.com", role: "BDM", mobile: "9876543214", employeeCode: "BD001", status: "Active", region: "North", branch: "Delhi HQ", joinDate: "2023-05-10", parentUserId: 4, createdBy: 4 },
-  { id: 13, name: "Kiran Kumar", email: "kiran.bdm@realestate.com", role: "BDM", mobile: "9876543246", employeeCode: "BD002", status: "Active", region: "South", branch: "Mumbai HQ", joinDate: "2023-05-15", parentUserId: 10, createdBy: 10 },
-  { id: 14, name: "Ritu Sharma", email: "ritu.bdm@realestate.com", role: "BDM", mobile: "9876543247", employeeCode: "BD003", status: "Active", region: "South", branch: "Bangalore Branch", joinDate: "2023-05-20", parentUserId: 11, createdBy: 11 },
-  { id: 15, name: "Anil Bose", email: "anil.bdm@realestate.com", role: "BDM", mobile: "9876543248", employeeCode: "BD004", status: "Active", region: "East", branch: "Hyderabad Branch", joinDate: "2023-06-01", parentUserId: 12, createdBy: 12 },
-  { id: 16, name: "Deepa Rao", email: "deepa.bdm@realestate.com", role: "BDM", mobile: "9876543249", employeeCode: "BD005", status: "Active", region: "South", branch: "Mumbai HQ", joinDate: "2023-06-05", parentUserId: 10, createdBy: 10 },
-  { id: 6, name: "Anjali Verma", email: "sm@realestate.com", role: "Sales Manager", mobile: "9876543215", employeeCode: "SM001", status: "Active", region: "North", branch: "Delhi HQ", joinDate: "2023-06-15", parentUserId: 5, createdBy: 5 },
-  { id: 17, name: "Manoj Tiwari", email: "manoj.sm@realestate.com", role: "Sales Manager", mobile: "9876543250", employeeCode: "SM002", status: "Active", region: "South", branch: "Mumbai HQ", joinDate: "2023-07-01", parentUserId: 13, createdBy: 13 },
-  { id: 18, name: "Sonia Kapoor", email: "sonia.sm@realestate.com", role: "Sales Manager", mobile: "9876543251", employeeCode: "SM003", status: "Active", region: "South", branch: "Bangalore Branch", joinDate: "2023-07-05", parentUserId: 14, createdBy: 14 },
-  { id: 19, name: "Vijay Menon", email: "vijay.sm@realestate.com", role: "Sales Manager", mobile: "9876543252", employeeCode: "SM004", status: "Active", region: "East", branch: "Hyderabad Branch", joinDate: "2023-07-10", parentUserId: 15, createdBy: 15 },
-  { id: 20, name: "Rekha Das", email: "rekha.sm@realestate.com", role: "Sales Manager", mobile: "9876543253", employeeCode: "SM005", status: "Active", region: "South", branch: "Mumbai HQ", joinDate: "2023-07-15", parentUserId: 16, createdBy: 16 },
-  { id: 21, name: "Arjun Reddy", email: "arjun.sm@realestate.com", role: "Sales Manager", mobile: "9876543254", employeeCode: "SM006", status: "Active", region: "South", branch: "Mumbai HQ", joinDate: "2023-07-20", parentUserId: 13, createdBy: 13 },
-];
+
 
 export function DataProvider({ children }) {
   const [sites, setSites] = useState(INITIAL_SITES);
   const [customers, setCustomers] = useState(INITIAL_CUSTOMERS);
   const [bookings, setBookings] = useState(INITIAL_BOOKINGS);
   const [visits, setVisits] = useState(INITIAL_VISITS);
-  const [users, setUsers] = useState(INITIAL_USERS);
+  const [users, setUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(true);
+
+  // Fetch users from API on mount
+  const refreshUsers = useCallback(async () => {
+    try {
+      setUsersLoading(true);
+      const data = await userApi.getAll();
+      setUsers(Array.isArray(data) ? data : (data.users || data.data || []));
+    } catch (err) {
+      console.error("Failed to fetch users:", err);
+    } finally {
+      setUsersLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshUsers();
+  }, [refreshUsers]);
 
   // Sites
   const addSite = (site) => setSites(prev => [...prev, { ...site, id: Date.now(), createdAt: new Date().toISOString().split("T")[0] }]);
@@ -126,16 +123,43 @@ export function DataProvider({ children }) {
   // Visits
   const updateVisit = (id, updates) => setVisits(prev => prev.map(v => v.id === id ? { ...v, ...updates } : v));
 
-  // Users
-  const addUser = (user, loggedInUserId) => setUsers(prev => [{
-    ...user,
-    id: Date.now() + Math.floor(Math.random() * 1000),
-    joinDate: new Date().toISOString().split("T")[0],
-    parentUserId: user.parentUserId ?? loggedInUserId,
-    createdBy: user.createdBy ?? loggedInUserId,
-  }, ...prev]);
-  const updateUser = (id, updates) => setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
-  const deleteUser = (id) => setUsers(prev => prev.filter(u => u.id !== id));
+  // Users — API-backed
+  const addUser = async (userData, loggedInUserId) => {
+    try {
+      const created = await userApi.create({
+        ...userData,
+        parentUserId: userData.parentUserId ?? loggedInUserId,
+      });
+      // Re-fetch to get the server-generated data (id, employeeCode, joinDate, etc.)
+      await refreshUsers();
+      return created;
+    } catch (err) {
+      console.error("Failed to create user:", err);
+      throw err;
+    }
+  };
+
+  const updateUser = async (id, updates) => {
+    try {
+      await userApi.update(id, updates);
+      await refreshUsers();
+    } catch (err) {
+      console.error("Failed to update user:", err);
+      throw err;
+    }
+  };
+
+  const deleteUser = async (id) => {
+    try {
+      await userApi.delete(id);
+      // Optimistic update + refresh
+      setUsers(prev => prev.filter(u => u.id !== id));
+      await refreshUsers();
+    } catch (err) {
+      console.error("Failed to delete user:", err);
+      throw err;
+    }
+  };
 
   // Commission rates
   const commissionRates = { Admin: 0, Director: 1.5, "Regional Manager": 1.0, "Branch Manager": 0.75, BDM: 0.5, "Sales Manager": 0.25 };
@@ -146,7 +170,7 @@ export function DataProvider({ children }) {
       customers, addCustomer, updateCustomer, deleteCustomer,
       bookings, addBooking, updateBooking,
       visits, updateVisit,
-      users, addUser, updateUser, deleteUser,
+      users, addUser, updateUser, deleteUser, refreshUsers, usersLoading,
       commissionRates,
     }}>
       {children}

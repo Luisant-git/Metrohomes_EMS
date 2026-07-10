@@ -2,10 +2,20 @@
 const VITE_API_URL = import.meta.env.VITE_API_URL;
 
 const handleResponse = async (response) => {
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || "Something went wrong");
+  if (response.status === 204) return null;
+
+  let data = null;
+  try {
+    data = await response.json();
+  } catch (e) {
+    if (!response.ok) throw new Error('Request failed');
+    return null;
   }
+
+  if (!response.ok) {
+    throw new Error(data?.message || "Something went wrong");
+  }
+
   return data;
 };
 
