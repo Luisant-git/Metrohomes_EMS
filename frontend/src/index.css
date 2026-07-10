@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+@theme {
+  --color-blue-50: #eef4fa;
+  --color-blue-100: #d9e6f5;
+  --color-blue-200: #b3cde8;
+  --color-blue-300: #80afd9;
+  --color-blue-400: #4d8fc9;
+  --color-blue-500: #1D6FB9;
+  --color-blue-600: #1D6FB9;
+  --color-blue-700: #165a94;
+  --color-primary: #1D6FB9;
+  --color-primary-dark: #165a94;
+}
+
 @layer base {
   * {
     box-sizing: border-box;
@@ -47,9 +60,9 @@
     width: 100%;
   }
   .sidebar-link-active {
-    background-color: #2563eb;
+    background-color: #1D6FB9;
     color: #ffffff;
-    box-shadow: 0 4px 6px -1px rgba(37,99,235,0.3);
+    box-shadow: 0 4px 14px rgba(29, 111, 185, 0.35);
   }
   .sidebar-link-inactive {
     color: #4b5563;
@@ -65,7 +78,7 @@
     box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05);
   }
   .btn-primary {
-    background-color: #2563eb;
+    background-color: #1D6FB9;
     color: #ffffff;
     font-weight: 600;
     padding: 0.5rem 1rem;
@@ -79,7 +92,7 @@
     cursor: pointer;
   }
   .btn-primary:hover {
-    background-color: #1d4ed8;
+    background-color: #165a94;
   }
   .btn-secondary {
     background-color: #f3f4f6;
@@ -129,8 +142,8 @@
     -webkit-user-select: text;
   }
   .input-field:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+    border-color: #1D6FB9;
+    box-shadow: 0 0 0 3px rgba(29,111,185,0.15);
     outline: none;
   }
   .label {

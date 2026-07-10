@@ -6,7 +6,7 @@ import Modal from "../../components/Modal.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import StatCard from "../../components/StatCard.jsx";
 import {
-  Edit2, Trash2, Eye, Users, ChevronDown, ChevronRight, UserPlus,
+  SquarePen, Trash2, Eye, Users, ChevronDown, ChevronRight, UserPlus,
   Search, Filter, Building2, Users as UsersIcon, UserCheck, TrendingUp,
   X, ChevronsDown, Shield, Crown, Globe, Briefcase, Target, CheckCircle, AlertCircle,
   User, Mail, Phone, MapPin, Calendar, CreditCard, Building, Hash, ArrowRight, Loader2,
@@ -1119,7 +1119,7 @@ export default function UserManagement() {
   };
 
   const columns = [
-    { key: "employeeCode", label: "User ID", render: v => <span className="font-mono text-xs text-gray-500">{v || "—"}</span> },
+    { key: "employeeCode", label: "User ID", render: v => <span className="font-mono text-sm font-bold text-gray-700">{v || "—"}</span> },
     {
       key: "name", label: "Name", render: (v, row) => (
         <div>
@@ -1410,13 +1410,13 @@ export default function UserManagement() {
             addLabel={canCreateUser ? "+ Add User" : undefined}
             actions={(row) => (
               <>
-                <button onClick={() => openView(row)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View">
+                <button onClick={() => openView(row)} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="View">
                   <Eye size={15} />
                 </button>
-                <button onClick={() => openEdit(row)} className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors" title="Edit">
-                  <Edit2 size={15} />
+                <button onClick={() => openEdit(row)} className="p-1.5 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors" title="Edit">
+                  <SquarePen size={15} />
                 </button>
-                <button onClick={() => handleDelete(row)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                <button onClick={() => handleDelete(row)} className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Delete">
                   <Trash2 size={15} />
                 </button>
               </>
