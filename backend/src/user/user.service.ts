@@ -1,13 +1,19 @@
 // src/user/user.service.ts
-import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, UserRole, UserStatus } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(UserService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private whatsappService: WhatsappService,
+  ) {}
 
   private roleCodes: Record<string, string> = {
     'Admin': 'AD',
@@ -115,6 +121,22 @@ export class UserService {
         children: true,
       },
     });
+
+    // ─── Send WhatsApp Notification ──────────────────────────────
+    try {
+      const referredByName = user.parent?.name || 'System';
+      await this.whatsappService.sendEmployeeRegistrationSuccess(
+        user.mobile,
+        user.name,
+        user.employeeCode,
+        user.role,
+        referredByName,
+      );
+      this.logger.log(`WhatsApp notification sent to ${user.mobile} for ${user.name}`);
+    } catch (error) {
+      // Don't block user creation if WhatsApp fails
+      this.logger.error(`WhatsApp notification failed for ${user.mobile}: ${error.message}`);
+    }
 
     const { pin, ...result } = user;
     return result;

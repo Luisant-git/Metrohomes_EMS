@@ -5,14 +5,16 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UserModule } from '../user/user.module';
+import { WhatsappModule } from '../whatsapp/whatsapp.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
     UserModule,
+    WhatsappModule,
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'metrohomes-secret-key',
+      secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '7d' },
     }),
   ],

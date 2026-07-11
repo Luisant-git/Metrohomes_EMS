@@ -1,17 +1,21 @@
 // src/auth/auth.service.ts
-import { Injectable, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, NotFoundException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UserService } from '../user/user.service';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UserRole } from '../user/dto/create-user.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
+    private whatsappService: WhatsappService,
   ) {}
 
   async registerAdmin(registerDto: RegisterDto) {
@@ -30,6 +34,21 @@ export class AuthService {
       },
       null,
     );
+
+    // Send WhatsApp notification for admin registration
+    try {
+      await this.whatsappService.sendEmployeeRegistrationSuccess(
+        registerDto.mobile,
+        registerDto.name,
+        user.employeeCode,
+        'Admin',
+        'System',
+      );
+      this.logger.log(`WhatsApp notification sent to ${registerDto.mobile}`);
+    } catch (error) {
+      // Don't block registration if WhatsApp fails
+      this.logger.error(`WhatsApp notification failed: ${error.message}`);
+    }
 
     return this.login({
       identifier: registerDto.email,
