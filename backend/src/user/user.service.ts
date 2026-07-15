@@ -15,6 +15,27 @@ export class UserService {
     private whatsappService: WhatsappService,
   ) {}
 
+
+     private async generateEmployeeCode(role: string): Promise<string> {
+  const roleCode = this.roleCodes[role];
+
+  while (true) {
+    // Random 5-digit number (10000 - 99999)
+    const randomNumber = Math.floor(10000 + Math.random() * 90000);
+    const employeeCode = `${roleCode}${randomNumber}`;
+
+    const existingUser = await this.prisma.user.findUnique({
+      where: {
+        employeeCode,
+      },
+    });
+
+    if (!existingUser) {
+      return employeeCode;
+    }
+  }
+}
+
   private roleCodes: Record<string, string> = {
     'Admin': 'AD',
     'Director': 'D',
@@ -83,11 +104,8 @@ export class UserService {
       }
     }
 
-    const roleCode = this.roleCodes[createUserDto.role];
-    const existingCount = await this.prisma.user.count({
-      where: { role: createUserDto.role },
-    });
-    const employeeCode = `${roleCode}${String(existingCount + 1).padStart(3, '0')}`;
+
+const employeeCode = await this.generateEmployeeCode(createUserDto.role);
 
     const hashedPin = await bcrypt.hash(createUserDto.pin, 10);
 

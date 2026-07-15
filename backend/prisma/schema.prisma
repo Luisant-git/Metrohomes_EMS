@@ -11,7 +11,7 @@ datasource db {
 
 model User {
   id                    Int      @id @default(autoincrement())
-  employeeCode          String   @unique    // AD001, D001, RM001, SM001, etc.
+  employeeCode          String   @unique    
   name                  String
   email                 String   @unique
   mobile                String   @unique
