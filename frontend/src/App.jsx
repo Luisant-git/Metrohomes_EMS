@@ -21,7 +21,7 @@ import CustomerRegistration from "./pages/web/CustomerRegistration.jsx";
 
 // PWA pages
 import PWADashboard from "./pages/pwa/Dashboard.jsx";
-import PMTeam from "./pages/pwa/PMTeam.jsx";
+import TeamPage from "./pages/pwa/Team.jsx";
 import PMCustomers from "./pages/pwa/PMCustomers.jsx";
 import PMVisits from "./pages/pwa/PMVisits.jsx";
 import PMBookings from "./pages/pwa/PMBookings.jsx";
@@ -29,7 +29,6 @@ import PMSReport from "./pages/pwa/PMSReport.jsx";
 import PMPerf from "./pages/pwa/PMPerf.jsx";
 import PMNotif from "./pages/pwa/PMNotif.jsx";
 
-import BMTeam from "./pages/pwa/BMTeam.jsx";
 import BMCustomers from "./pages/pwa/BMCustomers.jsx";
 import BMVisits from "./pages/pwa/BMVisits.jsx";
 import BMBookings from "./pages/pwa/BMBookings.jsx";
@@ -37,7 +36,6 @@ import BMSReport from "./pages/pwa/BMSReport.jsx";
 import BMPerf from "./pages/pwa/BMPerf.jsx";
 import BMNotif from "./pages/pwa/BMNotif.jsx";
 
-import BDMTeam from "./pages/pwa/BDMTeam.jsx";
 import BDMCustomers from "./pages/pwa/BDMCustomers.jsx";
 import BDMVisits from "./pages/pwa/BDMVisits.jsx";
 import BDMBookings from "./pages/pwa/BDMBookings.jsx";
@@ -84,7 +82,7 @@ function AppRoutes() {
     <PWALayout>
       <Routes>
         <Route path="/" element={<PWADashboard />} />
-        <Route path="/my-team" element={user.role === "Regional Manager" ? <PMTeam /> : user.role === "Branch Manager" ? <BMTeam /> : <BDMTeam />} />
+        <Route path="/my-team" element={<TeamPage />} />
         <Route path="/customers" element={user.role === "Regional Manager" ? <PMCustomers /> : user.role === "Branch Manager" ? <BMCustomers /> : <BDMCustomers />} />
         <Route path="/visits" element={user.role === "Regional Manager" ? <PMVisits /> : user.role === "Branch Manager" ? <BMVisits /> : <BDMVisits />} />
         <Route path="/bookings" element={user.role === "Regional Manager" ? <PMBookings /> : user.role === "Branch Manager" ? <BMBookings /> : <BDMBookings />} />

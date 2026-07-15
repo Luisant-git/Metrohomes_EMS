@@ -5,9 +5,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, UserModule, WhatsappModule],
+  imports: [PrismaModule, AuthModule, UserModule, WhatsappModule, DashboardModule],
   controllers: [AppController],
   providers: [AppService],
 })

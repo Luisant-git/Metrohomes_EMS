@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { Camera, Save, Phone, Mail, User, Shield, Building2, LogOut, Edit2 } from "lucide-react";
+import { Camera, Save, Phone, Mail, User, Shield, LogOut, Edit2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function PWAProfile() {
@@ -33,7 +33,6 @@ export default function PWAProfile() {
     { icon: Mail, label: "Email", key: "email", type: "email" },
     { icon: Phone, label: "Mobile", key: "mobile", type: "tel" },
     { icon: Shield, label: "Role", key: "role", readOnly: true },
-    { icon: Building2, label: "Branch", key: "branch", readOnly: true },
   ];
 
   return (
@@ -59,7 +58,6 @@ export default function PWAProfile() {
         <div className={`inline-block mt-1 px-3 py-0.5 rounded-full text-xs font-semibold ${roleColors[user?.role] || "bg-white/20"} bg-opacity-90`}>
           {user?.role}
         </div>
-        <div className="text-blue-200 text-xs mt-1">{user?.branch || user?.region || "HQ"}</div>
       </div>
 
       <div className="px-4 -mt-6 space-y-4">
