@@ -60,7 +60,7 @@ export default function PWADashboard() {
         return {
           stats: [
             { label: "BM Count", value: myBMs.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-            { label: "BDE Count", value: myBDMs.length, icon: Users, color: "text-cyan-600", bg: "bg-cyan-50" },
+            { label: "BDM Count", value: myBDMs.length, icon: Users, color: "text-cyan-600", bg: "bg-cyan-50" },
             { label: "Sales Managers", value: mySMs.length, icon: Users, color: "text-purple-600", bg: "bg-purple-50" },
             { label: "Downline Roles", value: downlineRoleCounts.length, icon: Users, color: "text-indigo-600", bg: "bg-indigo-50" },
             { label: "Total Customers", value: myCustomers.length, icon: UserCheck, color: "text-green-600", bg: "bg-green-50" },
@@ -81,20 +81,28 @@ export default function PWADashboard() {
 
       case "Branch Manager": {
         const myBDMs = users.filter((u) => u.role === "BDM" && u.parentUserId === user?.id);
-        const myCustomers = customers.filter((c) => myBDMs.some((bdm) => bdm.id === c.salesManagerId));
-        const myBookings = bookings.filter((b) => myBDMs.some((bdm) => bdm.id === b.salesManagerId));
+        const bdmIds = myBDMs.map((bdm) => bdm.id);
+        const mySMs = users.filter((u) => u.role === "Sales Manager" && bdmIds.includes(u.parentUserId));
+        const smIds = mySMs.map((sm) => sm.id);
+
+        const myCustomers = customers.filter((c) =>
+          bdmIds.includes(c.salesManagerId) || smIds.includes(c.salesManagerId)
+        );
+        const myBookings = bookings.filter((b) =>
+          bdmIds.includes(b.salesManagerId) || smIds.includes(b.salesManagerId)
+        );
 
         return {
           stats: [
             { label: "BDM Count", value: myBDMs.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-            { label: "Downline Roles", value: downlineRoleCounts.length, icon: Users, color: "text-indigo-600", bg: "bg-indigo-50" },
+            { label: "Sales Managers", value: mySMs.length, icon: UserCheck, color: "text-purple-600", bg: "bg-purple-50" },
             { label: "My Customers", value: myCustomers.length, icon: UserCheck, color: "text-green-600", bg: "bg-green-50" },
             { label: "Total Bookings", value: myBookings.length, icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50" },
           ],
-          teamTitle: null,
-          teamList: null,
-          teamEmpty: null,
-          teamPath: null,
+          teamTitle: "My BDMs",
+          teamList: myBDMs,
+          teamEmpty: "No BDMs assigned",
+          teamPath: "/my-team",
           quickActions: [
             { label: "My Team", icon: Users, path: "/my-team", color: "bg-blue-500" },
             { label: "Customers", icon: UserCheck, path: "/customers", color: "bg-green-500" },
@@ -131,8 +139,8 @@ export default function PWADashboard() {
       }
 
       default: {
-        const myCustomers = customers.filter((c) => c.salesManagerId === user?.id || user?.id === 6);
-        const myVisits = visits.filter((v) => v.salesManagerId === user?.id || user?.id === 6);
+        const myCustomers = customers.filter((c) => c.salesManagerId === user?.id);
+        const myVisits = visits.filter((v) => v.salesManagerId === user?.id);
         const myActiveSites = sites.filter((s) => s.approved);
         const bookCompleted = myCustomers.filter((c) => c.status === "Booked" || c.status === "Payment Done").length;
 
@@ -149,7 +157,6 @@ export default function PWADashboard() {
             { label: "My Customers", value: myCustomers.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
             { label: "Active Sites", value: myActiveSites.length, icon: Building2, color: "text-green-600", bg: "bg-green-50" },
             { label: "Visits Done", value: myVisits.filter((v) => v.status === "Visit Completed").length, icon: CheckCircle, color: "text-purple-600", bg: "bg-purple-50" },
-            { label: "Downline Roles", value: downlineRoleCounts.length, icon: Users, color: "text-indigo-600", bg: "bg-indigo-50" },
             { label: "Book Completed", value: bookCompleted, icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50" },
           ],
           teamTitle: null,

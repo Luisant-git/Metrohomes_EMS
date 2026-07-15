@@ -70,10 +70,10 @@ const INITIAL_VISITS = [
 
 
 export function DataProvider({ children }) {
-  const [sites, setSites] = useState(INITIAL_SITES);
-  const [customers, setCustomers] = useState(INITIAL_CUSTOMERS);
-  const [bookings, setBookings] = useState(INITIAL_BOOKINGS);
-  const [visits, setVisits] = useState(INITIAL_VISITS);
+  const [sites, setSites] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [visits, setVisits] = useState([]);
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(true);
 

@@ -4,12 +4,22 @@ import { useData } from "../../context/DataContext.jsx";
 import Modal from "../../components/Modal.jsx";
 import { Users, Mail, Phone, Eye, TrendingUp, UserCheck, Building2 } from "lucide-react";
 
-// All possible roles in the hierarchy - always show these cards
-const ALL_ROLES = [
-  { role: "Branch Manager", icon: Building2, color: "text-cyan-600", bg: "bg-cyan-50", label: "BM Count" },
-  { role: "BDM", icon: Users, color: "text-purple-600", bg: "bg-purple-50", label: "BDE Count" },
-  { role: "Sales Manager", icon: UserCheck, color: "text-green-600", bg: "bg-green-50", label: "Sales Managers" },
-];
+// All roles below the logged-in user in the hierarchy - shows what they can manage
+const SUB_ROLES = {
+  "Regional Manager": [
+    { role: "Branch Manager", icon: Building2, color: "text-cyan-600", bg: "bg-cyan-50", label: "BM Count" },
+    { role: "BDM", icon: Users, color: "text-purple-600", bg: "bg-purple-50", label: "BDM Count" },
+    { role: "Sales Manager", icon: UserCheck, color: "text-green-600", bg: "bg-green-50", label: "Sales Managers" },
+  ],
+  "Branch Manager": [
+    { role: "BDM", icon: Users, color: "text-purple-600", bg: "bg-purple-50", label: "BDM Count" },
+    { role: "Sales Manager", icon: UserCheck, color: "text-green-600", bg: "bg-green-50", label: "Sales Managers" },
+  ],
+  "BDM": [
+    { role: "Sales Manager", icon: UserCheck, color: "text-green-600", bg: "bg-green-50", label: "Sales Managers" },
+  ],
+  "Sales Manager": [],
+};
 
 const TEAM_CONFIG = {
   "Regional Manager": {
@@ -54,13 +64,18 @@ export default function TeamPage() {
     return ids;
   }, [users, user?.id]);
 
-  // Count each role in the entire downline (always show all 3 roles, even if 0)
+  // Get the roles below the current user in the hierarchy
+  const subRoles = useMemo(() => {
+    return SUB_ROLES[user?.role] || [];
+  }, [user?.role]);
+
+  // Count each sub-role in the entire downline
   const roleCounts = useMemo(() => {
-    return ALL_ROLES.map(({ role }) => ({
+    return subRoles.map(({ role }) => ({
       role,
       count: users.filter((u) => u.role === role && downlineUserIds.includes(u.id)).length,
     }));
-  }, [users, downlineUserIds]);
+  }, [users, downlineUserIds, subRoles]);
 
   // Direct children only (for default team view)
   const directMembers = useMemo(() => {
@@ -114,11 +129,11 @@ export default function TeamPage() {
         </div>
       </div>
 
-      {/* Downline Role Count Cards - always show all 3 roles */}
-      {!selectedRole && (
-        <div className="px-4 grid grid-cols-3 gap-3 mb-4">
+      {/* Downline Role Count Cards - shows roles below the user */}
+      {!selectedRole && roleCounts.length > 0 && (
+        <div className={`px-4 grid ${roleCounts.length === 1 ? "grid-cols-1" : "grid-cols-3"} gap-3 mb-4`}>
           {roleCounts.map(({ role, count }) => {
-            const cfg = ALL_ROLES.find((r) => r.role === role) || { icon: Users, color: "text-gray-600", bg: "bg-gray-50", label: role };
+            const cfg = subRoles.find((r) => r.role === role) || { icon: Users, color: "text-gray-600", bg: "bg-gray-50", label: role };
             return (
               <button
                 key={role}
