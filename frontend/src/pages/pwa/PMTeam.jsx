@@ -15,6 +15,15 @@ export default function PMTeam() {
   const [selectedMember, setSelectedMember] = useState(null);
 
   const myBMs = useMemo(() => users.filter(u => u.role === "Branch Manager" && u.parentUserId === user?.id), [users, user]);
+  
+  const bmIds = useMemo(() => myBMs.map(bm => bm.id), [myBMs]);
+  
+  const myBDMs = useMemo(() => users.filter(u => u.role === "BDM" && bmIds.includes(u.parentUserId)), [users, bmIds]);
+  
+  const mySMs = useMemo(() => {
+    const bdmIds = myBDMs.map(bdm => bdm.id);
+    return users.filter(u => u.role === "Sales Manager" && bdmIds.includes(u.parentUserId));
+  }, [users, myBDMs]);
 
   const toggleExpand = (userId) => setExpanded(prev => ({ ...prev, [userId]: !prev[userId] }));
 
@@ -65,10 +74,10 @@ export default function PMTeam() {
       {/* Summary Cards */}
       <div className="px-4 grid grid-cols-2 gap-3 mb-4">
         {[
-          { label: "Total BMs", value: myBMs.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-          { label: "Active", value: myBMs.filter(b => b.status === "Active").length, icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
-          { label: "Customers", value: myBMs.reduce((sum, b) => sum + getMemberStats(b).customers, 0), icon: Users, color: "text-purple-600", bg: "bg-purple-50" },
-          { label: "Bookings", value: myBMs.reduce((sum, b) => sum + getMemberStats(b).bookings, 0), icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50" },
+          { label: "BM Count", value: myBMs.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+          { label: "BDE Count", value: myBDMs.length, icon: Users, color: "text-cyan-600", bg: "bg-cyan-50" },
+          { label: "Sales Managers", value: mySMs.length, icon: Users, color: "text-purple-600", bg: "bg-purple-50" },
+          { label: "Total Customers", value: myBMs.reduce((sum, b) => sum + getMemberStats(b).customers, 0), icon: Users, color: "text-green-600", bg: "bg-green-50" },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
             <div className={`w-10 h-10 ${s.bg} rounded-xl flex items-center justify-center mb-2`}>
