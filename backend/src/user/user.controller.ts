@@ -12,6 +12,7 @@ import {
   HttpCode,
   HttpStatus,
   ParseIntPipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiBody, ApiBearerAuth, ApiOperation, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { UserService } from './user.service';
@@ -95,7 +96,6 @@ export class UserController {
   }
 
   @Put(':id')
-  @Roles('Admin', 'Director')
   @ApiOperation({ summary: 'Update user' })
   @ApiParam({ name: 'id', type: Number, description: 'User ID' })
   @ApiBody({ type: UpdateUserDto })
@@ -104,6 +104,10 @@ export class UserController {
     @Body() body: UpdateUserDto,
     @CurrentUser() currentUser: any,
   ) {
+    // Users can update their own profile, Admins/Directors can update anyone
+    if (currentUser.id !== id && !['Admin', 'Director'].includes(currentUser.role)) {
+      throw new ForbiddenException('You can only update your own profile');
+    }
     return this.userService.update(id, body, currentUser);
   }
 

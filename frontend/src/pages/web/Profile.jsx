@@ -1,22 +1,49 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { useData } from "../../context/DataContext.jsx";
 import { User, Camera, Save, Mail, Phone, MapPin, Shield } from "lucide-react";
 import toast from "react-hot-toast";
+import { uploadAPI } from "../../api/upload.js";
 
 export default function WebProfile() {
   const { user, updateProfile } = useAuth();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ ...user });
+  const [photoFile, setPhotoFile] = useState(null);
 
-  const handleSave = () => {
-    updateProfile(form);
-    setEditing(false);
-    toast.success("Profile updated!");
+  const handleSave = async () => {
+    try {
+      const updatedData = {
+        name: form.name,
+        email: form.email,
+        avatar: form.avatar || user.avatar,
+      };
+      
+      if (photoFile) {
+        try {
+          const result = await uploadAPI.uploadImage(photoFile);
+          updatedData.avatar = result.url;
+        } catch (err) {
+          toast.error("Failed to upload image");
+          return;
+        }
+      }
+      
+      // Save to backend via API
+      // Update local state and persist to backend
+      await updateProfile(updatedData);
+      
+      setEditing(false);
+      setPhotoFile(null);
+    } catch (error) {
+      toast.error("Error saving profile");
+    }
   };
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    setPhotoFile(file);
     const reader = new FileReader();
     reader.onload = (ev) => {
       setForm(p => ({ ...p, avatar: ev.target.result }));
@@ -72,7 +99,7 @@ export default function WebProfile() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[
             { label: "Full Name", key: "name", type: "text" },
-            { label: "Mobile", key: "mobile", type: "tel" },
+            { label: "Mobile", key: "mobile", type: "tel", readOnly: true },
             { label: "Email", key: "email", type: "email" },
             { label: "Role", key: "role", type: "text", readOnly: true },
             { label: "Region", key: "region", type: "text", readOnly: true },
@@ -96,7 +123,7 @@ export default function WebProfile() {
             <button onClick={handleSave} className="btn-primary px-6 py-2.5">
               <Save size={16} />Save Changes
             </button>
-            <button onClick={() => { setEditing(false); setForm({ ...user }); }} className="btn-secondary px-6 py-2.5">
+            <button onClick={() => { setEditing(false); setForm({ ...user }); setPhotoFile(null); }} className="btn-secondary px-6 py-2.5">
               Cancel
             </button>
           </div>

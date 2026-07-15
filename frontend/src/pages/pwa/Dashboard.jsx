@@ -315,8 +315,12 @@ export default function PWADashboard() {
               ) : (
                 data.teamList.slice(0, 3).map((member) => (
                   <div key={member.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors">
-                    <div className="w-9 h-9 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-xl flex items-center justify-center text-indigo-700 font-bold text-sm">
-                      {member.name.charAt(0)}
+                    <div className="w-9 h-9 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-xl flex items-center justify-center text-indigo-700 font-bold text-sm overflow-hidden flex-shrink-0">
+                      {member.avatar ? (
+                        <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
+                      ) : (
+                        member.name?.charAt(0)
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-sm text-slate-900">{member.name}</div>
@@ -342,8 +346,12 @@ export default function PWADashboard() {
             <div className="space-y-2">
               {data.myCustomers.slice(0, 4).map((c) => (
                 <div key={c.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-all group">
-                  <div className="w-9 h-9 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-xl flex items-center justify-center text-blue-700 font-bold text-sm flex-shrink-0">
-                    {c.name.charAt(0)}
+                  <div className="w-9 h-9 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-xl flex items-center justify-center text-blue-700 font-bold text-sm overflow-hidden flex-shrink-0">
+                    {c.avatar ? (
+                      <img src={c.avatar} alt={c.name} className="w-full h-full object-cover" />
+                    ) : (
+                      c.name?.charAt(0)
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm text-slate-900 truncate">{c.name}</div>

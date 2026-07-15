@@ -20,6 +20,7 @@ model User {
   status                String   @default("Active")
   
   // Personal Information
+  avatar                String?
   fatherHusbandName     String?
   address               String?
   dob                   DateTime?

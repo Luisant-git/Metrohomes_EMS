@@ -784,8 +784,12 @@ function TreeNode({ node, users, customers, bookings, depth = 0, onViewTeam }) {
           <span className="w-[14px] flex-shrink-0" />
         )}
 
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-sm">
-          {node.name?.charAt(0)}
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold overflow-hidden flex-shrink-0 shadow-sm">
+          {node.avatar ? (
+            <img src={node.avatar} alt={node.name} className="w-full h-full object-cover" />
+          ) : (
+            node.name?.charAt(0)
+          )}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -1585,8 +1589,12 @@ export default function UserManagement() {
         {selected && (
           <div className="space-y-6">
             <div className="flex items-center gap-4 pb-5 border-b border-gray-100">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white text-2xl font-extrabold shadow-lg">
-                {selected.name?.charAt(0)}
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white text-2xl font-extrabold shadow-lg overflow-hidden">
+                {selected.avatar ? (
+                  <img src={selected.avatar} alt={selected.name} className="w-full h-full object-cover" />
+                ) : (
+                  selected.name?.charAt(0)
+                )}
               </div>
               <div className="flex-1">
                 <div className="text-xl font-bold text-gray-900">{selected.name}</div>

@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { auth } from "../api/auth.js";
 
 const AuthContext = createContext(null);
 
@@ -182,30 +183,19 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  const login = (identifier, password, dynamicUsers = []) => {
-    const normalizedIdentifier = identifier?.trim().toLowerCase();
-
-    const matchesCredential = (user) => {
-      if (!user?.password) return false;
-      const emailMatches = user.email?.toLowerCase() === normalizedIdentifier;
-      const userIdMatches = user.employeeCode?.toLowerCase() === normalizedIdentifier || user.userId?.toLowerCase() === normalizedIdentifier;
-      return (emailMatches || userIdMatches) && user.password === password;
-    };
-
-    let found = MOCK_USERS.find(matchesCredential);
-
-    if (!found && dynamicUsers.length > 0) {
-      found = dynamicUsers.find(matchesCredential);
+  const login = async (identifier, password) => {
+    try {
+      const data = await auth.login(identifier, password);
+      if (data?.user) {
+        const { password: _, ...safeUser } = data.user;
+        setUser(safeUser);
+        localStorage.setItem("re_user", JSON.stringify(safeUser));
+        return { success: true, user: safeUser };
+      }
+      return { success: false, error: "Login failed" };
+    } catch (err) {
+      return { success: false, error: err.message || "Invalid user ID or password" };
     }
-
-    if (found) {
-      const { password: _, ...safeUser } = found;
-      setUser(safeUser);
-      localStorage.setItem("re_user", JSON.stringify(safeUser));
-      return { success: true, user: safeUser };
-    }
-
-    return { success: false, error: "Invalid user ID or password" };
   };
 
   const logout = () => {
@@ -213,10 +203,47 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("re_user");
   };
 
-  const updateProfile = (updates) => {
+  const updateProfile = async (updates) => {
     const updated = { ...user, ...updates };
     setUser(updated);
     localStorage.setItem("re_user", JSON.stringify(updated));
+    
+    // Persist changes to backend if we have a logged-in user
+    if (user?.id) {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          // Only send allowed fields to backend
+          const allowedFields = {
+            name: updates.name || user.name,
+            email: updates.email || user.email,
+            mobile: updates.mobile || user.mobile,
+            fatherHusbandName: updates.fatherHusbandName || user.fatherHusbandName,
+            address: updates.address || user.address,
+            dob: updates.dob || user.dob,
+            nomineeName: updates.nomineeName || user.nomineeName,
+            nomineeRelationship: updates.nomineeRelationship || user.nomineeRelationship,
+            bankName: updates.bankName || user.bankName,
+            bankAccountNo: updates.bankAccountNo || user.bankAccountNo,
+            ifscCode: updates.ifscCode || user.ifscCode,
+            bankBranch: updates.bankBranch || user.bankBranch,
+            panNo: updates.panNo || user.panNo,
+            avatar: updates.avatar || user.avatar,
+          };
+          
+          await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/users/${user.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(allowedFields)
+          });
+        }
+      } catch (error) {
+        console.error("Failed to persist profile update to backend:", error);
+      }
+    }
   };
 
   const isWebRole = user && WEB_ROLES.includes(user.role);

@@ -182,4 +182,12 @@ export class CreateUserDto {
   @IsOptional()
   @IsNumber()
   createdBy?: number;
+
+  @ApiPropertyOptional({
+    description: 'User avatar URL',
+    example: 'http://localhost:3000/uploads/avatar.jpg',
+  })
+  @IsOptional()
+  @IsString()
+  avatar?: string;
 }

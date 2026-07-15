@@ -16,6 +16,11 @@ async function bootstrap() {
     credentials: true,
   });
 
+  const { join } = require('path');
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/uploads/',
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

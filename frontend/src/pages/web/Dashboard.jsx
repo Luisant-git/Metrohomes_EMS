@@ -187,22 +187,29 @@ export default function WebDashboard() {
           <h3 className="font-bold text-gray-800 mb-4">Recent Team Bookings</h3>
           {teamBookings.length > 0 ? (
             <div className="space-y-3">
-              {teamBookings.slice(0, 5).map((b, i) => (
-                <div key={b.id || i} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
-                  <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 font-bold text-sm">
-                    {b.customerName?.charAt(0)}
+              {teamBookings.slice(0, 5).map((b, i) => {
+                const smUser = users.find(u => u.id === b.salesManagerId);
+                return (
+                  <div key={b.id || i} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                    <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 font-bold text-sm overflow-hidden flex-shrink-0">
+                      {smUser?.avatar ? (
+                        <img src={smUser.avatar} alt={smUser.name} className="w-full h-full object-cover" />
+                      ) : (
+                        b.customerName?.charAt(0)
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-sm text-gray-800 truncate">{b.customerName}</div>
+                      <div className="text-xs text-gray-400 truncate">{b.siteName} · {b.bookingDate}</div>
+                      <div className="text-[10px] text-gray-400">SM: {b.salesManagerName}</div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="font-bold text-sm text-gray-900">₹{(b.plotPrice / 100000).toFixed(0)}L</div>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${b.status === "Payment Done" ? "bg-emerald-100 text-emerald-700" : "bg-green-100 text-green-700"}`}>{b.status}</span>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-gray-800 truncate">{b.customerName}</div>
-                    <div className="text-xs text-gray-400 truncate">{b.siteName} · {b.bookingDate}</div>
-                    <div className="text-[10px] text-gray-400">SM: {b.salesManagerName}</div>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="font-bold text-sm text-gray-900">₹{(b.plotPrice / 100000).toFixed(0)}L</div>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${b.status === "Payment Done" ? "bg-emerald-100 text-emerald-700" : "bg-green-100 text-green-700"}`}>{b.status}</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="flex items-center justify-center h-[200px] text-gray-400 text-sm">

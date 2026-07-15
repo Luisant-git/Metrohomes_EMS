@@ -45,8 +45,7 @@ export const auth = {
     });
 
     const data = await handleResponse(response);
-    localStorage.setItem("authToken", data.accessToken);
-    localStorage.setItem("user", JSON.stringify(data.user));
+    // Don't store here - let AuthContext handle localStorage
     return data;
   },
 

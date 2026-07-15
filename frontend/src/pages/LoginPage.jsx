@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { auth } from "../api/auth.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import { Eye, EyeOff, Lock, UserCircle2, LogIn } from "lucide-react";
 import { toast } from "react-toastify";
 import logo from "../assests/logo 1.png";
@@ -9,22 +9,19 @@ export default function LoginPage() {
   const [pin, setPin] = useState("");
   const [showPin, setShowPin] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const data = await auth.login(identifier, pin);
-      if (data.accessToken) {
-        localStorage.setItem("authToken", data.accessToken);
-      }
-      if (data.user) {
-        localStorage.setItem("re_user", JSON.stringify(data.user));
-        toast.success(`Welcome back, ${data.user.name}!`);
+      const result = await login(identifier, pin);
+      if (result.success) {
+        toast.success(`Welcome back, ${result.user.name}!`);
+        setTimeout(() => window.location.reload(), 500);
       } else {
-        toast.success("Login successful!");
+        toast.error(result.error || "Login failed. Please check your credentials.");
       }
-      setTimeout(() => window.location.reload(), 800);
     } catch (err) {
       toast.error(err.message || "Login failed. Please check your credentials.");
     } finally {

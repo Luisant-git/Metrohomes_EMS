@@ -1,22 +1,63 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { useData } from "../../context/DataContext.jsx";
 import { Camera, Save, Phone, Mail, User, Shield, LogOut, Edit2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { uploadAPI } from "../../api/upload.js";
 
 export default function PWAProfile() {
   const { user, updateProfile, logout } = useAuth();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ ...user });
+  const [photoFile, setPhotoFile] = useState(null);
 
-  const handleSave = () => {
-    updateProfile(form);
-    setEditing(false);
-    toast.success("Profile updated!");
+  const handleSave = async () => {
+    try {
+      const updatedData = {
+        name: form.name,
+        email: form.email,
+        avatar: form.avatar || user.avatar,
+      };
+      
+      if (photoFile) {
+        try {
+          const result = await uploadAPI.uploadImage(photoFile);
+          updatedData.avatar = result.url;
+        } catch (err) {
+          toast.error("Failed to upload image");
+          return;
+        }
+      }
+      
+      // Save to backend via API
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/users/${user.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify(updatedData)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+      
+      // Update local state
+      await updateProfile(updatedData);
+      
+      setEditing(false);
+      setPhotoFile(null);
+      toast.success("Profile updated!");
+    } catch (error) {
+      toast.error("Error saving profile");
+    }
   };
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    setPhotoFile(file);
     const reader = new FileReader();
     reader.onload = ev => setForm(p => ({ ...p, avatar: ev.target.result }));
     reader.readAsDataURL(file);
@@ -31,7 +72,7 @@ export default function PWAProfile() {
 
   const infoItems = [
     { icon: Mail, label: "Email", key: "email", type: "email" },
-    { icon: Phone, label: "Mobile", key: "mobile", type: "tel" },
+    { icon: Phone, label: "Mobile", key: "mobile", type: "tel", readOnly: true },
     { icon: Shield, label: "Role", key: "role", readOnly: true },
   ];
 
@@ -65,7 +106,7 @@ export default function PWAProfile() {
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-gray-800">My Information</h3>
-            <button onClick={() => { setEditing(p => !p); if (editing) setForm({ ...user }); }}
+            <button onClick={() => { setEditing(p => !p); if (editing) { setForm({ ...user }); setPhotoFile(null); } }}
               className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all ${editing ? "bg-gray-100 text-gray-600" : "bg-blue-50 text-blue-600"}`}>
               <Edit2 size={12} />{editing ? "Cancel" : "Edit"}
             </button>

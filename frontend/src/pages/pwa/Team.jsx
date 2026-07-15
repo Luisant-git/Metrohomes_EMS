@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
 import Modal from "../../components/Modal.jsx";
@@ -51,6 +51,13 @@ export default function TeamPage() {
   const [selectedRole, setSelectedRole] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [downlinePage, setDownlinePage] = useState(1);
+
+  useEffect(() => {
+    if (selectedMember) {
+      setDownlinePage(1);
+    }
+  }, [selectedMember]);
 
   // Find the real user from the API-fetched users array that matches the logged-in user
   const user = useMemo(() => {
@@ -269,34 +276,34 @@ export default function TeamPage() {
         <div className="px-4">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             {/* Table Header */}
-            <div className="grid grid-cols-4 bg-gray-50 border-b border-gray-100">
-              <div className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">User ID</div>
-              <div className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</div>
-              <div className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Mobile</div>
-              <div className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Action</div>
+            <div className="flex bg-gray-50 border-b border-gray-100">
+              <div className="flex-[2] px-1.5 py-1.5 text-[9px] font-semibold text-gray-500 uppercase tracking-wider min-w-0">User ID</div>
+              <div className="flex-[3] px-1.5 py-1.5 text-[9px] font-semibold text-gray-500 uppercase tracking-wider min-w-0">Name</div>
+              <div className="flex-[2] px-1.5 py-1.5 text-[9px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Mobile</div>
+              <div className="w-10 px-1.5 py-1.5 text-[9px] font-semibold text-gray-500 uppercase tracking-wider text-center flex-shrink-0">Action</div>
             </div>
             {/* Table Rows */}
             {paginatedMembers.map((member, index) => (
               <div
                 key={member.id}
-                className={`grid grid-cols-4 items-center border-b border-gray-50 ${
+                className={`flex items-center border-b border-gray-50 ${
                   index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
                 }`}
               >
-                <div className="px-4 py-3 text-sm font-mono text-gray-700">
+                <div className="flex-[2] px-1.5 py-1.5 text-[11px] font-mono text-gray-700 truncate">
                   {member.employeeCode || `ID:${member.id}`}
                 </div>
-                <div className="px-4 py-3 text-sm font-medium text-gray-800">
+                <div className="flex-[3] px-1.5 py-1.5 text-[11px] font-medium text-gray-800 truncate">
                   {member.name}
                 </div>
-                <div className="px-4 py-3 text-sm text-gray-600">{member.mobile}</div>
-                <div className="px-4 py-3 text-right">
+                <div className="flex-[2] px-1.5 py-1.5 text-[11px] text-gray-600 flex-shrink-0 truncate">{member.mobile}</div>
+                <div className="w-10 px-1.5 py-1.5 text-center flex-shrink-0">
                   <button
                     onClick={() => setSelectedMember(member)}
-                    className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+                    className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors inline-flex items-center justify-center"
                     title="View details"
                   >
-                    <Eye size={18} />
+                    <Eye size={16} />
                   </button>
                 </div>
               </div>
@@ -366,8 +373,12 @@ export default function TeamPage() {
             <div className="space-y-5">
               {/* Member Info Header */}
               <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-2xl">
-                  {selectedMember.name?.charAt(0) || "U"}
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-2xl overflow-hidden flex-shrink-0">
+                  {selectedMember.avatar ? (
+                    <img src={selectedMember.avatar} alt={selectedMember.name} className="w-full h-full object-cover rounded-full" />
+                  ) : (
+                    selectedMember.name?.charAt(0) || "U"
+                  )}
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-bold text-gray-900">{selectedMember.name}</h3>
@@ -423,7 +434,7 @@ export default function TeamPage() {
                       <div className="px-3 py-2">Name</div>
                       <div className="px-3 py-2">Role</div>
                     </div>
-                    {downline.map((d, i) => (
+                    {downline.slice((downlinePage - 1) * 5, downlinePage * 5).map((d, i) => (
                       <div
                         key={d.id}
                         className={`grid grid-cols-3 text-sm ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
@@ -438,6 +449,28 @@ export default function TeamPage() {
                       </div>
                     ))}
                   </div>
+
+                  {downline.length > 5 && (
+                    <div className="flex items-center justify-between mt-3 px-1 text-sm">
+                      <button
+                        onClick={() => setDownlinePage(p => Math.max(1, p - 1))}
+                        disabled={downlinePage === 1}
+                        className={`px-3 py-1.5 rounded-lg transition-colors ${downlinePage === 1 ? "text-gray-400 bg-gray-50 cursor-not-allowed" : "text-blue-600 bg-blue-50 hover:bg-blue-100"}`}
+                      >
+                        Previous
+                      </button>
+                      <span className="text-gray-500 text-xs">
+                        Page {downlinePage} of {Math.ceil(downline.length / 5)}
+                      </span>
+                      <button
+                        onClick={() => setDownlinePage(p => Math.min(Math.ceil(downline.length / 5), p + 1))}
+                        disabled={downlinePage === Math.ceil(downline.length / 5)}
+                        className={`px-3 py-1.5 rounded-lg transition-colors ${downlinePage === Math.ceil(downline.length / 5) ? "text-gray-400 bg-gray-50 cursor-not-allowed" : "text-blue-600 bg-blue-50 hover:bg-blue-100"}`}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
               {downline.length === 0 && (
