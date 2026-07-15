@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
 import { useNavigate } from "react-router-dom";
@@ -10,10 +10,19 @@ import StatusBadge from "../../components/StatusBadge.jsx";
 import { dashboard, getDownlineRoleCounts } from "../../api/dashboard.js";
 
 export default function PWADashboard() {
-  const { user, hierarchy } = useAuth();
+  const { user: authUser, hierarchy } = useAuth();
   const { users, customers, sites, visits, bookings } = useData();
   const navigate = useNavigate();
   const [downlineRoleCounts, setDownlineRoleCounts] = useState([]);
+
+  // Match the logged-in user to the API-fetched user for correct ID matching
+  const user = useMemo(() => {
+    if (!authUser?.id || !users.length) return authUser;
+    const match = users.find(
+      (u) => u.employeeCode === authUser.employeeCode || u.email === authUser.email
+    );
+    return match || authUser;
+  }, [authUser, users]);
 
   useEffect(() => {
     async function fetchDownlineRoleCounts() {
