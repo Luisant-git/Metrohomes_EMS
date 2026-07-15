@@ -32,12 +32,6 @@ export default function PMSReport() {
       </div>
 
       <div className="px-4 space-y-3">
-        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 text-white">
-          <div className="text-sm opacity-80 mb-1">Total Revenue</div>
-          <div className="text-3xl font-extrabold">₹{(totalRevenue / 100000).toFixed(1)}L</div>
-          <div className="text-blue-200 text-xs mt-2">{myBookings.length} bookings · {myCustomers.length} customers</div>
-        </div>
-
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <h3 className="font-bold text-gray-800 text-sm mb-3">Summary</h3>
           <div className="space-y-3">
@@ -57,34 +51,6 @@ export default function PMSReport() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-          <h3 className="font-bold text-gray-800 text-sm mb-3">Branch-wise Performance</h3>
-          <div className="space-y-2">
-            {myBMs.slice(0, 5).map(bm => {
-              const bmCustomers = myCustomers.filter(c => {
-                const sm = users.find(u => u.id === c.salesManagerId);
-                return sm && sm.parentUserId === bm.id;
-              });
-              const bmBookings = myBookings.filter(b => {
-                const sm = users.find(u => u.id === b.salesManagerId);
-                return sm && sm.parentUserId === bm.id;
-              });
-              return (
-                <div key={bm.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-xl">
-                  <div>
-                    <div className="text-sm font-semibold text-gray-800">{bm.name}</div>
-                    <div className="text-xs text-gray-400">{bm.branch}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-bold text-blue-600">{bmCustomers.length} Customers</div>
-                    <div className="text-xs text-gray-500">{bmBookings.length} Bookings</div>
-                  </div>
-                </div>
-              );
-            })}
           </div>
         </div>
       </div>
