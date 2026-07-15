@@ -417,7 +417,7 @@ function AddUserModal({
                       ? 'border-red-300 bg-red-50'
                       : ''
                   }`}
-                  placeholder="Enter User ID (e.g., RM001)"
+                  placeholder="Enter User ID"
                   autoComplete="off"
                   disabled={isVerified}
                 />
