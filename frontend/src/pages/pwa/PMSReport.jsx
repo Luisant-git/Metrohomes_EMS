@@ -1,10 +1,10 @@
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
-import { BarChart3, TrendingUp, DollarSign, Users } from "lucide-react";
+import { BarChart3, Building2, Users, TrendingUp } from "lucide-react";
 
 export default function PMSReport() {
   const { user, hierarchy } = useAuth();
-  const { bookings, customers, users } = useData();
+  const { bookings, customers, users, sites } = useData();
 
   const directChildren = hierarchy.getDirectChildren(users);
   const directIds = new Set(directChildren.map(c => c.id));
@@ -21,8 +21,7 @@ export default function PMSReport() {
     return sm && myBMIds.has(sm.parentUserId);
   });
 
-  const totalRevenue = myBookings.reduce((sum, b) => sum + (b.plotPrice || 0), 0);
-  const totalPaid = myBookings.reduce((sum, b) => sum + (b.paidAmount || 0), 0);
+  const activeSites = sites.filter(s => s.approved).length;
 
   return (
     <div className="pb-4">
@@ -38,8 +37,7 @@ export default function PMSReport() {
             {[
               { label: "Total Bookings", value: myBookings.length, icon: BarChart3, color: "text-blue-600", bg: "bg-blue-50" },
               { label: "Total Customers", value: myCustomers.length, icon: Users, color: "text-green-600", bg: "bg-green-50" },
-              { label: "Revenue Achieved", value: `₹${(totalPaid / 100000).toFixed(1)}L`, icon: DollarSign, color: "text-purple-600", bg: "bg-purple-50" },
-              { label: "Avg. Deal Size", value: `₹${myBookings.length ? ((totalRevenue / myBookings.length) / 100000).toFixed(1) : 0}L`, icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50" },
+              { label: "No of Sites Achieved", value: activeSites, icon: Building2, color: "text-purple-600", bg: "bg-purple-50" },
             ].map(s => (
               <div key={s.label} className="flex items-center gap-3">
                 <div className={`w-10 h-10 ${s.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
