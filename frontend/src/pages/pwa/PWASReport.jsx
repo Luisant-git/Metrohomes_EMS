@@ -2,7 +2,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
 import { BarChart3, Building2, Users, TrendingUp } from "lucide-react";
 
-export default function PMSReport() {
+export default function PWASReport() {
   const { user, hierarchy } = useAuth();
   const { bookings, customers, users, sites } = useData();
 

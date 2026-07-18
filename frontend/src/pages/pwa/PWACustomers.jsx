@@ -1,13 +1,15 @@
+import { useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
 import { useNavigate } from "react-router-dom";
-import { UserCheck, Search, Filter, Phone, Mail, Calendar } from "lucide-react";
+import { UserCheck, UserX } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge.jsx";
 
-export default function PMCustomers() {
+export default function PWACustomers() {
   const { user, hierarchy } = useAuth();
   const { customers, users } = useData();
   const navigate = useNavigate();
+  const [statusFilter, setStatusFilter] = useState("All");
 
   const directChildren = hierarchy.getDirectChildren(users);
   const directIds = new Set(directChildren.map(c => c.id));
@@ -19,7 +21,10 @@ export default function PMCustomers() {
     return salesManager && myBMIds.has(salesManager.parentUserId);
   });
 
+  const filteredCustomers = statusFilter === "All" ? myCustomers : myCustomers.filter(c => c.status === statusFilter);
+
   const statusCounts = {
+    All: myCustomers.length,
     Interested: myCustomers.filter(c => c.status === "Interested").length,
     Scheduled: myCustomers.filter(c => c.status === "Visit Scheduled").length,
     Completed: myCustomers.filter(c => c.status === "Visit Completed").length,
@@ -27,6 +32,16 @@ export default function PMCustomers() {
     Booked: myCustomers.filter(c => c.status === "Booked" || c.status === "Payment Done").length,
     Dropped: myCustomers.filter(c => c.status === "Dropped").length,
   };
+
+  const filterOptions = [
+    { key: "All", label: "All", count: statusCounts.All },
+    { key: "Interested", label: "Interested", count: statusCounts.Interested },
+    { key: "Scheduled", label: "Visit Scheduled", count: statusCounts.Scheduled },
+    { key: "Completed", label: "Visit Completed", count: statusCounts.Completed },
+    { key: "Ready", label: "Ready to Book", count: statusCounts.Ready },
+    { key: "Booked", label: "Booked / Paid", count: statusCounts.Booked },
+    { key: "Dropped", label: "Dropped", count: statusCounts.Dropped },
+  ];
 
   return (
     <div className="pb-4">
@@ -75,19 +90,43 @@ export default function PMCustomers() {
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <h3 className="font-bold text-gray-800 text-sm mb-3">Recent Customers</h3>
-          <div className="space-y-2">
-            {myCustomers.slice(0, 5).map(c => (
-              <div key={c.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50">
-                <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-sm flex-shrink-0">
-                  {c.name.charAt(0)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm text-gray-800 truncate">{c.name}</div>
-                  <div className="text-xs text-gray-400 truncate">{c.siteName}</div>
-                </div>
-                <StatusBadge status={c.status} />
-              </div>
+          
+          <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+            {filterOptions.map(opt => (
+              <button
+                key={opt.key}
+                onClick={() => setStatusFilter(opt.key)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  statusFilter === opt.key
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {opt.label} ({opt.count})
+              </button>
             ))}
+          </div>
+
+          <div className="space-y-2">
+            {filteredCustomers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                <UserX size={32} className="mb-2" />
+                <span className="text-sm">No customers found</span>
+              </div>
+            ) : (
+              filteredCustomers.slice(0, 5).map(c => (
+                <div key={c.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50">
+                  <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-sm flex-shrink-0">
+                    {c.name.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm text-gray-800 truncate">{c.name}</div>
+                    <div className="text-xs text-gray-400 truncate">{c.siteName}</div>
+                  </div>
+                  <StatusBadge status={c.status} />
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

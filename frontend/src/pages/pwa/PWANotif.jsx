@@ -7,7 +7,7 @@ const notifications = [
   { id: 4, type: "warning", message: "Amit Patel has 2 pending visit confirmations", time: "2 days ago", read: true },
 ];
 
-export default function PMNotif() {
+export default function PWANotif() {
   const iconMap = { alert: AlertCircle, success: CheckCircle, info: Info, warning: Clock };
 
   return (

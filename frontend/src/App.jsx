@@ -22,19 +22,15 @@ import CustomerRegistration from "./pages/web/CustomerRegistration.jsx";
 // PWA pages (shared across all PWA roles)
 import PWADashboard from "./pages/pwa/Dashboard.jsx";
 import TeamPage from "./pages/pwa/Team.jsx";
-import PMSites from "./pages/pwa/Sites.jsx";
-import PMSiteDetail from "./pages/pwa/SiteDetail.jsx";
-import PMCustomers from "./pages/pwa/PMCustomers.jsx";
-import PMVisits from "./pages/pwa/PMVisits.jsx";
-import PMBookings from "./pages/pwa/PMBookings.jsx";
-import PMSReport from "./pages/pwa/PMSReport.jsx";
-import PMPerf from "./pages/pwa/PMPerf.jsx";
-import PMNotif from "./pages/pwa/PMNotif.jsx";
 import PWASites from "./pages/pwa/Sites.jsx";
 import PWASiteDetail from "./pages/pwa/SiteDetail.jsx";
-import PWACustomers from "./pages/pwa/Customers.jsx";
-import PWAVisitRegistration from "./pages/pwa/VisitRegistration.jsx";
+import PWACustomers from "./pages/pwa/PWACustomers.jsx";
 import PWAVisits from "./pages/pwa/Visits.jsx";
+import PWABookings from "./pages/pwa/PWABookings.jsx";
+import PWASReport from "./pages/pwa/PWASReport.jsx";
+import PWAPerf from "./pages/pwa/PWAPerf.jsx";
+import PWANotif from "./pages/pwa/PWANotif.jsx";
+import PWAVisitRegistration from "./pages/pwa/VisitRegistration.jsx";
 import PWAProfile from "./pages/pwa/Profile.jsx";
 
 function AppRoutes() {
@@ -62,21 +58,21 @@ function AppRoutes() {
     );
   }
 
-  // Regional Manager, Branch Manager, BDM - use PM (Regional Manager) pages
+  // Regional Manager, Branch Manager, BDM - use PWA pages
   if (user.role === "Regional Manager" || user.role === "Branch Manager" || user.role === "BDM") {
     return (
       <PWALayout>
         <Routes>
           <Route path="/" element={<PWADashboard />} />
           <Route path="/my-team" element={<TeamPage />} />
-          <Route path="/customers" element={<PMCustomers />} />
-          <Route path="/visits" element={<PMVisits />} />
-          <Route path="/bookings" element={<PMBookings />} />
-          <Route path="/sales-report" element={<PMSReport />} />
-          <Route path="/performance" element={<PMPerf />} />
-          <Route path="/notifications" element={<PMNotif />} />
-          <Route path="/sites" element={<PMSites />} />
-          <Route path="/sites/:id" element={<PMSiteDetail />} />
+          <Route path="/customers" element={<PWACustomers />} />
+          <Route path="/visits" element={<PWAVisits />} />
+          <Route path="/bookings" element={<PWABookings />} />
+          <Route path="/sales-report" element={<PWASReport />} />
+          <Route path="/performance" element={<PWAPerf />} />
+          <Route path="/notifications" element={<PWANotif />} />
+          <Route path="/sites" element={<PWASites />} />
+          <Route path="/sites/:id" element={<PWASiteDetail />} />
           <Route path="/profile" element={<PWAProfile />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
@@ -84,7 +80,7 @@ function AppRoutes() {
     );
   }
 
-  // Sales Manager - uses dedicated SM pages + Customer Registration
+  // Sales Manager - uses PWA pages
   return (
     <PWALayout>
       <Routes>

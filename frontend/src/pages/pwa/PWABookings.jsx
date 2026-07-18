@@ -2,7 +2,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
 import { DollarSign, TrendingUp, Calendar, CheckCircle } from "lucide-react";
 
-export default function PMBookings() {
+export default function PWABookings() {
   const { user, hierarchy } = useAuth();
   const { bookings, users } = useData();
 

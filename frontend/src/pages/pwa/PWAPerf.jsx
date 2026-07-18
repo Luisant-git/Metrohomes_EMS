@@ -2,7 +2,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
 import { Trophy, TrendingUp, Award, Star } from "lucide-react";
 
-export default function PMPerf() {
+export default function PWAPerf() {
   const { user, hierarchy } = useAuth();
   const { bookings, customers, users } = useData();
 
