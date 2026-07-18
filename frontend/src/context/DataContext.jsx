@@ -1,45 +1,9 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { user as userApi } from "../api/user.js";
+import { site as siteApi } from "../api/site.js";
 
 const DataContext = createContext(null);
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-const INITIAL_SITES = [
-  {
-    id: 1, name: "Green Valley Residency", location: "Sector 62, Noida", type: "Residential",
-    totalPlots: 120, availablePlots: 45, pricePerSqft: 5500, totalArea: "25 Acres",
-    status: "Active", approved: true, amenities: ["Swimming Pool", "Gym", "Park", "Security"],
-    images: ["https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80",
-             "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800&q=80"],
-    brochure: "#", description: "Premium residential plots with world-class amenities in the heart of Noida.",
-    lat: 28.6129, lng: 77.3695, createdAt: "2024-01-15",
-  },
-  {
-    id: 2, name: "Sunrise Commercial Hub", location: "Dwarka, Delhi", type: "Commercial",
-    totalPlots: 60, availablePlots: 20, pricePerSqft: 12000, totalArea: "10 Acres",
-    status: "Active", approved: true, amenities: ["Parking", "Power Backup", "Broadband", "Cafeteria"],
-    images: ["https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&q=80",
-             "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80"],
-    brochure: "#", description: "Strategic commercial spaces in Dwarka with excellent connectivity.",
-    lat: 28.5921, lng: 77.0460, createdAt: "2024-02-10",
-  },
-  {
-    id: 3, name: "Blue Lagoon Villas", location: "Gurgaon Sector 48", type: "Villa",
-    totalPlots: 30, availablePlots: 8, pricePerSqft: 18000, totalArea: "15 Acres",
-    status: "Pending", approved: false, amenities: ["Private Pool", "Garden", "Club House", "24/7 Security"],
-    images: ["https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&q=80"],
-    brochure: "#", description: "Luxury villas with private pools and lush green surroundings.",
-    lat: 28.4089, lng: 77.0421, createdAt: "2024-03-05",
-  },
-  {
-    id: 4, name: "Emerald Heights", location: "Faridabad, Haryana", type: "Residential",
-    totalPlots: 200, availablePlots: 150, pricePerSqft: 3800, totalArea: "40 Acres",
-    status: "Active", approved: true, amenities: ["Park", "School", "Hospital Nearby", "Metro Access"],
-    images: ["https://images.unsplash.com/photo-1523217582562-09d0def993a6?w=800&q=80"],
-    brochure: "#", description: "Affordable residential plots with excellent infrastructure.",
-    lat: 28.4089, lng: 77.3178, createdAt: "2024-01-20",
-  },
-];
 
 const INITIAL_CUSTOMERS = [
   { id: 1, name: "Ramesh Gupta", mobile: "9811234567", email: "ramesh@email.com", address: "Lajpat Nagar, Delhi", status: "Booked", siteId: 1, siteName: "Green Valley Residency", salesManagerId: 6, salesManagerName: "Anjali Verma", visitDate: "2024-04-10", registeredDate: "2024-04-05", notes: "Interested in corner plot" },
@@ -94,11 +58,62 @@ export function DataProvider({ children }) {
     refreshUsers();
   }, [refreshUsers]);
 
-  // Sites
-  const addSite = (site) => setSites(prev => [...prev, { ...site, id: Date.now(), createdAt: new Date().toISOString().split("T")[0] }]);
-  const updateSite = (id, updates) => setSites(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
-  const deleteSite = (id) => setSites(prev => prev.filter(s => s.id !== id));
-  const approveSite = (id) => setSites(prev => prev.map(s => s.id === id ? { ...s, approved: true, status: "Active" } : s));
+  // Fetch sites from API on mount
+  const refreshSites = useCallback(async () => {
+    try {
+      const data = await siteApi.getAll();
+      setSites(Array.isArray(data) ? data : (data.sites || data.data || []));
+    } catch (err) {
+      console.error("Failed to fetch sites:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshSites();
+  }, [refreshSites]);
+
+  // Sites — API-backed
+  const addSite = async (siteData) => {
+    try {
+      const created = await siteApi.create(siteData);
+      await refreshSites();
+      return created;
+    } catch (err) {
+      console.error("Failed to create site:", err);
+      throw err;
+    }
+  };
+
+  const updateSite = async (id, updates) => {
+    try {
+      await siteApi.update(id, updates);
+      await refreshSites();
+    } catch (err) {
+      console.error("Failed to update site:", err);
+      throw err;
+    }
+  };
+
+  const deleteSite = async (id) => {
+    try {
+      await siteApi.delete(id);
+      setSites(prev => prev.filter(s => s.id !== id));
+      await refreshSites();
+    } catch (err) {
+      console.error("Failed to delete site:", err);
+      throw err;
+    }
+  };
+
+  const approveSite = async (id) => {
+    try {
+      await siteApi.update(id, { status: "Active" });
+      await refreshSites();
+    } catch (err) {
+      console.error("Failed to approve site:", err);
+      throw err;
+    }
+  };
 
   // Customers
   const addCustomer = (customer) => {

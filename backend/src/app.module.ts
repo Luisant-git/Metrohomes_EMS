@@ -7,10 +7,11 @@ import { UserModule } from './user/user.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { UploadModule } from './upload/upload.module';
+import { SiteModule } from './site/site.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, UserModule, WhatsappModule, DashboardModule, UploadModule],
+  imports: [PrismaModule, AuthModule, UserModule, WhatsappModule, DashboardModule, UploadModule, SiteModule],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

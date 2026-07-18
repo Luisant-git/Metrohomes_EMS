@@ -8,17 +8,17 @@ import StatCard from "../../components/StatCard.jsx";
 import {
   SquarePen, Trash2, Eye, Users, ChevronDown, ChevronRight, UserPlus,
   Search, Filter, Building2, Users as UsersIcon, UserCheck, TrendingUp,
-  X, ChevronsDown, Shield, Crown, Globe, Briefcase, Target, CheckCircle, AlertCircle,
+  X, ChevronsDown, Shield, Crown, Globe, Briefcase, Target, CheckCircle, AlertCircle, AlertTriangle,
   User, Mail, Phone, MapPin, Calendar, CreditCard, Building, Hash, ArrowRight, Loader2,
   UserCog, UserCheck as UserVerify, FileText, Banknote, Users as UsersGroup
 } from "lucide-react";
 import { toast } from "react-toastify";
 
-const emptyForm = { 
-  name: "", 
-  email: "", 
-  mobile: "", 
-  role: "Sales Manager", 
+const emptyForm = {
+  name: "",
+  email: "",
+  mobile: "",
+  role: "Sales Manager",
   pin: "",
   fatherHusbandName: "",
   address: "",
@@ -78,7 +78,7 @@ function SuccessModal({ isOpen, onClose, userData }) {
                 <p className="text-sm text-gray-500">Account created successfully</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-lg"
             >
@@ -131,8 +131,8 @@ function SuccessModal({ isOpen, onClose, userData }) {
         </div>
 
         <div className="px-6 py-4 bg-gray-50 rounded-b-2xl">
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
           >
             Close
@@ -145,15 +145,15 @@ function SuccessModal({ isOpen, onClose, userData }) {
 
 // ─── Professional Add User Modal Component ────────────────────────────────
 
-function AddUserModal({ 
-  isOpen, 
-  onClose, 
-  form, 
-  setForm, 
-  handleSave, 
+function AddUserModal({
+  isOpen,
+  onClose,
+  form,
+  setForm,
+  handleSave,
   isSaving,
-  creatableRoles, 
-  users, 
+  creatableRoles,
+  users,
   fetchReferredByName,
   currentUserRole,
   roleLevels
@@ -241,7 +241,7 @@ function AddUserModal({
 
   const handleVerifyEmployee = () => {
     const userId = form.referredById?.trim().toUpperCase();
-    
+
     if (!userId) {
       setVerificationError("Please enter a User ID");
       setIsVerified(false);
@@ -254,8 +254,8 @@ function AddUserModal({
     setIsVerified(false);
     setVerifiedManager(null);
 
-    const foundUser = users.find(u => 
-      u.employeeCode?.toUpperCase() === userId || 
+    const foundUser = users.find(u =>
+      u.employeeCode?.toUpperCase() === userId ||
       String(u.id) === userId ||
       u.userId?.toUpperCase() === userId
     );
@@ -308,10 +308,10 @@ function AddUserModal({
       setVerifiedManager(foundUser);
       setIsVerified(true);
       setVerificationError("");
-      setForm(p => ({ 
-        ...p, 
+      setForm(p => ({
+        ...p,
         referredByName: foundUser.name,
-        parentUserId: foundUser.id 
+        parentUserId: foundUser.id
       }));
       toast.success(`User verified successfully. ${form.role} will report to ${foundUser.name}.`);
       setIsVerifying(false);
@@ -361,21 +361,19 @@ function AddUserModal({
         </div>
 
         {/* Step 2: Verify Reporting Manager */}
-        <div className={`border rounded-xl p-4 transition-all ${
-          isVerified 
-            ? 'border-green-500 bg-green-50' 
-            : verificationError 
+        <div className={`border rounded-xl p-4 transition-all ${isVerified
+          ? 'border-green-500 bg-green-50'
+          : verificationError
             ? 'border-red-500 bg-red-50'
             : 'border-gray-200'
-        }`}>
+          }`}>
           <div className="flex items-center gap-2 mb-3">
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shadow-sm ${
-              isVerified 
-                ? 'bg-green-600' 
-                : verificationError 
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shadow-sm ${isVerified
+              ? 'bg-green-600'
+              : verificationError
                 ? 'bg-red-600'
                 : 'bg-purple-600'
-            }`}>
+              }`}>
               {isVerified ? (
                 <CheckCircle size={16} className="text-white" />
               ) : verificationError ? (
@@ -384,13 +382,12 @@ function AddUserModal({
                 <UserVerify size={16} className="text-white" />
               )}
             </div>
-            <h4 className={`text-sm font-bold ${
-              isVerified 
-                ? 'text-green-700' 
-                : verificationError 
+            <h4 className={`text-sm font-bold ${isVerified
+              ? 'text-green-700'
+              : verificationError
                 ? 'text-red-700'
                 : 'text-gray-700'
-            }`}>
+              }`}>
               Verify Referred User
             </h4>
             {isVerified && (
@@ -410,13 +407,12 @@ function AddUserModal({
                 <input
                   value={form.referredById}
                   onChange={e => handleEmployeeIdChange(e.target.value)}
-                  className={`input-field uppercase ${
-                    isVerified 
-                      ? 'border-green-300 bg-green-50' 
-                      : verificationError 
+                  className={`input-field uppercase ${isVerified
+                    ? 'border-green-300 bg-green-50'
+                    : verificationError
                       ? 'border-red-300 bg-red-50'
                       : ''
-                  }`}
+                    }`}
                   placeholder="Enter User ID"
                   autoComplete="off"
                   disabled={isVerified}
@@ -427,13 +423,12 @@ function AddUserModal({
               <button
                 onClick={handleVerifyEmployee}
                 disabled={isVerifying || !form.referredById || isVerified}
-                className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${
-                  isVerified
-                    ? 'bg-green-600 text-white cursor-not-allowed shadow-lg shadow-green-200'
-                    : isVerifying || !form.referredById
+                className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${isVerified
+                  ? 'bg-green-600 text-white cursor-not-allowed shadow-lg shadow-green-200'
+                  : isVerifying || !form.referredById
                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                     : 'bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-200'
-                }`}
+                  }`}
               >
                 {isVerifying ? (
                   <span className="flex items-center gap-2">
@@ -689,16 +684,15 @@ function AddUserModal({
 
         {/* Footer Actions */}
         <div className="flex gap-3 pt-4 border-t border-gray-200">
-          <button 
+          <button
             onClick={handleCreateClick}
             disabled={isSaving || !isVerified}
-            className={`flex-1 justify-center py-2.5 text-sm font-semibold rounded-lg transition-all ${
-              isSaving
-                ? 'bg-blue-500 text-white cursor-wait'
-                : isVerified 
-                ? 'btn-primary shadow-lg shadow-blue-200' 
+            className={`flex-1 justify-center py-2.5 text-sm font-semibold rounded-lg transition-all ${isSaving
+              ? 'bg-blue-500 text-white cursor-wait'
+              : isVerified
+                ? 'btn-primary shadow-lg shadow-blue-200'
                 : 'bg-gray-300 text-gray-500 hover:bg-gray-400 hover:text-gray-700'
-            }`}
+              }`}
           >
             {isSaving ? (
               <span className="flex items-center justify-center gap-2">
@@ -711,7 +705,7 @@ function AddUserModal({
               'Verify Reporting Manager First'
             )}
           </button>
-          <button 
+          <button
             onClick={onClose}
             disabled={isSaving}
             className="flex-1 btn-secondary justify-center py-2.5"
@@ -726,11 +720,11 @@ function AddUserModal({
 
 // ─── Node Stats Badge ────────────────────────────────────────────────────────
 function NodeStat({ icon: Icon, label, value, color = "blue" }) {
-  const colorMap = { 
-    blue: "bg-blue-50 text-blue-700", 
-    green: "bg-green-50 text-green-700", 
-    purple: "bg-purple-50 text-purple-700", 
-    orange: "bg-orange-50 text-orange-700" 
+  const colorMap = {
+    blue: "bg-blue-50 text-blue-700",
+    green: "bg-green-50 text-green-700",
+    purple: "bg-purple-50 text-purple-700",
+    orange: "bg-orange-50 text-orange-700"
   };
   return (
     <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${colorMap[color]}`}>
@@ -863,7 +857,7 @@ export default function UserManagement() {
   const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   const creatableRoles = useMemo(() => hierarchy.getCreatableRoles(), [hierarchy]);
-  
+
   const canCreateUser = useMemo(() => {
     return ["Admin", "Director"].includes(user?.role);
   }, [user]);
@@ -872,17 +866,17 @@ export default function UserManagement() {
     const teamMembers = [];
     const queue = [userId];
     const visited = new Set();
-    
+
     while (queue.length > 0) {
       const currentId = queue.shift();
       if (visited.has(currentId)) continue;
       visited.add(currentId);
-      
+
       const children = users.filter(u => u.parentUserId === currentId);
       teamMembers.push(...children.map(u => u.id));
       queue.push(...children.map(u => u.id));
     }
-    
+
     return teamMembers;
   };
 
@@ -896,12 +890,12 @@ export default function UserManagement() {
 
   const filteredUsers = useMemo(() => {
     let result = visibleUsers;
-    
+
     if (viewingTeamId) {
       const teamMemberIds = getTeamMembers(viewingTeamId);
       result = result.filter(u => u.id === viewingTeamId || teamMemberIds.includes(u.id));
     }
-    
+
     if (treeSearch) {
       const s = treeSearch.toLowerCase();
       result = result.filter(u =>
@@ -1013,7 +1007,7 @@ export default function UserManagement() {
         }
         setEditErrors({});
       }
-      
+
       if (modal === "add") {
         setIsCreatingUser(true);
         const userData = {
@@ -1035,7 +1029,7 @@ export default function UserManagement() {
         if (form.ifscCode) userData.ifscCode = form.ifscCode;
         if (form.bankBranch) userData.bankBranch = form.bankBranch;
         userData.panNo = form.panNo.trim().toUpperCase();
-        
+
         console.log("Creating user with payload:", JSON.stringify(userData));
         const created = await addUser(userData, user?.id);
         console.log("User created:", created);
@@ -1073,7 +1067,7 @@ export default function UserManagement() {
         Object.keys(updateData).forEach(k => {
           if (!updateData[k]) delete updateData[k];
         });
-        
+
         console.log("Updating user with payload:", JSON.stringify(updateData));
         await updateUser(selected.id, updateData);
         toast.success(`User "${form.name}" updated successfully!`);
@@ -1099,26 +1093,26 @@ export default function UserManagement() {
         err.validationErrors.forEach(msg => toast.error(msg));
       } else {
         toast.error(
-          err?.response?.data?.message || 
-          err.message || 
+          err?.response?.data?.message ||
+          err.message ||
           "Failed to save user"
         );
       }
     }
   };
 
-  const handleDelete = async (u) => {
-    const hasChildren = users.some(child => child.parentUserId === u.id);
-    const msg = hasChildren
-      ? `Delete ${u.name}? This user has ${users.filter(c => c.parentUserId === u.id).length} team member(s) reporting to them. They will become orphaned.`
-      : `Delete ${u.name}?`;
-    if (window.confirm(msg)) {
-      try {
-        await deleteUser(u.id);
-        toast.success(`User "${u.name}" deleted successfully!`);
-      } catch (err) {
-        toast.error(err.message || "Failed to delete user");
-      }
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const handleDelete = (u) => { setDeleteTarget(u); };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteUser(deleteTarget.id);
+      toast.success(`User "${deleteTarget.name}" deleted successfully!`);
+      setDeleteTarget(null);
+    } catch (err) {
+      toast.error(err.message || "Failed to delete user");
     }
   };
 
@@ -1584,6 +1578,41 @@ export default function UserManagement() {
         </div>
       </Modal>
 
+      {/* Delete Confirmation Modal */}
+      <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Delete User" size="sm">
+        {deleteTarget && (
+          <div className="text-center">
+            <div className="mx-auto w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mb-4">
+              <AlertTriangle size={28} className="text-red-600" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Are you sure?</h3>
+            <p className="text-sm text-gray-500 mb-1">
+              You are about to delete this user:
+            </p>
+            <p className="text-sm font-semibold text-gray-800 mb-4">
+              "{deleteTarget.name}"
+              <span className="block text-xs font-normal text-gray-400 mt-1">
+                {deleteTarget.role} · {deleteTarget.employeeCode}
+              </span>
+            </p>
+            {users.some(child => child.parentUserId === deleteTarget.id) && (
+              <p className="text-xs text-orange-600 bg-orange-50 rounded-lg px-3 py-2 mb-4">
+                This user has {users.filter(c => c.parentUserId === deleteTarget.id).length} team member(s) reporting to them.
+              </p>
+            )}
+
+            <div className="flex gap-3">
+              <button onClick={confirmDelete} className="btn-primary flex-1 justify-center py-2.5 bg-red-600 hover:bg-red-700 border-red-600">
+                Yes, Delete
+              </button>
+              <button onClick={() => setDeleteTarget(null)} className="btn-secondary flex-1 justify-center py-2.5">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       {/* View Modal */}
       <Modal open={modal === "view"} onClose={() => setModal(null)} title="User Details" size="lg">
         {selected && (
@@ -1623,11 +1652,10 @@ export default function UserManagement() {
                       return (
                         <div key={k} className="flex items-center justify-between py-1.5">
                           <span className="text-sm text-gray-500">{k}</span>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            selected.status === "Active" 
-                              ? "bg-green-50 text-green-700" 
-                              : "bg-gray-100 text-gray-600"
-                          }`}>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${selected.status === "Active"
+                            ? "bg-green-50 text-green-700"
+                            : "bg-gray-100 text-gray-600"
+                            }`}>
                             {v}
                           </span>
                         </div>

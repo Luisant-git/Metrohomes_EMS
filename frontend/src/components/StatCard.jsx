@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown } from "lucide-react";
 export default function StatCard({ icon: Icon, label, value, change, changeType = "up", color = "blue", prefix = "", suffix = "" }) {
   const colorMap = {
     blue: { bg: "bg-blue-50", icon: "text-blue-600", ring: "ring-blue-100" },
+    teal: { bg: "bg-teal-50", icon: "text-teal-600", ring: "ring-teal-100" },
     green: { bg: "bg-emerald-50", icon: "text-emerald-600", ring: "ring-emerald-100" },
     purple: { bg: "bg-purple-50", icon: "text-purple-600", ring: "ring-purple-100" },
     orange: { bg: "bg-orange-50", icon: "text-orange-600", ring: "ring-orange-100" },
