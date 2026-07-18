@@ -6,19 +6,28 @@ import { Users, Eye, TrendingUp, UserCheck, Building2, ChevronRight, Search, Che
 
 const ITEMS_PER_PAGE = 10;
 
+const abbreviateRole = (role) => {
+  const map = {
+    "Sales Manager": "SM",
+    "Branch Manager": "BM",
+    "Regional Manager": "RM",
+  };
+  return map[role] || role;
+};
+
 // All roles below the logged-in user in the hierarchy - shows what they can manage
 const SUB_ROLES = {
   "Regional Manager": [
     { role: "Branch Manager", icon: Building2, color: "text-cyan-600", bg: "bg-cyan-50", label: "BM Count" },
     { role: "BDM", icon: Users, color: "text-purple-600", bg: "bg-purple-50", label: "BDM Count" },
-    { role: "Sales Manager", icon: UserCheck, color: "text-green-600", bg: "bg-green-50", label: "Sales Managers" },
+    { role: "Sales Manager", icon: UserCheck, color: "text-green-600", bg: "bg-green-50", label: "SM Count" },
   ],
   "Branch Manager": [
     { role: "BDM", icon: Users, color: "text-purple-600", bg: "bg-purple-50", label: "BDM Count" },
-    { role: "Sales Manager", icon: UserCheck, color: "text-green-600", bg: "bg-green-50", label: "Sales Managers" },
+    { role: "Sales Manager", icon: UserCheck, color: "text-green-600", bg: "bg-green-50", label: "SM Count" },
   ],
   "BDM": [
-    { role: "Sales Manager", icon: UserCheck, color: "text-green-600", bg: "bg-green-50", label: "Sales Managers" },
+    { role: "Sales Manager", icon: UserCheck, color: "text-green-600", bg: "bg-green-50", label: "SM Count" },
   ],
   "Sales Manager": [],
 };
@@ -274,36 +283,37 @@ export default function TeamPage() {
         </div>
       ) : (
         <div className="px-4">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
             {/* Table Header */}
-            <div className="flex bg-gray-50 border-b border-gray-100">
-              <div className="flex-[2] px-1.5 py-1.5 text-[9px] font-semibold text-gray-500 uppercase tracking-wider min-w-0">User ID</div>
-              <div className="flex-[3] px-1.5 py-1.5 text-[9px] font-semibold text-gray-500 uppercase tracking-wider min-w-0">Name</div>
-              <div className="flex-[2] px-1.5 py-1.5 text-[9px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Mobile</div>
-              <div className="w-10 px-1.5 py-1.5 text-[9px] font-semibold text-gray-500 uppercase tracking-wider text-center flex-shrink-0">Action</div>
+            <div className="flex bg-gray-50 border-b border-gray-100 min-w-[320px]">
+              <div className="flex-[2] px-1 py-1.5 text-[8px] sm:text-[9px] font-semibold text-gray-500 uppercase tracking-wider min-w-0">User ID</div>
+              <div className="flex-[3] px-1 py-1.5 text-[8px] sm:text-[9px] font-semibold text-gray-500 uppercase tracking-wider min-w-0">Name</div>
+              <div className="flex-[2] px-1 py-1.5 text-[8px] sm:text-[9px] font-semibold text-gray-500 uppercase tracking-wider truncate">Mobile</div>
+              <div className="w-14 px-1 py-1.5 text-[8px] sm:text-[9px] font-semibold text-gray-500 uppercase tracking-wider text-center flex-shrink-0">Action</div>
             </div>
             {/* Table Rows */}
             {paginatedMembers.map((member, index) => (
               <div
                 key={member.id}
-                className={`flex items-center border-b border-gray-50 ${
+                className={`flex items-center border-b border-gray-50 min-w-[320px] ${
                   index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
                 }`}
               >
-                <div className="flex-[2] px-1.5 py-1.5 text-[11px] font-mono text-gray-700 truncate">
+                <div className="flex-[2] px-1 py-1.5 text-[10px] sm:text-[11px] font-mono text-gray-700 truncate">
                   {member.employeeCode || `ID:${member.id}`}
                 </div>
-                <div className="flex-[3] px-1.5 py-1.5 text-[11px] font-medium text-gray-800 truncate">
+                <div className="flex-[3] px-1 py-1.5 text-[10px] sm:text-[11px] font-medium text-gray-800 truncate">
                   {member.name}
                 </div>
-                <div className="flex-[2] px-1.5 py-1.5 text-[11px] text-gray-600 flex-shrink-0 truncate">{member.mobile}</div>
-                <div className="w-10 px-1.5 py-1.5 text-center flex-shrink-0">
+                <div className="flex-[2] px-1 py-1.5 text-[10px] sm:text-[11px] text-gray-600 truncate">{member.mobile}</div>
+                <div className="w-14 px-1 py-1.5 text-center flex-shrink-0">
                   <button
                     onClick={() => setSelectedMember(member)}
                     className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors inline-flex items-center justify-center"
                     title="View details"
                   >
-                    <Eye size={16} />
+                    <Eye size={14} className="sm:hidden" />
+                    <Eye size={16} className="hidden sm:inline" />
                   </button>
                 </div>
               </div>
@@ -372,20 +382,24 @@ export default function TeamPage() {
           return (
             <div className="space-y-5">
               {/* Member Info Header */}
-              <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-2xl overflow-hidden flex-shrink-0">
+              <div className="flex items-start gap-3 pb-4 border-b border-gray-100">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-lg sm:text-2xl overflow-hidden flex-shrink-0">
                   {selectedMember.avatar ? (
                     <img src={selectedMember.avatar} alt={selectedMember.name} className="w-full h-full object-cover rounded-full" />
                   ) : (
                     selectedMember.name?.charAt(0) || "U"
                   )}
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-gray-900">{selectedMember.name}</h3>
-                  <p className="text-sm text-gray-500">{selectedMember.role} · {selectedMember.employeeCode || "N/A"}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{selectedMember.email}</p>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm sm:text-lg font-bold text-gray-900 truncate">{selectedMember.name}</h3>
+                  <p className="text-[11px] sm:text-sm text-gray-500">
+                    <span className="truncate inline-block max-w-full">{selectedMember.role}</span>
+                    <span className="hidden sm:inline"> · </span>
+                    <span className="block sm:inline text-[10px] sm:text-sm text-gray-500 truncate">{selectedMember.employeeCode || "N/A"}</span>
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 truncate">{selectedMember.email}</p>
                 </div>
-                <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${selectedMember.status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                <span className={`text-[9px] sm:text-xs font-semibold px-2 py-1 sm:px-3 sm:py-1.5 rounded-full whitespace-nowrap flex-shrink-0 self-start ${selectedMember.status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                   {selectedMember.status || "Active"}
                 </span>
               </div>
@@ -393,22 +407,21 @@ export default function TeamPage() {
               {/* Contact Details Grid */}
               <div className="grid grid-cols-1 gap-3">
                 <div className="bg-gray-50 rounded-xl p-3">
-                  <div className="text-xs text-gray-400">Mobile</div>
-                  <div className="text-sm font-semibold text-gray-800">{selectedMember.mobile}</div>
+                  <div className="text-[10px] sm:text-xs text-gray-400">Mobile</div>
+                  <div className="text-xs sm:text-sm font-semibold text-gray-800">{selectedMember.mobile}</div>
                 </div>
               </div>
 
               {/* Performance Stats */}
-              <div className="bg-blue-50 rounded-xl p-4">
-                
+              <div className="bg-blue-50 rounded-xl p-3 sm:p-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <div className="text-xs text-gray-500">Customers</div>
-                    <div className="text-xl font-bold text-blue-600">{stats.customers}</div>
+                    <div className="text-[10px] sm:text-xs text-gray-500">Customers</div>
+                    <div className="text-base sm:text-xl font-bold text-blue-600">{stats.customers}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500">Bookings</div>
-                    <div className="text-xl font-bold text-green-600">{stats.bookings}</div>
+                    <div className="text-[10px] sm:text-xs text-gray-500">Bookings</div>
+                    <div className="text-base sm:text-xl font-bold text-green-600">{stats.bookings}</div>
                   </div>
                 </div>
               </div>
@@ -416,34 +429,34 @@ export default function TeamPage() {
               {/* Downline Section */}
               {downline.length > 0 && (
                 <div>
-                  <h4 className="font-bold text-gray-800 text-sm mb-3">Downline Team ({downline.length})</h4>
+                  <h4 className="font-bold text-gray-800 text-[13px] sm:text-sm mb-3">Downline Team ({downline.length})</h4>
                   
                   {/* Downline Role Summary */}
                   <div className="flex flex-wrap gap-2 mb-3">
                     {Object.entries(downlineByRole).map(([role, count]) => (
                       <span key={role} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">
-                        {role}: {count}
+                        {abbreviateRole(role)}: {count}
                       </span>
                     ))}
                   </div>
 
                   {/* Downline Table */}
                   <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
-                    <div className="grid grid-cols-3 bg-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      <div className="px-3 py-2">User ID</div>
-                      <div className="px-3 py-2">Name</div>
-                      <div className="px-3 py-2">Role</div>
+                    <div className="grid grid-cols-3 bg-gray-100 text-[9px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <div className="px-2 sm:px-3 py-1.5 sm:py-2 truncate">User ID</div>
+                      <div className="px-2 sm:px-3 py-1.5 sm:py-2 truncate">Name</div>
+                      <div className="px-2 sm:px-3 py-1.5 sm:py-2 text-center">Role</div>
                     </div>
                     {downline.slice((downlinePage - 1) * 5, downlinePage * 5).map((d, i) => (
                       <div
                         key={d.id}
-                        className={`grid grid-cols-3 text-sm ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
+                        className={`grid grid-cols-3 text-[11px] sm:text-sm ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
                       >
-                        <div className="px-3 py-2 text-gray-600 font-mono">{d.employeeCode || `ID:${d.id}`}</div>
-                        <div className="px-3 py-2 text-gray-800 font-medium">{d.name}</div>
-                        <div className="px-3 py-2">
-                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                            {d.role}
+                        <div className="px-2 sm:px-3 py-1.5 sm:py-2 text-gray-600 font-mono truncate">{d.employeeCode || `ID:${d.id}`}</div>
+                        <div className="px-2 sm:px-3 py-1.5 sm:py-2 text-gray-800 font-medium truncate">{d.name}</div>
+                        <div className="px-2 sm:px-3 py-1.5 sm:py-2 text-center">
+                          <span className="text-[10px] sm:text-xs bg-blue-100 text-blue-700 px-1.5 sm:px-2 py-0.5 rounded-full font-medium truncate inline-block max-w-full">
+                            {abbreviateRole(d.role)}
                           </span>
                         </div>
                       </div>

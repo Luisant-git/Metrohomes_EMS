@@ -65,7 +65,7 @@ export default function PWADashboard() {
           stats: [
             { label: "BM Count", value: myBMs.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
             { label: "BDM Count", value: myBDMs.length, icon: Users, color: "text-cyan-600", bg: "bg-cyan-50" },
-            { label: "Sales Managers", value: mySMs.length, icon: Users, color: "text-purple-600", bg: "bg-purple-50" },
+            { label: "SM", value: mySMs.length, icon: Users, color: "text-purple-600", bg: "bg-purple-50" },
             { label: "Downline Roles", value: downlineRoleCounts.length, icon: Users, color: "text-indigo-600", bg: "bg-indigo-50" },
             { label: "Total Customers", value: myCustomers.length, icon: UserCheck, color: "text-green-600", bg: "bg-green-50" },
             { label: "Total Bookings", value: myBookings.length, icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50" },
@@ -90,7 +90,7 @@ export default function PWADashboard() {
         return {
           stats: [
             { label: "BDM Count", value: myBDMs.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-            { label: "Sales Managers", value: mySMs.length, icon: UserCheck, color: "text-purple-600", bg: "bg-purple-50" },
+            { label: "SM", value: mySMs.length, icon: UserCheck, color: "text-purple-600", bg: "bg-purple-50" },
             { label: "My Customers", value: myCustomers.length, icon: UserCheck, color: "text-green-600", bg: "bg-green-50" },
             { label: "Total Bookings", value: myBookings.length, icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50" },
           ],
@@ -110,7 +110,7 @@ export default function PWADashboard() {
         const myBookings = bookings.filter((b) => mySMs.some((sm) => sm.id === b.salesManagerId));
         return {
           stats: [
-            { label: "Sales Managers", value: mySMs.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+            { label: "SM", value: mySMs.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
             { label: "Downline Roles", value: downlineRoleCounts.length, icon: Users, color: "text-indigo-600", bg: "bg-indigo-50" },
             { label: "My Customers", value: myCustomers.length, icon: UserCheck, color: "text-green-600", bg: "bg-green-50" },
             { label: "Total Bookings", value: myBookings.length, icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50" },
@@ -218,10 +218,6 @@ export default function PWADashboard() {
             <p className="text-blue-100/90 text-sm font-medium mt-1.5 flex items-center gap-2">
               <span>{role}</span>
             </p>
-            <div className="inline-flex items-center gap-1.5 text-blue-100 text-xs font-medium mt-3 bg-white/15 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 shadow-inner">
-              <MapPin size={14} className="text-cyan-300 flex-shrink-0 animate-pulse" />
-              <span>{user?.region || user?.city || "Chennai Region"}</span>
-            </div>
           </div>
 
           {/* Circular Profile Image */}
