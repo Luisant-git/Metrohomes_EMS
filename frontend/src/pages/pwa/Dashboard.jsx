@@ -129,7 +129,7 @@ export default function PWADashboard() {
       default: {
         const myCustomers = customers.filter((c) => c.salesManagerId === user?.id);
         const myVisits = visits.filter((v) => v.salesManagerId === user?.id);
-        const myActiveSites = sites.filter((s) => s.approved);
+        const myActiveSites = sites.filter((s) => s.status === "Active");
         const bookCompleted = myCustomers.filter((c) => c.status === "Booked" || c.status === "Payment Done").length;
         const statusCounts = {
           Interested: myCustomers.filter((c) => c.status === "Interested").length,

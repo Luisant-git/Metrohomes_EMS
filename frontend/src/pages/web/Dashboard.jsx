@@ -49,7 +49,7 @@ export default function WebDashboard() {
   }, [users, user, hierarchy]);
 
   const totalRevenue = teamBookings.reduce((a, b) => a + (b.paidAmount || 0), 0);
-  const activeSites = sites.filter(s => s.approved).length;
+  const activeSites = sites.filter(s => s.status === "Active").length;
   const bookedCustomers = teamCustomers.filter(c => c.status === "Booked" || c.status === "Payment Done").length;
   const teamVisits = teamCustomers.filter(c => c.status !== "Interested").length;
 

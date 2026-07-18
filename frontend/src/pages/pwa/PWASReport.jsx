@@ -21,7 +21,7 @@ export default function PWASReport() {
     return sm && myBMIds.has(sm.parentUserId);
   });
 
-  const activeSites = sites.filter(s => s.approved).length;
+  const activeSites = sites.filter(s => s.status === "Active").length;
 
   return (
     <div className="pb-4">
