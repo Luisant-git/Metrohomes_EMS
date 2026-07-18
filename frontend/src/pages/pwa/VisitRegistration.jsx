@@ -2,14 +2,14 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Users, Briefcase, DollarSign } from "lucide-react";
+import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Users, Briefcase, IndianRupee } from "lucide-react";
 import toast from "react-hot-toast";
 
 function FormField({ label, icon: Icon, children, required, className }) {
   return (
-    <div className={(className ? className + " " : "") + ""}>
+    <div className={className || ""}>
       <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 mb-1.5">
-        {Icon && <Icon size={14} className="text-gray-400" />}{label}{required && <span className="text-red-500">*</span>}
+        {Icon && <span className="w-5 h-5 flex items-center justify-center text-gray-400"><Icon size={14} /></span>}{label}{required && <span className="text-red-500">*</span>}
       </label>
       {children}
     </div>
@@ -21,6 +21,8 @@ export default function PWAVisitRegistration() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
 
   const prefillSite = location.state?.siteId;
   const prefillSiteName = location.state?.siteName;
@@ -110,21 +112,22 @@ export default function PWAVisitRegistration() {
 
   const F = FormField
   return (
-    <div className="pb-40 relative z-10">
+    <div className="pb-40 relative z-10 max-w-2xl mx-auto">
       {/* Header */}
       <div className="px-4 pt-4">
-        <h2 className="text-xl font-extrabold text-gray-900 mb-2">Customer Registration</h2>
-        <div className="flex items-center gap-2 mb-5">
+        <h2 className="text-lg font-extrabold text-gray-900 mb-1">Customer Registration</h2>
+        <p className="text-xs text-gray-400 mb-3">Register new customer and schedule site visit</p>
+        <div className="flex items-center mb-3">
           {[1, 2, 3].map(s => (
-            <div key={s} className="flex-1 flex items-center gap-1">
-              <div className={`flex-1 h-1.5 rounded-full transition-all ${s <= step ? "bg-blue-600" : "bg-gray-100"}`} />
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${s < step ? "bg-blue-600 text-white" : s === step ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-400"}`}>
-                {s < step ? <CheckCircle size={12} /> : s}
+            <div key={s} className="flex-1 flex items-center">
+              <div className={`flex-1 h-1 rounded-full transition-all ${s <= step ? "bg-blue-600" : "bg-gray-100"}`} />
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${s < step ? "bg-blue-600 text-white" : s === step ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-400"}`}>
+                {s < step ? <CheckCircle size={10} /> : s}
               </div>
             </div>
           ))}
         </div>
-        <div className="text-xs text-gray-400 font-semibold uppercase tracking-wide">
+        <div className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">
           {step === 1 ? "Personal Info & Occupation" : step === 2 ? "Visit Details" : "Review & Submit"}
         </div>
       </div>
@@ -133,8 +136,8 @@ export default function PWAVisitRegistration() {
         {/* Step 1: Personal Info & Occupation */}
         {step === 1 && (
           <div className="space-y-4 animate-fadeIn">
-            <div className="bg-blue-50 rounded-2xl p-3 text-sm text-blue-700 font-medium">
-              👤 Enter customer details
+            <div className="bg-blue-50 rounded-xl p-2.5 text-xs font-medium text-blue-700 flex items-center gap-1.5">
+              <User size={14} /> Enter customer details
             </div>
 
             <div className="grid grid-cols-1 gap-4">
@@ -143,28 +146,28 @@ export default function PWAVisitRegistration() {
                   className="input-field" placeholder="Full name" />
               </F>
 
-              <F label="Mobile Number" icon={Phone} required>
-                <div className="flex gap-2">
-                  <input type="tel" value={form.mobile} onChange={e => setForm(p => ({ ...p, mobile: e.target.value }))}
-                    className="input-field flex-1" placeholder="10-digit number" maxLength={10} disabled={otpVerified} />
-                  {!otpVerified && (
-                    <button onClick={sendOtp} className="flex-shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors">
-                      Get OTP
-                    </button>
-                  )}
-                </div>
-              </F>
+               <F label="Mobile Number" icon={Phone} required>
+                 <div className="flex gap-2 items-center">
+                   <input type="tel" value={form.mobile} onChange={e => setForm(p => ({ ...p, mobile: e.target.value }))}
+                     className="input-field flex-1" placeholder="10-digit number" maxLength={10} disabled={otpVerified} />
+                   {!otpVerified && (
+                     <button onClick={sendOtp} className="flex-shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors h-[46px]">
+                       Get OTP
+                     </button>
+                   )}
+                 </div>
+               </F>
 
               {otpSent && !otpVerified && (
-                <F label="Enter OTP" required>
-                  <div className="flex gap-2">
-                    <input type="text" value={otp} onChange={e => setOtp(e.target.value)}
-                      className="input-field flex-1" placeholder="Enter 4-digit OTP" maxLength={4} />
-                    <button onClick={verifyOtp} className="flex-shrink-0 bg-green-100 hover:bg-green-200 text-green-700 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors">
-                      Verify
-                    </button>
-                  </div>
-                </F>
+                 <F label="Enter OTP" required>
+                   <div className="flex gap-2 items-center">
+                     <input type="text" value={otp} onChange={e => setOtp(e.target.value)}
+                       className="input-field flex-1" placeholder="Enter 4-digit OTP" maxLength={4} />
+                     <button onClick={verifyOtp} className="flex-shrink-0 bg-green-100 hover:bg-green-200 text-green-700 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors h-[46px]">
+                       Verify
+                     </button>
+                   </div>
+                 </F>
               )}
 
               {otpVerified && (
@@ -205,8 +208,8 @@ export default function PWAVisitRegistration() {
         {/* Step 2: Visit Details */}
         {step === 2 && (
           <div className="space-y-4 animate-fadeIn">
-            <div className="bg-green-50 rounded-2xl p-3 text-sm text-green-700 font-medium">
-              🏗️ Visit & purchase details
+            <div className="bg-green-50 rounded-xl p-2.5 text-xs font-medium text-green-700 flex items-center gap-1.5">
+              <Building2 size={14} /> Visit & purchase details
             </div>
 
             <div className="grid grid-cols-1 gap-4">
@@ -228,12 +231,13 @@ export default function PWAVisitRegistration() {
                 </div>
               )}
 
-              <F label="Purchase Mode" icon={DollarSign} required>
+              <F label="Purchase Mode" icon={IndianRupee} required>
                 <div className="grid grid-cols-2 gap-2">
                   {["Own Funding", "Loan"].map(mode => (
-                    <label key={mode} className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border-2 cursor-pointer transition-all ${form.purchaseMode === mode ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"}`}>
+                    <label key={mode} className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all ${form.purchaseMode === mode ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"}`}>
                       <input type="radio" name="purchaseMode" value={mode} checked={form.purchaseMode === mode} onChange={e => setForm(p => ({ ...p, purchaseMode: e.target.value }))} className="hidden" />
-                      <span className="text-sm font-semibold">{mode}</span>
+                      <IndianRupee size={12} className={form.purchaseMode === mode ? "text-blue-700" : "text-gray-400"} />
+                      <span className="text-xs font-semibold">{mode}</span>
                     </label>
                   ))}
                 </div>
@@ -267,17 +271,17 @@ export default function PWAVisitRegistration() {
                 {form.persons === '' && <p className="text-xs text-gray-400 mt-1">Enter number of persons</p>}
               </F>
 
-              <F label="Pickup Location (GPS)" icon={MapPin}>
-                <div className="flex gap-2">
-                  <input value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))}
-                    className="input-field flex-1" placeholder="lat,lng or use GPS" />
-                  <button onClick={getLocation} disabled={locLoading}
-                    className="flex-shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1">
-                    {locLoading ? <div className="w-4 h-4 border-2 border-blue-500 border-t transparent rounded-full animate-spin" /> : <Navigation size={14} />}
-                    {locLoading ? "" : "GPS"}
-                  </button>
-                </div>
-              </F>
+               <F label="Pickup Location (GPS)" icon={MapPin}>
+                 <div className="flex gap-2 items-center">
+                   <input value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))}
+                     className="input-field flex-1" placeholder="lat,lng or use GPS" />
+                   <button onClick={getLocation} disabled={locLoading}
+                     className="flex-shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1 h-[46px]">
+                     {locLoading ? <div className="w-4 h-4 border-2 border-blue-500 border-t transparent rounded-full animate-spin" /> : <Navigation size={14} />}
+                     {locLoading ? "" : "GPS"}
+                   </button>
+                 </div>
+               </F>
 
               <F label="Notes / Requirements" icon={FileText}>
                 <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
@@ -290,8 +294,8 @@ export default function PWAVisitRegistration() {
         {/* Step 3: Review */}
         {step === 3 && (
           <div className="space-y-4 animate-fadeIn">
-            <div className="bg-purple-50 rounded-2xl p-3 text-sm text-purple-700 font-medium">
-              ✅ Review details before submitting
+            <div className="bg-purple-50 rounded-xl p-2.5 text-xs font-medium text-purple-700 flex items-center gap-1.5">
+              <CheckCircle size={14} /> Review details before submitting
             </div>
 
             <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
@@ -326,15 +330,15 @@ export default function PWAVisitRegistration() {
 
       {/* Nav buttons */}
       <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md px-4 z-30">
-        <div className="flex gap-3">
+        <div className="flex gap-2 items-center">
           {step > 1 && (
-            <button onClick={() => setStep(s => s - 1)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 rounded-2xl transition-colors">
+            <button onClick={() => setStep(s => s - 1)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 rounded-xl transition-colors text-sm">
               ← Back
             </button>
           )}
           <button onClick={() => step < 3 ? setStep(s => s + 1) : handleSubmit()}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-300 transition-all">
-            {step === 3 ? "✅ Submit Registration" : "Continue →"}
+            className={`${step > 1 ? "flex-1" : "w-full"} bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-xl shadow-md shadow-blue-200 transition-all flex items-center justify-center text-sm`}>
+            {step === 3 ? "Submit Registration" : "Continue →"}
           </button>
         </div>
       </div>

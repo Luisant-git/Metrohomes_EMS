@@ -36,7 +36,6 @@ import PWACustomers from "./pages/pwa/Customers.jsx";
 import PWAVisitRegistration from "./pages/pwa/VisitRegistration.jsx";
 import PWAVisits from "./pages/pwa/Visits.jsx";
 import PWAProfile from "./pages/pwa/Profile.jsx";
-import PWACustomerRegistration from "./pages/web/CustomerRegistration.jsx";
 
 function AppRoutes() {
   const { user } = useAuth();
@@ -95,7 +94,7 @@ function AppRoutes() {
         <Route path="/customers" element={<PWACustomers />} />
         <Route path="/visits" element={<PWAVisits />} />
         <Route path="/profile" element={<PWAProfile />} />
-        <Route path="/customer-registration" element={<PWACustomerRegistration />} />
+        <Route path="/customer-registration" element={<PWAVisitRegistration />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </PWALayout>
