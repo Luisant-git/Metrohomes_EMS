@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import {
   LayoutDashboard, Users, Building2, CheckSquare, BookOpen, BarChart3,
-  Trophy, Coins, LogOut, Bell, Search, Menu, X, ChevronDown, User,
+  Trophy, Coins, LogOut, Bell, Search, ChevronDown, User,
   FileText, UserCheck, Settings, UserPlus,
 } from "lucide-react";
 import logo from "../assests/logo 1.png";
@@ -25,7 +25,6 @@ export default function WebLayout({ children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const filteredNav = NAV_ITEMS.filter(item => item.roles.includes(user?.role));
@@ -35,36 +34,31 @@ export default function WebLayout({ children }) {
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? "w-64" : "w-16"} bg-white border-r border-gray-100 flex flex-col transition-all duration-300 shadow-sm flex-shrink-0`}>
+      <aside className="w-64 bg-white border-r border-gray-100 flex flex-col shadow-[0_0_0_1px_rgba(0,0,0,0.03)] flex-shrink-0">
         {/* Logo */}
-        <div className="h-28 flex items-center justify-center px-4 border-b border-gray-100 bg-white">
-          {sidebarOpen ? (
-            <img src={logo} alt="Logo" className="h-45 w-auto max-w-[220px]" />
-          ) : (
-            <img src={logo} alt="Logo" className="w-20 h-30" />
-          )}
+        <div className="h-28 flex items-center justify-center px-6 border-b border-gray-100">
+          <img src={logo} alt="Logo" className="h-45 w-auto max-w-[220px]" />
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {filteredNav.map(item => {
             const active = location.pathname === item.path;
             return (
               <button key={item.path} onClick={() => navigate(item.path)}
-                title={!sidebarOpen ? item.label : ""}
-                className={`w-full sidebar-link ${active ? "sidebar-link-active" : "sidebar-link-inactive"}`}>
-                <item.icon size={18} className="flex-shrink-0" />
-                {sidebarOpen && <span className="truncate">{item.label}</span>}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all duration-200 cursor-pointer ${active ? "bg-blue-600 text-white shadow-[0_8px_24px_rgba(29,111,185,0.35)]" : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"}`}>
+                <item.icon size={18} />
+                <span className="truncate tracking-tight">{item.label}</span>
               </button>
             );
           })}
         </nav>
 
         {/* Logout */}
-        <div className="p-3 border-t border-gray-100">
-          <button onClick={handleLogout} className={`w-full sidebar-link sidebar-link-inactive text-red-500 hover:bg-red-50 hover:text-red-600`}>
-            <LogOut size={18} className="flex-shrink-0" />
-            {sidebarOpen && <span>Logout</span>}
+        <div className="p-4 border-t border-gray-100">
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors cursor-pointer">
+            <LogOut size={18} />
+            <span className="tracking-tight">Logout</span>
           </button>
         </div>
       </aside>
@@ -73,9 +67,6 @@ export default function WebLayout({ children }) {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Topbar */}
         <header className="h-16 bg-white border-b border-gray-100 flex items-center px-6 gap-4 flex-shrink-0 shadow-sm">
-          <button onClick={() => setSidebarOpen(p => !p)} className="text-gray-400 hover:text-gray-700 transition-colors">
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
 
           <div className="flex-1 max-w-sm">
             <div className="relative">
