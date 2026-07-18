@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
 import { Camera, Save, Phone, Mail, User, Shield, LogOut, Edit2 } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 import { uploadAPI } from "../../api/upload.js";
 
 export default function PWAProfile() {
@@ -13,6 +13,16 @@ export default function PWAProfile() {
 
   const handleSave = async () => {
     try {
+      if (!form.name?.trim()) {
+        toast.error("Name cannot be empty. Please enter your name.");
+        return;
+      }
+      
+      if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+        toast.error("Please enter a valid email address.");
+        return;
+      }
+      
       const updatedData = {
         name: form.name,
         email: form.email,
@@ -50,7 +60,7 @@ export default function PWAProfile() {
       setPhotoFile(null);
       toast.success("Profile updated!");
     } catch (error) {
-      toast.error("Error saving profile");
+      toast.error("Something went wrong while saving. Please try again.");
     }
   };
 
