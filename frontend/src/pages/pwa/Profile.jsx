@@ -4,6 +4,7 @@ import { useData } from "../../context/DataContext.jsx";
 import { Camera, Save, Phone, Mail, User, Shield, LogOut, Edit2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { uploadAPI } from "../../api/upload.js";
+import { user as userAPI } from "../../api/user.js";
 
 export default function PWAProfile() {
   const { user, updateProfile, logout } = useAuth();
@@ -40,18 +41,7 @@ export default function PWAProfile() {
       }
       
       // Save to backend via API
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/users/${user.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify(updatedData)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update profile');
-      }
+      await userAPI.update(user.id, updatedData);
       
       // Update local state
       await updateProfile(updatedData);

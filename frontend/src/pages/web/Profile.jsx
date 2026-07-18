@@ -1,18 +1,29 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
-import { User, Camera, Save, Mail, Phone, MapPin, Shield } from "lucide-react";
-import toast from "react-hot-toast";
+import { User, Camera, Save, Mail, Phone, Shield, LogOut, Edit2 } from "lucide-react";
+import { toast } from "react-toastify";
 import { uploadAPI } from "../../api/upload.js";
+import { user as userAPI } from "../../api/user.js";
 
 export default function WebProfile() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, logout } = useAuth();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ ...user });
   const [photoFile, setPhotoFile] = useState(null);
 
   const handleSave = async () => {
     try {
+      if (!form.name?.trim()) {
+        toast.error("Name cannot be empty. Please enter your name.");
+        return;
+      }
+      
+      if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+        toast.error("Please enter a valid email address.");
+        return;
+      }
+      
       const updatedData = {
         name: form.name,
         email: form.email,
@@ -30,13 +41,16 @@ export default function WebProfile() {
       }
       
       // Save to backend via API
-      // Update local state and persist to backend
+      await userAPI.update(user.id, updatedData);
+      
+      // Update local state
       await updateProfile(updatedData);
       
       setEditing(false);
       setPhotoFile(null);
+      toast.success("Profile updated!");
     } catch (error) {
-      toast.error("Error saving profile");
+      toast.error("Something went wrong while saving. Please try again.");
     }
   };
 
@@ -45,104 +59,111 @@ export default function WebProfile() {
     if (!file) return;
     setPhotoFile(file);
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setForm(p => ({ ...p, avatar: ev.target.result }));
-    };
+    reader.onload = ev => setForm(p => ({ ...p, avatar: ev.target.result }));
     reader.readAsDataURL(file);
   };
 
-  const roleColors = { "Admin": "bg-red-100 text-red-700", "Director": "bg-purple-100 text-purple-700", "Regional Manager": "bg-blue-100 text-blue-700", "Branch Manager": "bg-green-100 text-green-700", "BDM": "bg-yellow-100 text-yellow-700", "Sales Manager": "bg-orange-100 text-orange-700" };
+  const roleColors = {
+    "Admin": "bg-red-500 text-white",
+    "Director": "bg-purple-500 text-white",
+    "Regional Manager": "bg-blue-500 text-white",
+    "Branch Manager": "bg-green-500 text-white",
+    "BDM": "bg-yellow-500 text-white",
+    "Sales Manager": "bg-orange-500 text-white",
+  };
+
+  const getRoleBadgeClass = (role) => {
+    return roleColors[role] || "bg-white/30 text-white";
+  };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-fadeIn">
-      <div>
-        <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-2"><User size={22} />My Profile</h1>
-        <p className="text-gray-400 text-sm mt-0.5">View and manage your profile information</p>
-      </div>
-
+    <div className="w-full flex flex-col items-center space-y-6 animate-fadeIn pb-8">
       {/* Profile Header */}
-      <div className="card p-6">
-        <div className="flex items-start gap-6">
-          <div className="relative">
-            <div className="w-24 h-24 rounded-2xl bg-blue-100 overflow-hidden flex items-center justify-center shadow-md">
-              {form.avatar ? (
-                <img src={form.avatar} alt={form.name} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-blue-600 text-4xl font-extrabold">{user?.name?.charAt(0)}</span>
-              )}
-            </div>
-            {editing && (
-              <label className="absolute -bottom-2 -right-2 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:bg-blue-700 transition-colors">
-                <Camera size={14} className="text-white" />
-                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
-              </label>
+      <div className="w-full bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl pt-8 pb-20 text-white text-center shadow-xl relative">
+        <div className="relative inline-block">
+          <div className="w-24 h-24 rounded-full bg-white/20 border-4 border-white/30 flex items-center justify-center overflow-hidden mx-auto shadow-xl">
+            {form.avatar ? (
+              <img src={form.avatar} alt={user?.name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-4xl font-extrabold text-white">{user?.name?.charAt(0)}</span>
             )}
           </div>
-          <div className="flex-1">
-            <h2 className="text-xl font-bold text-gray-900">{user?.name}</h2>
-            <div className="flex items-center gap-2 mt-1">
-              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${roleColors[user?.role] || "bg-gray-100 text-gray-600"}`}>{user?.role}</span>
-              <span className="text-xs text-gray-400">{user?.region ? `· ${user.region} Region` : ""}</span>
-            </div>
-            <div className="flex items-center gap-1 mt-2 text-sm text-gray-400"><Mail size={13} />{user?.email}</div>
-            <div className="flex items-center gap-1 mt-1 text-sm text-gray-400"><Phone size={13} />{user?.mobile}</div>
-          </div>
-          <button onClick={() => setEditing(p => !p)} className={editing ? "btn-secondary" : "btn-primary"}>
-            {editing ? "Cancel" : "Edit Profile"}
-          </button>
+          {editing && (
+            <label className="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer shadow-lg border-2 border-white">
+              <Camera size={14} className="text-white" />
+              <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+            </label>
+          )}
+        </div>
+        <div className="mt-4 font-extrabold text-2xl">{user?.name}</div>
+        <div className={`inline-block mt-2 px-3 py-0.5 rounded-full text-xs font-semibold ${getRoleBadgeClass(user?.role)}`}>
+          {user?.role}
         </div>
       </div>
 
-      {/* Form */}
-      <div className="card p-6 space-y-4">
-        <h3 className="font-bold text-gray-800 flex items-center gap-2"><Shield size={16} />Profile Information</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="relative z-30 w-full max-w-3xl mx-auto -mt-12 bg-white rounded-3xl border border-gray-100 shadow-[0_25px_60px_rgba(15,23,42,0.15)] p-6 space-y-4 transition-all duration-300">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-gray-800">My Information</h3>
+          <button onClick={() => { setEditing(p => !p); if (editing) { setForm({ ...user }); setPhotoFile(null); } }}
+            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${editing ? "bg-gray-100 text-gray-600" : "bg-blue-50 text-blue-600"}`}>
+            <Edit2 size={12} />{editing ? "Cancel" : "Edit"}
+          </button>
+        </div>
+
+        {/* Name */}
+        <div>
+          <label className="flex items-center gap-2 text-base font-bold text-gray-700 mb-2"><User size={20} className="text-blue-600" />Full Name</label>
+          <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+            readOnly={!editing}
+            className={`w-full border rounded-xl px-4 py-3 text-lg font-semibold focus:outline-none transition-all ${editing ? "border-blue-300 focus:ring-2 focus:ring-blue-500 bg-white" : "border-transparent bg-gray-50 text-gray-700"}`} />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: "Full Name", key: "name", type: "text" },
-            { label: "Mobile", key: "mobile", type: "tel", readOnly: true },
-            { label: "Email", key: "email", type: "email" },
-            { label: "Role", key: "role", type: "text", readOnly: true },
-            { label: "Region", key: "region", type: "text", readOnly: true },
-            { label: "Branch", key: "branch", type: "text", readOnly: true },
+            { icon: Mail, label: "Email", key: "email", type: "email" },
+            { icon: Phone, label: "Mobile", key: "mobile", type: "tel", readOnly: true },
+            { icon: Shield, label: "Role", key: "role", readOnly: true },
           ].map(f => (
-            <div key={f.key}>
-              <label className="label">{f.label}</label>
-              <input
-                type={f.type}
-                value={form[f.key] || ""}
-                onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
+            <div key={f.key} className={f.key === "email" ? "sm:col-span-3" : ""}>
+              <label className="flex items-center gap-2 text-base font-bold text-gray-700 mb-2"><f.icon size={20} className="text-blue-600" />{f.label}</label>
+              <input type={f.type || "text"} value={form[f.key] || "—"} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
                 readOnly={!editing || f.readOnly}
-                className={`input-field ${(!editing || f.readOnly) ? "bg-gray-50 text-gray-500 cursor-default" : ""}`}
-              />
+                className={`w-full border rounded-xl px-4 py-3 text-lg focus:outline-none transition-all ${editing && !f.readOnly ? "border-blue-300 focus:ring-2 focus:ring-blue-500 bg-white" : "border-transparent bg-gray-50 text-gray-500"}`} />
             </div>
           ))}
         </div>
 
         {editing && (
-          <div className="flex gap-3 pt-2">
-            <button onClick={handleSave} className="btn-primary px-6 py-2.5">
-              <Save size={16} />Save Changes
-            </button>
-            <button onClick={() => { setEditing(false); setForm({ ...user }); setPhotoFile(null); }} className="btn-secondary px-6 py-2.5">
-              Cancel
-            </button>
-          </div>
+          <button onClick={handleSave} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm">
+            <Save size={14} />Save Changes
+          </button>
         )}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: "Role Level", value: user?.role?.split(" ")[0] },
-          { label: "Status", value: "Active" },
-          { label: "Platform", value: "Web (Desktop)" },
-        ].map(s => (
-          <div key={s.label} className="card p-4 text-center">
-            <div className="font-extrabold text-blue-600 text-lg">{s.value}</div>
-            <div className="text-xs text-gray-400 mt-0.5">{s.label}</div>
-          </div>
-        ))}
+      {/* Web info */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 w-full max-w-3xl mx-auto">
+        <h3 className="font-bold text-gray-800 text-sm mb-3">💻 Web Settings</h3>
+        <div className="space-y-2 text-sm">
+          {[
+            ["Platform", "Web (Desktop)"],
+            ["Browser Support", "Chrome, Firefox, Edge, Safari"],
+            ["Auto Sync", "✅ Active"],
+            ["Last Login", new Date().toLocaleString("en-IN")],
+          ].map(([k, v]) => (
+            <div key={k} className="flex justify-between items-center py-1">
+              <span className="text-gray-500">{k}</span>
+              <span className="font-semibold text-gray-700 text-right text-xs">{v}</span>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+
+      {/* Logout */}
+      <div className="w-full max-w-3xl mx-auto">
+        <button onClick={logout} className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold py-4 rounded-2xl transition-colors border border-red-100">
+          <LogOut size={18} />Sign Out
+        </button>
+      </div>
+      </div>
   );
 }
