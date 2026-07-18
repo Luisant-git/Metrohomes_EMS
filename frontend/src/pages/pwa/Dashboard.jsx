@@ -147,9 +147,10 @@ export default function PWADashboard() {
           ],
           teamTitle: null, teamList: null, teamEmpty: null, teamPath: null,
           quickActions: [
-            { label: "View Sites", icon: Building2, path: "/sites", color: "bg-blue-500" },
-            { label: "My Customers", icon: Users, path: "/customers", color: "bg-purple-500" },
-            { label: "Site Visits", icon: MapPin, path: "/visits", color: "bg-orange-500" },
+            { label: "Customer Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
+            { label: "View Sites", icon: Building2, path: "/sites", color: "bg-purple-500" },
+            { label: "My Customers", icon: Users, path: "/customers", color: "bg-orange-500" },
+            { label: "Site Visits", icon: MapPin, path: "/visits", color: "bg-emerald-500" },
           ],
           showPipeline: true, statusCounts, myCustomers,
         };
@@ -254,7 +255,7 @@ export default function PWADashboard() {
             <Award className="text-[#1D6FB9]" size={16} />
             Quick Actions
           </h3>
-          <div className={`grid ${data.quickActions.length === 4 ? "grid-cols-2" : "grid-cols-1"} gap-2`}>
+          <div className="grid grid-cols-1 gap-2">
             {data.quickActions.map((a) => (
               <button key={a.label} onClick={() => navigate(a.path)} className="group flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-[#1D6FB9]/30 hover:bg-gradient-to-r hover:from-[#1D6FB9]/5 hover:to-transparent active:scale-[0.985] transition-all duration-200">
                 <div className={`w-9 h-9 rounded-xl ${a.color} flex items-center justify-center shadow-inner transition-transform group-hover:scale-110`}>
@@ -262,7 +263,6 @@ export default function PWADashboard() {
                 </div>
                 <div>
                   <span className="font-semibold text-slate-800 text-sm">{a.label}</span>
-                  <p className="text-[10px] text-slate-400">Get started →</p>
                 </div>
               </button>
             ))}
