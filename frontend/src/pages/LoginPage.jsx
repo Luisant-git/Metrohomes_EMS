@@ -73,7 +73,7 @@ export default function LoginPage() {
                   <input
                     type="text"
                     value={identifier}
-                    onChange={e => setIdentifier(e.target.value)}
+                    onChange={e => setIdentifier(e.target.value.toUpperCase())}
                     placeholder="Enter your User ID"
                     required
                     className="w-full border border-slate-200/80 rounded-xl sm:rounded-2xl pl-10 sm:pl-14 pr-3 sm:pr-4 py-2.5 sm:py-3.5 text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-slate-50/80 shadow-[0_8px_24px_rgba(15,23,42,0.04)] outline-none transition-all duration-200 focus:border-[#1D6FB9] focus:bg-white focus:shadow-[0_0_0_4px_rgba(29,111,185,0.16)]"
