@@ -4,40 +4,64 @@ import { useData } from "../../context/DataContext.jsx";
 import DataTable from "../../components/DataTable.jsx";
 import Modal from "../../components/Modal.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
-import { Eye, Edit2, Trash2, UserCheck, Phone, MapPin, Plus, UserPlus } from "lucide-react";
-import toast from "react-hot-toast";
+import { Eye, SquarePen, Trash2, UserCheck, Phone, UserPlus, AlertTriangle, Search, X } from "lucide-react";
+import { toast } from "react-toastify";
 
 const STATUSES = ["Interested", "Visit Scheduled", "Visit Completed", "Ready for Booking", "Booked", "Payment Done", "Dropped"];
-const emptyCustomer = { name: "", mobile: "", email: "", address: "", location: "", status: "Interested", siteId: "", salesManagerName: "", driverName: "", driverMobile: "", cabNumber: "", notes: "" };
 
 export default function WebCustomers() {
   const navigate = useNavigate();
-  const { customers, updateCustomer, deleteCustomer, addCustomer, sites } = useData();
-  const [modal, setModal] = useState(null); // null | "add" | "view" | "edit"
+  const { customers, updateCustomer, deleteCustomer, sites } = useData();
+  const [modal, setModal] = useState(null); // null | "view" | "edit" | "delete"
   const [selected, setSelected] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [filterStatus, setFilterStatus] = useState("All");
-  const [form, setForm] = useState(emptyCustomer);
+  const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
-  const filtered = filterStatus === "All" ? customers : customers.filter(c => c.status === filterStatus);
+  const filtered = customers.filter(c => {
+    // Status filter
+    if (filterStatus !== "All" && c.status !== filterStatus) return false;
+    // Search filter
+    if (search) {
+      const s = search.toLowerCase();
+      const match = c.name?.toLowerCase().includes(s) ||
+        c.mobile?.includes(s) ||
+        c.siteName?.toLowerCase().includes(s) ||
+        c.salesManagerName?.toLowerCase().includes(s) ||
+        c.status?.toLowerCase().includes(s);
+      if (!match) return false;
+    }
+    // Date range filter
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom);
+      const regDate = new Date(c.registeredDate);
+      if (regDate < fromDate) return false;
+    }
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      const regDate = new Date(c.registeredDate);
+      if (regDate > toDate) return false;
+    }
+    return true;
+  });
 
   const handleStatusChange = (id, status) => {
     updateCustomer(id, { status });
     toast.success("Status updated!");
   };
 
-  const openAdd = () => { setForm(emptyCustomer); setModal("add"); };
   const openView = (c) => { setSelected(c); setModal("view"); };
+  const openEdit = (c) => { setSelected(c); setModal("edit"); };
 
-  const handleAdd = () => {
-    if (!form.name || !form.mobile) { toast.error("Name and mobile required"); return; }
-    const site = sites.find(s => s.id === +form.siteId);
-    addCustomer({ ...form, siteName: site?.name || "", salesManagerId: 6 });
-    toast.success("Customer added!");
-    setModal(null);
-  };
-
-  const handleDelete = (c) => {
-    if (window.confirm(`Delete customer "${c.name}"?`)) { deleteCustomer(c.id); toast.success("Deleted"); }
+  const confirmDelete = () => {
+    if (deleteTarget) {
+      deleteCustomer(deleteTarget.id);
+      toast.success(`Customer "${deleteTarget.name}" deleted`);
+      setDeleteTarget(null);
+    }
   };
 
   const columns = [
@@ -71,9 +95,42 @@ export default function WebCustomers() {
         ))}
       </div>
 
-      <DataTable title="Customer List" columns={columns} data={filtered} searchKey={["name", "mobile", "siteName", "salesManagerName", "status"]}
-        onAdd={openAdd}
-        addLabel="+ Add Customer"
+      {/* Filters - User Management style */}
+      <div className="card p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by Name, Mobile, Site, Sales Manager..."
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          <div>
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="input-field" placeholder="From Date" />
+          </div>
+          <div>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="input-field" placeholder="To Date" />
+          </div>
+
+          {(search || dateFrom || dateTo) && (
+            <button onClick={() => { setSearch(""); setDateFrom(""); setDateTo(""); }} className="px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+              Clear Filters
+            </button>
+          )}
+
+          <span className="text-xs text-gray-400 ml-auto">{filtered.length} of {customers.length} customers</span>
+        </div>
+      </div>
+
+      <DataTable title="Customer List" columns={columns} data={filtered} searchKey={[]}
         extraActions={
           <button onClick={() => navigate("/customer-registration")}
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-blue-200">
@@ -82,38 +139,41 @@ export default function WebCustomers() {
         }
         actions={(row) => (
           <>
-            <button onClick={() => openView(row)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Eye size={15} /></button>
-            <button onClick={() => { setSelected(row); setModal("edit"); }} className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg"><Edit2 size={15} /></button>
-            <button onClick={() => handleDelete(row)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={15} /></button>
+            <button onClick={() => openView(row)} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="View"><Eye size={15} /></button>
+            <button onClick={() => openEdit(row)} className="p-1.5 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors" title="Edit"><SquarePen size={15} /></button>
+            <button onClick={() => setDeleteTarget(row)} className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Delete"><Trash2 size={15} /></button>
           </>
         )}
       />
 
-      {/* Add Customer Modal */}
-      <Modal open={modal === "add"} onClose={() => setModal(null)} title="Add New Customer" size="lg">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="sm:col-span-2"><label className="label">Full Name *</label><input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="input-field" placeholder="Customer full name" /></div>
-          <div><label className="label">Mobile *</label><input value={form.mobile} onChange={e => setForm(p => ({ ...p, mobile: e.target.value }))} className="input-field" placeholder="10-digit mobile" /></div>
-          <div><label className="label">Email</label><input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className="input-field" placeholder="email@example.com" /></div>
-          <div className="sm:col-span-2"><label className="label">Address</label><input value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} className="input-field" placeholder="Full address" /></div>
-          <div className="sm:col-span-2"><label className="label">Location (lat,lng)</label><input value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))} className="input-field" placeholder="e.g. 28.6139,77.2090" /></div>
-          <div><label className="label">Site</label>
-            <select value={form.siteId} onChange={e => setForm(p => ({ ...p, siteId: e.target.value }))} className="input-field">
-              <option value="">Select Site</option>
-              {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+      {/* Delete Confirmation Modal */}
+      <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Delete Customer" size="sm">
+        {deleteTarget && (
+          <div className="text-center">
+            <div className="mx-auto w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mb-4">
+              <AlertTriangle size={28} className="text-red-600" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Are you sure?</h3>
+            <p className="text-sm text-gray-500 mb-1">
+              You are about to delete this customer:
+            </p>
+            <p className="text-sm font-semibold text-gray-800 mb-4">
+              "{deleteTarget.name}"
+              <span className="block text-xs font-normal text-gray-400 mt-1">
+                {deleteTarget.mobile} · {deleteTarget.siteName}
+              </span>
+            </p>
+
+            <div className="flex gap-3">
+              <button onClick={confirmDelete} className="btn-primary flex-1 justify-center py-2.5 bg-red-600 hover:bg-red-700 border-red-600">
+                Yes, Delete
+              </button>
+              <button onClick={() => setDeleteTarget(null)} className="btn-secondary flex-1 justify-center py-2.5">
+                Cancel
+              </button>
+            </div>
           </div>
-          <div><label className="label">Status</label>
-            <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="input-field">
-              {STATUSES.map(s => <option key={s}>{s}</option>)}
-            </select>
-          </div>
-          <div className="sm:col-span-2"><label className="label">Notes</label><textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} className="input-field h-20 resize-none" placeholder="Any notes..." /></div>
-        </div>
-        <div className="flex gap-3 mt-6">
-          <button onClick={handleAdd} className="btn-primary flex-1 justify-center py-2.5"><Plus size={16} />Add Customer</button>
-          <button onClick={() => setModal(null)} className="btn-secondary flex-1 justify-center py-2.5">Cancel</button>
-        </div>
+        )}
       </Modal>
 
       {/* View Modal */}
