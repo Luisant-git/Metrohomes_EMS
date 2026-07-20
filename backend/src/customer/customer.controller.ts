@@ -1,5 +1,4 @@
-// src/customer/customer.controller.ts
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
 import { CustomerService } from './customer.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 
@@ -17,5 +16,23 @@ export class CustomerController {
   async findAll() {
     const customers = await this.customerService.findAll();
     return customers;
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: number) {
+    const customer = await this.customerService.findOne(id);
+    return customer;
+  }
+
+  @Put(':id')
+  async update(@Param('id') id: number, @Body() data: any) {
+    const customer = await this.customerService.update(id, data);
+    return customer;
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: number) {
+    await this.customerService.remove(id);
+    return { success: true };
   }
 }

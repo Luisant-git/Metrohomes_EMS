@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
 import { useNavigate } from "react-router-dom";
@@ -16,9 +16,20 @@ export default function PWACustomers() {
   const myBMs = users.filter(u => u.role === "Branch Manager" && directIds.has(u.parentUserId));
 
   const myBMIds = new Set(myBMs.map(b => b.id));
+
+  // Get all user IDs in this team's hierarchy (user's team)
+  const teamUserIds = useMemo(() => {
+    const allTeam = [user, ...directChildren].filter(Boolean);
+    const bmIds = allTeam.filter(u => u.role === "Branch Manager").map(u => u.id);
+    // Also include all users under Branch Managers
+    const allInTeam = users.filter(u => u.parentUserId && bmIds.includes(u.parentUserId));
+    const allIds = [...allTeam, ...allInTeam].map(u => u.id);
+    return [...new Set(allIds)];
+  }, [user, directChildren, users]);
+
+  // Filter customers by createdById matching team members
   const myCustomers = customers.filter(c => {
-    const salesManager = users.find(u => u.id === c.salesManagerId);
-    return salesManager && myBMIds.has(salesManager.parentUserId);
+    return teamUserIds.includes(c.createdById);
   });
 
   const filteredCustomers = statusFilter === "All" ? myCustomers : myCustomers.filter(c => c.status === statusFilter);

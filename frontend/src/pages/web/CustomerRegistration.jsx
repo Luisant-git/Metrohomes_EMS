@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { customer } from "../../api/customer.js";
 import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Users, Briefcase, DollarSign, ArrowLeft, ArrowRight, Car } from "lucide-react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -88,7 +89,7 @@ export default function CustomerRegistration() {
       const payload = {
         name: form.name,
         email: form.email,
-        phone: form.mobile,
+        mobile: form.mobile,
         address: form.address,
         visitDate: form.visitDate,
         visitTime: form.visitTime,
@@ -98,6 +99,7 @@ export default function CustomerRegistration() {
         occupation: form.occupation,
         siteId: Number(form.siteId),
         purchaseMode: form.purchaseMode,
+        createdBy: user?.id,
       };
       await customer.registerCustomer(payload);
       toast.success("Customer registered successfully! 🎉");
@@ -149,10 +151,6 @@ export default function CustomerRegistration() {
                   className="input-field" placeholder="email@example.com" />
               </F>
 
-
-
-
-
               <F label="Mobile Number" icon={Phone} required>
                 <div className="flex gap-2">
                   <input type="tel" value={form.mobile} onChange={e => setForm(p => ({ ...p, mobile: e.target.value }))}
@@ -183,7 +181,7 @@ export default function CustomerRegistration() {
                 </div>
               )}
 
-              <F label="Email (optional)">
+              <F label="Email (optional)" icon={User}>
                 <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
                   className="input-field" placeholder="customer@email.com" />
               </F>

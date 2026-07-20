@@ -89,7 +89,7 @@ export default function PWAVisitRegistration() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.name || !form.mobile || !form.siteId || !form.visitDate || !form.visitTime || !form.persons) {
       toast.error("Please fill all required fields");
       return;
@@ -98,16 +98,29 @@ export default function PWAVisitRegistration() {
       toast.error("Please verify OTP to continue");
       return;
     }
-    addCustomer({
-      ...form,
-      siteId: +form.siteId,
-      siteName: selectedSite?.name || prefillSiteName || "",
-      salesManagerId: salesManager?.id || 6,
-      salesManagerName: salesManager?.name || "Anjali Verma",
-      salesManagerMobile: salesManager?.mobile || "9876543210",
-    });
-    toast.success("Customer registered & visit scheduled! 🎉");
-    navigate("/customers");
+    try {
+      await addCustomer({
+        name: form.name,
+        mobile: form.mobile,
+        email: form.email,
+        address: form.address,
+        pinCode: form.pinCode,
+        occupation: form.occupation,
+        location: form.location,
+        siteId: +form.siteId,
+        visitDate: form.visitDate,
+        visitTime: form.visitTime,
+        persons: Number(form.persons),
+        purchaseMode: form.purchaseMode,
+        notes: form.notes,
+        status: "Interested",
+        createdBy: user?.id,
+      });
+      toast.success("Customer registered & visit scheduled! 🎉");
+      navigate("/customers");
+    } catch (err) {
+      toast.error(err.message || "Registration failed");
+    }
   };
 
   const F = FormField

@@ -22,11 +22,25 @@ export function DataProvider({ children }) {
       const list = Array.isArray(data) ? data : (data.customers || data.data || []);
       
       // Normalize fields to match frontend expectations
-      const normalized = list.map((c) => ({
-        ...c,
-        siteName: c.siteName || c.site?.name || "",
-        salesManagerName: c.salesManagerName || "",
-      }));
+      const normalized = list.map((c) => {
+        const row = {
+          ...c,
+          siteName: c.siteName || c.site?.name || "",
+          salesManagerName: c.salesManagerName || c.user?.name || "",
+          mobile: c.mobile || c.phone || "",
+          registeredDate: c.registeredDate || (c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : ''),
+        };
+        
+        // Normalize dates from ISO to YYYY-MM-DD
+        if (row.visitDate && row.visitDate.includes('T')) {
+          row.visitDate = row.visitDate.split('T')[0];
+        }
+        if (row.registeredDate && row.registeredDate.includes('T')) {
+          row.registeredDate = row.registeredDate.split('T')[0];
+        }
+        
+        return row;
+      });
       
       setCustomers(normalized);
     } catch (err) {

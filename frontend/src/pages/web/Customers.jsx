@@ -20,6 +20,16 @@ export default function WebCustomers() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "—";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${dd}/${mm}/${yy}`;
+  };
+
   const filtered = customers.filter(c => {
     // Status filter
     if (filterStatus !== "All" && c.status !== filterStatus) return false;
@@ -71,11 +81,11 @@ export default function WebCustomers() {
         <div className="text-xs text-gray-400 flex items-center gap-1"><Phone size={10} />{row.mobile}</div>
       </div>
     )},
-    { key: "siteName", label: "Site" },
-    { key: "salesManagerName", label: "Sales Manager" },
-    { key: "visitDate", label: "Visit Date" },
+    { key: "siteName", label: "Site", render: v => v || "—" },
+    { key: "salesManagerName", label: "Sales Manager", render: v => v || "—" },
+    { key: "visitDate", label: "Visit Date", render: (v) => formatDate(v) },
     { key: "status", label: "Status", render: v => <StatusBadge status={v} /> },
-    { key: "registeredDate", label: "Registered" },
+    { key: "registeredDate", label: "Registered", render: (v) => formatDate(v) },
   ];
 
   return (
@@ -189,7 +199,7 @@ export default function WebCustomers() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {[["Site", selected.siteName], ["Sales Manager", selected.salesManagerName], ["Visit Date", selected.visitDate], ["Registered", selected.registeredDate], ["Address", selected.address], ["Location", selected.location]].map(([k, v]) => (
+              {[["Site", selected.siteName], ["Sales Manager", selected.salesManagerName], ["Visit Date", formatDate(selected.visitDate)], ["Registered", formatDate(selected.registeredDate)], ["Address", selected.address], ["Location", selected.location]].map(([k, v]) => (
                 <div key={k} className="bg-gray-50 rounded-xl p-3">
                   <div className="text-xs text-gray-400 font-semibold">{k}</div>
                   <div className="text-sm font-semibold text-gray-800 mt-0.5">{v || "—"}</div>

@@ -57,10 +57,10 @@ export default function PWADashboard() {
         const myBDMs = users.filter((u) => u.role === "BDM" && bmIds.includes(u.parentUserId));
         const mySMs = users.filter((u) => u.role === "Sales Manager" && myBDMs.some((bdm) => bdm.id === u.parentUserId));
         const myCustomers = customers.filter((c) =>
-          mySMs.some((sm) => sm.id === c.salesManagerId) || myBDMs.some((bdm) => bdm.id === c.salesManagerId)
+          mySMs.some((sm) => sm.id === c.createdById) || myBDMs.some((bdm) => bdm.id === c.createdById)
         );
         const myBookings = bookings.filter((b) =>
-          mySMs.some((sm) => sm.id === b.salesManagerId) || myBDMs.some((bdm) => bdm.id === b.salesManagerId)
+          mySMs.some((sm) => sm.id === b.createdById) || myBDMs.some((bdm) => bdm.id === b.createdById)
         );
         return {
           stats: [
@@ -86,8 +86,8 @@ export default function PWADashboard() {
         const bdmIds = myBDMs.map((bdm) => bdm.id);
         const mySMs = users.filter((u) => u.role === "Sales Manager" && bdmIds.includes(u.parentUserId));
         const smIds = mySMs.map((sm) => sm.id);
-        const myCustomers = customers.filter((c) => bdmIds.includes(c.salesManagerId) || smIds.includes(c.salesManagerId));
-        const myBookings = bookings.filter((b) => bdmIds.includes(b.salesManagerId) || smIds.includes(b.salesManagerId));
+        const myCustomers = customers.filter((c) => bdmIds.includes(c.createdById) || smIds.includes(c.createdById));
+        const myBookings = bookings.filter((b) => bdmIds.includes(b.createdById) || smIds.includes(b.createdById));
         return {
           stats: [
             { label: "BDM Count", value: myBDMs.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
@@ -107,8 +107,8 @@ export default function PWADashboard() {
 
       case "BDM": {
         const mySMs = users.filter((u) => u.role === "Sales Manager" && u.parentUserId === user?.id);
-        const myCustomers = customers.filter((c) => mySMs.some((sm) => sm.id === c.salesManagerId));
-        const myBookings = bookings.filter((b) => mySMs.some((sm) => sm.id === b.salesManagerId));
+        const myCustomers = customers.filter((c) => mySMs.some((sm) => sm.id === c.createdById));
+        const myBookings = bookings.filter((b) => mySMs.some((sm) => sm.id === b.createdById));
         return {
           stats: [
             { label: "SM", value: mySMs.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
@@ -128,8 +128,8 @@ export default function PWADashboard() {
       }
 
       default: {
-        const myCustomers = customers.filter((c) => c.salesManagerId === user?.id);
-        const myVisits = visits.filter((v) => v.salesManagerId === user?.id);
+        const myCustomers = customers.filter((c) => c.createdById === user?.id);
+        const myVisits = visits.filter((v) => v.createdById === user?.id);
         const myActiveSites = sites.filter((s) => s.status === "Active");
         const bookCompleted = myCustomers.filter((c) => c.status === "Booked" || c.status === "Payment Done").length;
         const statusCounts = {

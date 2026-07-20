@@ -2,95 +2,78 @@ import { useMemo } from "react";
 import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import StatCard from "../../components/StatCard.jsx";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
-import { Users, Building2, UserCheck, BookOpen, TrendingUp, IndianRupee, MapPin, Trophy } from "lucide-react";
-
-const MONTHLY = [
-  { month: "Jan", sales: 4, revenue: 88000000 },
-  { month: "Feb", sales: 6, revenue: 132000000 },
-  { month: "Mar", sales: 5, revenue: 110000000 },
-  { month: "Apr", sales: 8, revenue: 176000000 },
-  { month: "May", sales: 7, revenue: 154000000 },
-  { month: "Jun", sales: 10, revenue: 220000000 },
-];
+import TeamMembersCard from "../../components/TeamMembersCard.jsx";
+import { Users, Building2, UserCheck, BookOpen, MapPin, Trophy } from "lucide-react";
 
 export default function WebDashboard() {
   const { users, customers, sites, bookings } = useData();
   const { user, hierarchy } = useAuth();
 
-  // Get all Sales Manager IDs in this user's hierarchy
-  const teamSmIds = useMemo(() => {
+  // Get all user IDs in this user's hierarchy (including downline)
+  const teamUserIds = useMemo(() => {
     const isAdminOrDirector = ["Admin", "Director"].includes(user?.role);
     if (isAdminOrDirector) {
-      return users.filter(u => u.role === "Sales Manager").map(u => u.id);
+      // Admin/Director see everything - just return all user IDs
+      return users.map(u => u.id);
     }
     const downline = hierarchy.getDownline(users);
     const teamMembers = [user, ...downline].filter(Boolean);
-    const smIds = teamMembers.filter(u => u.role === "Sales Manager").map(u => u.id);
-    // Also include Sales Managers who are in the downline
-    const allSmInDownline = downline.filter(u => u.role === "Sales Manager").map(u => u.id);
-    return [...new Set([...smIds, ...allSmInDownline])];
+    return teamMembers.map(u => u.id);
   }, [users, user, hierarchy]);
 
-  // Filter data to only show what belongs to this user's team
+  // Filter data to only show what belongs to this user's team (using createdById)
   const teamCustomers = useMemo(() => {
-    return customers.filter(c => teamSmIds.includes(c.salesManagerId));
-  }, [customers, teamSmIds]);
+    return customers.filter(c => teamUserIds.includes(c.createdById));
+  }, [customers, teamUserIds]);
 
   const teamBookings = useMemo(() => {
-    return bookings.filter(b => teamSmIds.includes(b.salesManagerId));
-  }, [bookings, teamSmIds]);
+    return bookings.filter(b => teamUserIds.includes(b.createdById));
+  }, [bookings, teamUserIds]);
 
-  const teamUsers = useMemo(() => {
+  // Get team users with role breakdown (excluding current user for admin count)
+  const teamInfo = useMemo(() => {
     const isAdminOrDirector = ["Admin", "Director"].includes(user?.role);
-    if (isAdminOrDirector) return users;
-    const downline = hierarchy.getDownline(users);
-    return [user, ...downline].filter(Boolean);
-  }, [users, user, hierarchy]);
+    let teamUsers = [];
+    
+    if (isAdminOrDirector) {
+      // For Admin/Director, show all users but don't count themselves
+      teamUsers = users.filter(u => u.id !== user?.id);
+    } else {
+      const downline = hierarchy.getDownline(users);
+      teamUsers = downline.filter(Boolean);
+    }
 
-  const totalRevenue = teamBookings.reduce((a, b) => a + (b.paidAmount || 0), 0);
-  const activeSites = sites.filter(s => s.status === "Active").length;
-  const bookedCustomers = teamCustomers.filter(c => c.status === "Booked" || c.status === "Payment Done").length;
-  const teamVisits = teamCustomers.filter(c => c.status !== "Interested").length;
-
-  // Customer status breakdown for chart
-  const statusCounts = useMemo(() => {
-    const counts = {};
-    teamCustomers.forEach(c => {
-      counts[c.status] = (counts[c.status] || 0) + 1;
-    });
-    const statusColors = {
-      "Booked": "#22c55e",
-      "Payment Done": "#16a34a",
-      "Visit Completed": "#8b5cf6",
-      "Visit Scheduled": "#3b82f6",
-      "Ready for Booking": "#f59e0b",
-      "Interested": "#f59e0b",
-      "Dropped": "#ef4444",
+    // Count by roles - using short codes: D (Director), RM (Regional Manager), BM (Branch Manager), BDM, SM (Sales Manager)
+    const roleCounts = {
+      D: 0,
+      RM: 0,
+      BM: 0,
+      BDM: 0,
+      SM: 0,
     };
-    return Object.entries(counts).map(([name, value]) => ({
-      name,
-      value,
-      color: statusColors[name] || "#6b7280"
-    }));
-  }, [teamCustomers]);
 
-  // Top performers from this team
-  const topPerformers = useMemo(() => {
-    const smBookings = {};
-    teamBookings.forEach(b => {
-      const sm = users.find(u => u.id === b.salesManagerId);
-      if (sm) {
-        smBookings[sm.id] = smBookings[sm.id] || { name: sm.name, sales: 0, revenue: 0 };
-        smBookings[sm.id].sales += 1;
-        smBookings[sm.id].revenue += b.paidAmount || 0;
-      }
+    teamUsers.forEach(u => {
+      if (u.role === "Director") roleCounts.D++;
+      else if (u.role === "Regional Manager") roleCounts.RM++;
+      else if (u.role === "Branch Manager") roleCounts.BM++;
+      else if (u.role === "BDM") roleCounts.BDM++;
+      else if (u.role === "Sales Manager") roleCounts.SM++;
     });
-    return Object.values(smBookings)
-      .sort((a, b) => b.sales - a.sales)
-      .slice(0, 5)
-      .map((s, i) => ({ ...s, target: Math.round(s.sales * 1.3) }));
-  }, [teamBookings, users]);
+
+    // Achievers: count of bookings
+    const achievers = teamBookings.length;
+
+    return {
+      totalTeam: teamUsers.length,
+      roleCounts,
+      achievers,
+    };
+  }, [users, user, hierarchy, teamUserIds, bookings]);
+
+  const activeSites = sites.filter(s => s.status === "Active").length;
+  const totalBookings = teamBookings.length;
+  const totalCustomers = teamCustomers.length;
+  const totalSiteVisit = teamCustomers.filter(c => c.status !== "Interested").length;
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -100,30 +83,24 @@ export default function WebDashboard() {
         <p className="text-gray-400 text-sm mt-0.5">
           Welcome back, {user?.name} ({user?.role}) · {new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
           {!["Admin", "Director"].includes(user?.role) && (
-            <span className="ml-2 text-blue-500 font-medium">· Team: {teamUsers.length} members</span>
+            <span className="ml-2 text-blue-500 font-medium">· Team: {teamInfo.totalTeam} members</span>
           )}
         </p>
       </div>
 
-      {/* Stats */}
+      {/* Stats - Row 1: Total Booking, Total Customers, Total Site Visit, Active Sites */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={IndianRupee} label="Team Revenue" value={`₹${(totalRevenue / 10000000).toFixed(1)}Cr`} change={12} color="green" />
-        <StatCard icon={BookOpen} label="Team Bookings" value={teamBookings.length} change={8} color="blue" />
-        <StatCard icon={UserCheck} label="Team Customers" value={teamCustomers.length} change={15} color="purple" />
-        <StatCard icon={Building2} label="Active Sites" value={activeSites} change={5} color="orange" />
+        <StatCard icon={BookOpen} label="Total Booking" value={totalBookings} color="blue" />
+        <StatCard icon={UserCheck} label="Total Customers" value={totalCustomers} color="purple" />
+        <StatCard icon={MapPin} label="Total Site Visit" value={totalSiteVisit} color="orange" />
+        <StatCard icon={Building2} label="Active Sites" value={activeSites} color="green" />
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="Team Members" value={teamUsers.length} color="blue" />
-        <StatCard icon={MapPin} label="Site Visits" value={teamVisits} color="purple" />
-        <StatCard icon={TrendingUp} label="Conversion Rate" value={teamCustomers.length > 0 ? `${Math.round((bookedCustomers / teamCustomers.length) * 100)}%` : "0%"} change={3} color="green" />
-        <StatCard icon={Trophy} label="Top Performers" value={topPerformers.length} color="yellow" />
+      {/* Stats - Row 2: Active Team Members, No of Achievers */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <TeamMembersCard totalTeam={teamInfo.totalTeam} roleCounts={teamInfo.roleCounts} />
+        <StatCard icon={Trophy} label="No of Achievers" value={teamInfo.achievers} color="yellow" />
       </div>
-
-      {/* Charts row 1 */}
-     
-
-      
     </div>
   );
 }
