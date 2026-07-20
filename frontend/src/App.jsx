@@ -3,6 +3,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { DataProvider } from "./context/DataContext.jsx";
+import { registerPWAIfNeeded } from "./utils/pwa.js";
 import LoginPage from "./pages/LoginPage.jsx";
 import WebLayout from "./layouts/WebLayout.jsx";
 import PWALayout from "./layouts/PWALayout.jsx";
@@ -37,6 +38,9 @@ function AppRoutes() {
   const { user } = useAuth();
 
   if (!user) return <LoginPage />;
+
+  // Register PWA only for PWA roles
+  registerPWAIfNeeded(user);
 
   if (user.role === "Admin" || user.role === "Director") {
     return (

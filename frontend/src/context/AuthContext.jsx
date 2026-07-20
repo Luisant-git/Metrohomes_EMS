@@ -190,6 +190,10 @@ export function AuthProvider({ children }) {
         const { password: _, ...safeUser } = data.user;
         setUser(safeUser);
         localStorage.setItem("re_user", JSON.stringify(safeUser));
+        // Save the auth token so API calls work on page refresh
+        if (data.accessToken) {
+          localStorage.setItem("authToken", data.accessToken);
+        }
         return { success: true, user: safeUser };
       }
       return { success: false, error: "Login failed" };
@@ -201,6 +205,7 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setUser(null);
     localStorage.removeItem("re_user");
+    localStorage.removeItem("authToken");
   };
 
   const updateProfile = async (updates) => {

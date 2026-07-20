@@ -117,7 +117,7 @@ export default function CustomerRegistration() {
         {step === 1 && (
           <div className="space-y-5 animate-fadeIn">
             <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700 font-medium">
-              👤 Enter customer details and verify mobile number
+               Enter customer details and verify mobile number
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -189,7 +189,7 @@ export default function CustomerRegistration() {
         {step === 2 && (
           <div className="space-y-5 animate-fadeIn">
             <div className="bg-green-50 rounded-xl p-4 text-sm text-green-700 font-medium">
-              🏗️ Select project and schedule visit
+              Select project and schedule visit
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -270,7 +270,7 @@ export default function CustomerRegistration() {
         {step === 3 && (
           <div className="space-y-5 animate-fadeIn">
             <div className="bg-purple-50 rounded-xl p-4 text-sm text-purple-700 font-medium">
-              ✅ Review all details before submitting
+               Review all details before submitting
             </div>
 
             <div className="bg-gray-50 rounded-xl border border-gray-200 divide-y divide-gray-200">

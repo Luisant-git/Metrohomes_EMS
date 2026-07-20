@@ -7,6 +7,7 @@ import {
   UserCheck, BarChart3, DollarSign, ArrowRight, UserPlus, Award 
 } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge.jsx";
+import PWAInstallPrompt from "../../components/PWAInstallPrompt.jsx";
 import { dashboard, getDownlineRoleCounts } from "../../api/dashboard.js";
 
 export default function PWADashboard() {
@@ -360,6 +361,9 @@ export default function PWADashboard() {
           </div>
         )}
       </div>
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
     </div>
   );
 }

@@ -18,7 +18,6 @@ export default function LoginPage() {
       const result = await login(identifier, pin);
       if (result.success) {
         toast.success(`Welcome back, ${result.user.name}!`);
-        setTimeout(() => window.location.reload(), 500);
       } else {
         toast.error(result.error || "Login failed. Please check your credentials.");
       }
