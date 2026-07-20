@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Users, Briefcase, DollarSign, ArrowLeft, ArrowRight, Car } from "lucide-react";
-import toast from "react-hot-toast";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function FormField({ label, icon: Icon, children, required, className }) {
   return (
@@ -21,17 +22,26 @@ function FormField({ label, icon: Icon, children, required, className }) {
 const F = FormField;
 
 export default function CustomerRegistration() {
-  const { sites, addCustomer } = useData();
+  const { sites } = useData();
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
-    name: "", mobile: "", email: "", address: "", pinCode: "",
+    name: "",
+    mobile: "",
+    email: "",
+    address: "",
+    pinCode: "",
     occupation: "",
-    location: "", siteId: "", visitDate: "", visitTime: "",
-    persons: "", purchaseMode: "Own Funding",
-    notes: "", status: "Interested",
+    location: "",
+    siteId: "",
+    visitDate: "",
+    visitTime: "",
+    persons: "",
+    purchaseMode: "Own Funding",
+    notes: "",
+    status: "Interested",
   });
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
@@ -65,8 +75,8 @@ export default function CustomerRegistration() {
     }
   };
 
-  const handleSubmit = () => {
-    if (!form.name || !form.mobile || !form.siteId || !form.visitDate || !form.visitTime || !form.persons) {
+  const handleSubmit = async () => {
+    if (!form.name || !form.mobile || !form.email || !form.siteId || !form.visitDate || !form.visitTime || !form.persons) {
       toast.error("Please fill all required fields");
       return;
     }
@@ -74,19 +84,28 @@ export default function CustomerRegistration() {
       toast.error("Please verify OTP to continue");
       return;
     }
-    addCustomer({
-      ...form,
-      siteId: +form.siteId,
-      siteName: selectedSite?.name || "",
-      salesManagerId: salesManager.id,
-      salesManagerName: salesManager.name,
-      salesManagerMobile: salesManager.mobile,
-    });
-    toast.success("Customer registered & visit scheduled! 🎉");
-    navigate("/customers");
+    try {
+      const payload = {
+        name: form.name,
+        email: form.email,
+        phone: form.mobile,
+        address: form.address,
+        visitDate: form.visitDate,
+        visitTime: form.visitTime,
+        persons: Number(form.persons),
+        location: form.location,
+        notes: form.notes,
+        occupation: form.occupation,
+        siteId: Number(form.siteId),
+        purchaseMode: form.purchaseMode,
+      };
+      await customer.registerCustomer(payload);
+      toast.success("Customer registered successfully! 🎉");
+      navigate("/customers");
+    } catch (err) {
+      toast.error(err.message || "Registration failed");
+    }
   };
-
-
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -125,6 +144,14 @@ export default function CustomerRegistration() {
                 <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                   className="input-field" placeholder="Full name" />
               </F>
+              <F label="Email" icon={User} required>
+                <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                  className="input-field" placeholder="email@example.com" />
+              </F>
+
+
+
+
 
               <F label="Mobile Number" icon={Phone} required>
                 <div className="flex gap-2">

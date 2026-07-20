@@ -4,7 +4,7 @@ import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { MapPin, FileText, Share2, ChevronLeft, ChevronRight, Home, CheckCircle, UserPlus, Lock } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge.jsx";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 
 export default function PWASiteDetail() {
   const { id } = useParams();

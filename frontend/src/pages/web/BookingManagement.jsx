@@ -4,7 +4,7 @@ import DataTable from "../../components/DataTable.jsx";
 import Modal from "../../components/Modal.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import { BookOpen, Eye, Plus, IndianRupee, FileText, MessageSquare, CheckCircle, Bell, Home, Building2, Phone } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 
 const empty = { 
   customerId: "", customerName: "", siteId: "", 

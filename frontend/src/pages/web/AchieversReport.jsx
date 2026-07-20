@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Trophy, Download, Medal, Star, Crown } from "lucide-react";
-import toast from "react-hot-toast";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const ACHIEVERS = [
   { rank: 1, name: "Priya Sen", role: "Sales Manager", branch: "Mumbai HQ", sales: 14, revenue: 308000000, points: 1400, credits: 28000, badge: "🥇 Gold Achiever" },

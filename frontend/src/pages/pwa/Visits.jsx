@@ -3,7 +3,7 @@ import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { MapPin, Calendar, CheckCircle, Clock, XCircle } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge.jsx";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 
 export default function PWAVisits() {
   const { visits, updateVisit, updateCustomer, customers } = useData();
