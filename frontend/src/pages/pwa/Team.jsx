@@ -159,8 +159,8 @@ export default function TeamPage() {
   };
 
   const getMemberStats = (member) => {
-    const memberCustomers = customers.filter((c) => c.salesManagerId === member.id);
-    const memberBookings = bookings.filter((b) => b.salesManagerId === member.id);
+    const memberCustomers = customers.filter((c) => c.createdById === member.id);
+    const memberBookings = bookings.filter((b) => b.createdById === member.id);
     return { customers: memberCustomers.length, bookings: memberBookings.length };
   };
 
@@ -185,10 +185,10 @@ export default function TeamPage() {
   const summary = useMemo(() => {
     const downlineUsers = users.filter((u) => downlineUserIds.includes(u.id));
     const customersCount = downlineUsers.reduce((sum, u) => {
-      return sum + customers.filter((c) => c.salesManagerId === u.id).length;
+      return sum + customers.filter((c) => c.createdById === u.id).length;
     }, 0);
     const bookingsCount = downlineUsers.reduce((sum, u) => {
-      return sum + bookings.filter((b) => b.salesManagerId === u.id).length;
+      return sum + bookings.filter((b) => b.createdById === u.id).length;
     }, 0);
     return { customers: customersCount, bookings: bookingsCount };
   }, [users, downlineUserIds, customers, bookings]);

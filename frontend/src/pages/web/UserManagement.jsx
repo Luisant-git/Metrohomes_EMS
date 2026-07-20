@@ -755,7 +755,7 @@ function TreeNode({ node, users, customers, bookings, depth = 0, onViewTeam }) {
     smQueue.push(...users.filter(x => x.parentUserId === u.id));
   }
 
-  const activeCustomers = customers.filter(c => allSmIds.includes(c.salesManagerId)).length;
+  const activeCustomers = customers.filter(c => allSmIds.includes(c.createdById)).length;
   const totalSales = bookings
     .filter(b => allSmIds.includes(b.salesManagerId))
     .reduce((sum, b) => sum + (b.paidAmount || 0), 0);

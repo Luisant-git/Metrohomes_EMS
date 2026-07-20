@@ -49,27 +49,37 @@ export default function PWADashboard() {
 
   const downline = getDownline();
 
+  // Get all team user IDs (self + full downline)
+  const teamUserIds = useMemo(() => {
+    if (!users.length || !user?.id) return [];
+    const downline = hierarchy.getDownline(users);
+    const allTeam = [user, ...downline].filter(Boolean);
+    return allTeam.map(u => u.id);
+  }, [users, user, hierarchy]);
+
+  // Filter customers/bookings by any team member's createdById
+  const teamCustomers = useMemo(() => {
+    return customers.filter(c => teamUserIds.includes(c.createdById));
+  }, [customers, teamUserIds]);
+
+  const teamBookings = useMemo(() => {
+    return bookings.filter(b => teamUserIds.includes(b.createdById));
+  }, [bookings, teamUserIds]);
+
   const getRoleData = () => {
     switch (role) {
       case "Regional Manager": {
         const myBMs = users.filter((u) => u.role === "Branch Manager" && u.parentUserId === user?.id);
-        const bmIds = myBMs.map((bm) => bm.id);
-        const myBDMs = users.filter((u) => u.role === "BDM" && bmIds.includes(u.parentUserId));
+        const myBDMs = users.filter((u) => u.role === "BDM" && myBMs.some((bm) => bm.id === u.parentUserId));
         const mySMs = users.filter((u) => u.role === "Sales Manager" && myBDMs.some((bdm) => bdm.id === u.parentUserId));
-        const myCustomers = customers.filter((c) =>
-          mySMs.some((sm) => sm.id === c.createdById) || myBDMs.some((bdm) => bdm.id === c.createdById)
-        );
-        const myBookings = bookings.filter((b) =>
-          mySMs.some((sm) => sm.id === b.createdById) || myBDMs.some((bdm) => bdm.id === b.createdById)
-        );
         return {
           stats: [
             { label: "BM Count", value: myBMs.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
             { label: "BDM Count", value: myBDMs.length, icon: Users, color: "text-cyan-600", bg: "bg-cyan-50" },
             { label: "SM", value: mySMs.length, icon: Users, color: "text-purple-600", bg: "bg-purple-50" },
             { label: "Downline Roles", value: downlineRoleCounts.length, icon: Users, color: "text-indigo-600", bg: "bg-indigo-50" },
-            { label: "Total Customers", value: myCustomers.length, icon: UserCheck, color: "text-green-600", bg: "bg-green-50" },
-            { label: "Total Bookings", value: myBookings.length, icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50" },
+            { label: "Total Customers", value: teamCustomers.length, icon: UserCheck, color: "text-green-600", bg: "bg-green-50" },
+            { label: "Total Bookings", value: teamBookings.length, icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50" },
           ],
           teamTitle: null, teamList: null, teamEmpty: null, teamPath: null,
           quickActions: [
@@ -83,17 +93,13 @@ export default function PWADashboard() {
 
       case "Branch Manager": {
         const myBDMs = users.filter((u) => u.role === "BDM" && u.parentUserId === user?.id);
-        const bdmIds = myBDMs.map((bdm) => bdm.id);
-        const mySMs = users.filter((u) => u.role === "Sales Manager" && bdmIds.includes(u.parentUserId));
-        const smIds = mySMs.map((sm) => sm.id);
-        const myCustomers = customers.filter((c) => bdmIds.includes(c.createdById) || smIds.includes(c.createdById));
-        const myBookings = bookings.filter((b) => bdmIds.includes(b.createdById) || smIds.includes(b.createdById));
+        const mySMs = users.filter((u) => u.role === "Sales Manager" && myBDMs.some((bdm) => bdm.id === u.parentUserId));
         return {
           stats: [
             { label: "BDM Count", value: myBDMs.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
             { label: "SM", value: mySMs.length, icon: UserCheck, color: "text-purple-600", bg: "bg-purple-50" },
-            { label: "My Customers", value: myCustomers.length, icon: UserCheck, color: "text-green-600", bg: "bg-green-50" },
-            { label: "Total Bookings", value: myBookings.length, icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50" },
+            { label: "My Customers", value: teamCustomers.length, icon: UserCheck, color: "text-green-600", bg: "bg-green-50" },
+            { label: "Total Bookings", value: teamBookings.length, icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50" },
           ],
           teamTitle: "My BDMs", teamList: myBDMs, teamEmpty: "No BDMs assigned", teamPath: "/my-team",
           quickActions: [
@@ -107,14 +113,12 @@ export default function PWADashboard() {
 
       case "BDM": {
         const mySMs = users.filter((u) => u.role === "Sales Manager" && u.parentUserId === user?.id);
-        const myCustomers = customers.filter((c) => mySMs.some((sm) => sm.id === c.createdById));
-        const myBookings = bookings.filter((b) => mySMs.some((sm) => sm.id === b.createdById));
         return {
           stats: [
             { label: "SM", value: mySMs.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
             { label: "Downline Roles", value: downlineRoleCounts.length, icon: Users, color: "text-indigo-600", bg: "bg-indigo-50" },
-            { label: "My Customers", value: myCustomers.length, icon: UserCheck, color: "text-green-600", bg: "bg-green-50" },
-            { label: "Total Bookings", value: myBookings.length, icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50" },
+            { label: "My Customers", value: teamCustomers.length, icon: UserCheck, color: "text-green-600", bg: "bg-green-50" },
+            { label: "Total Bookings", value: teamBookings.length, icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50" },
           ],
           teamTitle: "My Sales Managers", teamList: mySMs, teamEmpty: "No Sales Managers assigned", teamPath: "/my-team",
           quickActions: [
@@ -341,17 +345,10 @@ export default function PWADashboard() {
               </button>
             </div>
             <div className="space-y-2">
-              {data.myCustomers.slice(0, 4).map((c) => (
+              {data.myCustomers.slice(0, 3).map((c) => (
                 <div key={c.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-all group">
-                  <div className="w-9 h-9 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-xl flex items-center justify-center text-blue-700 font-bold text-sm overflow-hidden flex-shrink-0">
-                    {c.avatar ? (
-                      <img src={c.avatar} alt={c.name} className="w-full h-full object-cover" />
-                    ) : (
-                      c.name?.charAt(0)
-                    )}
-                  </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-slate-900 truncate">{c.name}</div>
+                    <div className="font-semibold text-sm text-slate-900">{c.name}</div>
                     <div className="text-xs text-slate-500 truncate">{c.siteName}</div>
                   </div>
                   <StatusBadge status={c.status} />

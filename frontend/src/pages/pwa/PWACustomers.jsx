@@ -2,57 +2,115 @@ import { useState, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
 import { useNavigate } from "react-router-dom";
-import { UserCheck, UserX } from "lucide-react";
+import { UserCheck, UserX, Eye, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge.jsx";
+import Modal from "../../components/Modal.jsx";
+
+const STATUS_FILTER_MAP = {
+  All: "All",
+  Interested: "Interested",
+  "Visit Scheduled": "Visit Scheduled",
+  "Visit Completed": "Visit Completed",
+  "Ready for Booking": "Ready for Booking",
+  Booked: "Booked",
+  "Payment Done": "Payment Done",
+  Dropped: "Dropped",
+};
+
+const ITEMS_PER_PAGE = 10;
 
 export default function PWACustomers() {
   const { user, hierarchy } = useAuth();
-  const { customers, users } = useData();
+  const { customers, users, updateCustomer } = useData();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState("All");
+  const [viewCustomer, setViewCustomer] = useState(null);
+  const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const directChildren = hierarchy.getDirectChildren(users);
-  const directIds = new Set(directChildren.map(c => c.id));
-  const myBMs = users.filter(u => u.role === "Branch Manager" && directIds.has(u.parentUserId));
-
-  const myBMIds = new Set(myBMs.map(b => b.id));
-
-  // Get all user IDs in this team's hierarchy (user's team)
+  // Get all user IDs in this team's full hierarchy (self + all downline)
   const teamUserIds = useMemo(() => {
-    const allTeam = [user, ...directChildren].filter(Boolean);
-    const bmIds = allTeam.filter(u => u.role === "Branch Manager").map(u => u.id);
-    // Also include all users under Branch Managers
-    const allInTeam = users.filter(u => u.parentUserId && bmIds.includes(u.parentUserId));
-    const allIds = [...allTeam, ...allInTeam].map(u => u.id);
-    return [...new Set(allIds)];
-  }, [user, directChildren, users]);
+    if (!users.length || !user?.id) return [];
+    const downline = hierarchy.getDownline(users);
+    const allTeam = [user, ...downline].filter(Boolean);
+    return allTeam.map(u => u.id);
+  }, [users, user, hierarchy]);
 
   // Filter customers by createdById matching team members
-  const myCustomers = customers.filter(c => {
-    return teamUserIds.includes(c.createdById);
-  });
+  const myCustomers = useMemo(() => {
+    return customers.filter(c => teamUserIds.includes(c.createdById));
+  }, [customers, teamUserIds]);
 
-  const filteredCustomers = statusFilter === "All" ? myCustomers : myCustomers.filter(c => c.status === statusFilter);
+  // Search filter
+  const searchedCustomers = useMemo(() => {
+    if (!search.trim()) return myCustomers;
+    const s = search.toLowerCase().trim();
+    return myCustomers.filter(c =>
+      c.name?.toLowerCase().includes(s) ||
+      c.mobile?.includes(s) ||
+      c.siteName?.toLowerCase().includes(s) ||
+      c.salesManagerName?.toLowerCase().includes(s) ||
+      String(c.createdById || c.createdBy || "").includes(s)
+    );
+  }, [myCustomers, search]);
 
-  const statusCounts = {
-    All: myCustomers.length,
-    Interested: myCustomers.filter(c => c.status === "Interested").length,
-    Scheduled: myCustomers.filter(c => c.status === "Visit Scheduled").length,
-    Completed: myCustomers.filter(c => c.status === "Visit Completed").length,
-    Ready: myCustomers.filter(c => c.status === "Ready for Booking").length,
-    Booked: myCustomers.filter(c => c.status === "Booked" || c.status === "Payment Done").length,
-    Dropped: myCustomers.filter(c => c.status === "Dropped").length,
-  };
+  // Status filter
+  const filteredCustomers = useMemo(() => {
+    if (statusFilter === "All") return searchedCustomers;
+    return searchedCustomers.filter(c => c.status === statusFilter);
+  }, [searchedCustomers, statusFilter]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE);
+  const paginatedCustomers = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredCustomers.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredCustomers, currentPage]);
+
+  // Status counts for filter chips (based on searched results only)
+  const statusCounts = useMemo(() => {
+    const counts = {
+      All: myCustomers.length,
+      Interested: 0,
+      "Visit Scheduled": 0,
+      "Visit Completed": 0,
+      "Ready for Booking": 0,
+      Booked: 0,
+      "Payment Done": 0,
+      Dropped: 0,
+    };
+    myCustomers.forEach(c => {
+      if (counts[c.status] !== undefined) counts[c.status]++;
+    });
+    return counts;
+  }, [myCustomers]);
 
   const filterOptions = [
     { key: "All", label: "All", count: statusCounts.All },
     { key: "Interested", label: "Interested", count: statusCounts.Interested },
-    { key: "Scheduled", label: "Visit Scheduled", count: statusCounts.Scheduled },
-    { key: "Completed", label: "Visit Completed", count: statusCounts.Completed },
-    { key: "Ready", label: "Ready to Book", count: statusCounts.Ready },
-    { key: "Booked", label: "Booked / Paid", count: statusCounts.Booked },
+    { key: "Visit Scheduled", label: "Visit Scheduled", count: statusCounts["Visit Scheduled"] },
+    { key: "Visit Completed", label: "Visit Completed", count: statusCounts["Visit Completed"] },
+    { key: "Ready for Booking", label: "Ready to Book", count: statusCounts["Ready for Booking"] },
+    { key: "Booked", label: "Booked / Paid", count: statusCounts.Booked + statusCounts["Payment Done"] },
     { key: "Dropped", label: "Dropped", count: statusCounts.Dropped },
   ];
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "—";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${dd}/${mm}/${yy}`;
+  };
+
+  const handleFilterChange = (key) => {
+    setStatusFilter(key);
+    setCurrentPage(1);
+  };
+
+  const selected = viewCustomer;
 
   return (
     <div className="pb-4">
@@ -62,12 +120,13 @@ export default function PWACustomers() {
       </div>
 
       <div className="px-4 space-y-3">
+        {/* Summary Cards */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <h3 className="font-bold text-gray-800 text-sm mb-3">Summary</h3>
           <div className="grid grid-cols-3 gap-2">
             {[
               { label: "Total", value: myCustomers.length, color: "text-blue-600" },
-              { label: "Booked", value: statusCounts.Booked, color: "text-green-600" },
+              { label: "Booked", value: statusCounts.Booked + statusCounts["Payment Done"], color: "text-green-600" },
               { label: "Dropped", value: statusCounts.Dropped, color: "text-red-600" },
             ].map(s => (
               <div key={s.label} className="text-center p-2 bg-gray-50 rounded-xl">
@@ -78,15 +137,16 @@ export default function PWACustomers() {
           </div>
         </div>
 
+        {/* Pipeline */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <h3 className="font-bold text-gray-800 text-sm mb-3">Pipeline</h3>
           <div className="space-y-2">
             {[
               { label: "Interested", count: statusCounts.Interested, color: "bg-yellow-400" },
-              { label: "Visit Scheduled", count: statusCounts.Scheduled, color: "bg-blue-400" },
-              { label: "Visit Completed", count: statusCounts.Completed, color: "bg-purple-400" },
-              { label: "Ready to Book", count: statusCounts.Ready, color: "bg-orange-400" },
-              { label: "Booked / Paid", count: statusCounts.Booked, color: "bg-green-400" },
+              { label: "Visit Scheduled", count: statusCounts["Visit Scheduled"], color: "bg-blue-400" },
+              { label: "Visit Completed", count: statusCounts["Visit Completed"], color: "bg-purple-400" },
+              { label: "Ready to Book", count: statusCounts["Ready for Booking"], color: "bg-orange-400" },
+              { label: "Booked / Paid", count: statusCounts.Booked + statusCounts["Payment Done"], color: "bg-green-400" },
             ].map(s => (
               <div key={s.label} className="flex items-center gap-3">
                 <div className={`w-2 h-2 rounded-full ${s.color}`} />
@@ -99,48 +159,224 @@ export default function PWACustomers() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-          <h3 className="font-bold text-gray-800 text-sm mb-3">Recent Customers</h3>
-          
-          <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
-            {filterOptions.map(opt => (
-              <button
-                key={opt.key}
-                onClick={() => setStatusFilter(opt.key)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  statusFilter === opt.key
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {opt.label} ({opt.count})
-              </button>
-            ))}
+        {/* Customer Table */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-4 pb-2">
+            <h3 className="font-bold text-gray-800 text-sm">My Customers</h3>
           </div>
 
-          <div className="space-y-2">
-            {filteredCustomers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-                <UserX size={32} className="mb-2" />
-                <span className="text-sm">No customers found</span>
-              </div>
-            ) : (
-              filteredCustomers.slice(0, 5).map(c => (
-                <div key={c.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50">
-                  <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-sm flex-shrink-0">
-                    {c.name.charAt(0)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-gray-800 truncate">{c.name}</div>
-                    <div className="text-xs text-gray-400 truncate">{c.siteName}</div>
-                  </div>
-                  <StatusBadge status={c.status} />
-                </div>
-              ))
-            )}
+          {/* Search Bar - line 1 */}
+          <div className="px-4 pb-2">
+            <div className="relative">
+              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <input
+                value={search}
+                onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+                placeholder="Search by Name, Mobile, Site, Sales Manager..."
+                className="w-full pl-8 pr-2 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
           </div>
+
+          {/* Status Filter Dropdown - line 2 */}
+          <div className="px-4 pb-3">
+            <select
+              value={statusFilter}
+              onChange={e => handleFilterChange(e.target.value)}
+              className="w-full rounded-xl px-3 py-2 bg-gray-50 border border-gray-200 text-xs font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {filterOptions.map(opt => (
+                <option key={opt.key} value={opt.key}>
+                  {opt.label} ({opt.key === "Booked" ? statusCounts.Booked + statusCounts["Payment Done"] : statusCounts[opt.key] || 0})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Result count */}
+          <div className="px-4 pb-2 text-xs text-gray-400">
+            Showing {paginatedCustomers.length} of {filteredCustomers.length} customers
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-t border-b border-gray-100 bg-gray-50">
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Mobile</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Site</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Visit Date</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="text-center px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {paginatedCustomers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center">
+                      <div className="flex flex-col items-center justify-center text-gray-400">
+                        <UserX size={32} className="mb-2" />
+                        <span className="text-sm">No customers found</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedCustomers.map(c => (
+                    <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-gray-800 text-sm">{c.name}</div>
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">{c.mobile}</td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">{c.siteName || "—"}</td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(c.visitDate)}</td>
+                      <td className="px-4 py-3">
+                        {["Sales Manager", "Admin"].includes(user?.role) ? (
+                          <select
+                            value={c.status}
+                            onChange={e => updateCustomer(c.id, { status: e.target.value })}
+                            className={`text-xs font-semibold rounded-lg px-2 py-1 border-0 ${
+                              c.status === "Interested" ? "bg-amber-50 text-amber-700" :
+                              c.status === "Visit Scheduled" ? "bg-blue-50 text-blue-700" :
+                              c.status === "Visit Completed" ? "bg-violet-50 text-violet-700" :
+                              c.status === "Ready for Booking" ? "bg-orange-50 text-orange-700" :
+                              c.status === "Booked" || c.status === "Payment Done" ? "bg-emerald-50 text-emerald-700" :
+                              c.status === "Dropped" ? "bg-red-50 text-red-700" :
+                              "bg-gray-50 text-gray-700"
+                            }`}
+                          >
+                            <option value="Interested">Interested</option>
+                            <option value="Visit Scheduled">Visit Scheduled</option>
+                            <option value="Visit Completed">Visit Completed</option>
+                            <option value="Ready for Booking">Ready for Booking</option>
+                            <option value="Booked">Booked</option>
+                            <option value="Payment Done">Payment Done</option>
+                            <option value="Dropped">Dropped</option>
+                          </select>
+                        ) : (
+                          <StatusBadge status={c.status} />
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => setViewCustomer(c)}
+                          className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                          title="View Details"
+                        >
+                          <Eye size={15} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={14} /> Prev
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`w-7 h-7 rounded-lg text-xs font-medium transition-all ${
+                        currentPage === pageNum
+                          ? "bg-blue-600 text-white"
+                          : "text-gray-600 hover:bg-gray-100"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next <ChevronRight size={14} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* View Details Modal */}
+      <Modal open={!!viewCustomer} onClose={() => setViewCustomer(null)} title="Customer Details" size="lg">
+        {selected && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 bg-gray-50 rounded-2xl p-4">
+              <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center text-white text-2xl font-bold">
+                {selected.name?.charAt(0)}
+              </div>
+              <div>
+                <div className="font-bold text-gray-900 text-lg">{selected.name}</div>
+                <div className="text-gray-400 text-sm">{selected.mobile}</div>
+                <div className="mt-1"><StatusBadge status={selected.status} /></div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                ["Email", selected.email],
+                ["Site", selected.siteName],
+                ["Sales Manager", selected.salesManagerName],
+                ["Sales Manager ID", (() => { const sm = users.find(u => u.id === (selected.createdById || selected.createdBy)); return sm ? sm.employeeCode : (selected.createdById || selected.createdBy || "—"); })()],
+                ["Visit Date", formatDate(selected.visitDate)],
+                ["Visit Time", selected.visitTime],
+                ["Persons", selected.persons],
+                ["Purchase Mode", selected.purchaseMode],
+                ["Pickup Location", selected.location],
+                ["Address", selected.address],
+                ["Pin Code", selected.pinCode],
+                ["Occupation", selected.occupation],
+                ["Registered", formatDate(selected.registeredDate)],
+              ].map(([k, v]) => (
+                <div key={k} className={`bg-gray-50 rounded-xl p-3 ${["Address", "Notes"].includes(k) ? "col-span-1 sm:col-span-2" : ""}`}>
+                  <div className="text-xs text-gray-400 font-semibold">{k}</div>
+                  <div className="text-sm font-semibold text-gray-800 mt-0.5 break-words">{v || "—"}</div>
+                </div>
+              ))}
+            </div>
+            {selected.notes && (
+              <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-3">
+                <div className="text-xs font-semibold text-yellow-700 mb-1">Notes</div>
+                <div className="text-sm text-gray-700">{selected.notes}</div>
+              </div>
+            )}
+            {(selected.driverName || selected.driverMobile || selected.cabNumber) && user?.role === "Sales Manager" && (
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                <div className="text-xs font-semibold text-blue-700 mb-2">🚗 Driver Details</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {selected.driverName && <div><span className="text-xs text-gray-500">Driver Name:</span> <span className="text-sm font-semibold text-gray-800 ml-1">{selected.driverName}</span></div>}
+                  {selected.driverMobile && <div><span className="text-xs text-gray-500">Driver Mobile:</span> <span className="text-sm font-semibold text-gray-800 ml-1">{selected.driverMobile}</span></div>}
+                  {selected.cabNumber && <div className="sm:col-span-2"><span className="text-xs text-gray-500">Cab Number:</span> <span className="text-sm font-semibold text-gray-800 ml-1">{selected.cabNumber}</span></div>}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
