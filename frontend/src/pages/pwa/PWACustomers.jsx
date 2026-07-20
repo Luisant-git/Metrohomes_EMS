@@ -325,52 +325,70 @@ export default function PWACustomers() {
       {/* View Details Modal */}
       <Modal open={!!viewCustomer} onClose={() => setViewCustomer(null)} title="Customer Details" size="lg">
         {selected && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-4 bg-gray-50 rounded-2xl p-4">
-              <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center text-white text-2xl font-bold">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white text-base font-bold flex-shrink-0">
                 {selected.name?.charAt(0)}
               </div>
-              <div>
-                <div className="font-bold text-gray-900 text-lg">{selected.name}</div>
-                <div className="text-gray-400 text-sm">{selected.mobile}</div>
-                <div className="mt-1"><StatusBadge status={selected.status} /></div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold text-gray-900 truncate">{selected.name}</h3>
+                <p className="text-[11px] text-gray-500">{selected.mobile}</p>
               </div>
+              <StatusBadge status={selected.status} />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+            <div className="space-y-2.5">
               {[
                 ["Email", selected.email],
                 ["Site", selected.siteName],
                 ["Sales Manager", selected.salesManagerName],
-                ["Sales Manager ID", (() => { const sm = users.find(u => u.id === (selected.createdById || selected.createdBy)); return sm ? sm.employeeCode : (selected.createdById || selected.createdBy || "—"); })()],
+                ["SM ID", (() => { const sm = users.find(u => u.id === (selected.createdById || selected.createdBy)); return sm ? sm.employeeCode : (selected.createdById || selected.createdBy || "—"); })()],
                 ["Visit Date", formatDate(selected.visitDate)],
                 ["Visit Time", selected.visitTime],
                 ["Persons", selected.persons],
                 ["Purchase Mode", selected.purchaseMode],
-                ["Pickup Location", selected.location],
-                ["Address", selected.address],
+                ["Location", selected.location],
                 ["Pin Code", selected.pinCode],
                 ["Occupation", selected.occupation],
                 ["Registered", formatDate(selected.registeredDate)],
+                ["Address", selected.address],
               ].map(([k, v]) => (
-                <div key={k} className={`bg-gray-50 rounded-xl p-3 ${["Address", "Notes"].includes(k) ? "col-span-1 sm:col-span-2" : ""}`}>
-                  <div className="text-xs text-gray-400 font-semibold">{k}</div>
-                  <div className="text-sm font-semibold text-gray-800 mt-0.5 break-words">{v || "—"}</div>
+                <div key={k} className="flex flex-col gap-0.5">
+                  <span className="text-[11px] text-gray-400 font-medium tracking-wide">{k}</span>
+                  <span className="text-sm text-gray-800 break-words">{v || "—"}</span>
                 </div>
               ))}
             </div>
+
             {selected.notes && (
-              <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-3">
-                <div className="text-xs font-semibold text-yellow-700 mb-1">Notes</div>
-                <div className="text-sm text-gray-700">{selected.notes}</div>
+              <div className="pt-2 border-t border-gray-100">
+                <p className="text-xs font-semibold text-gray-500 tracking-wide mb-1">Notes</p>
+                <p className="text-xs text-gray-700 leading-relaxed">{selected.notes}</p>
               </div>
             )}
+
             {(selected.driverName || selected.driverMobile || selected.cabNumber) && user?.role === "Sales Manager" && (
-              <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                <div className="text-xs font-semibold text-blue-700 mb-2">🚗 Driver Details</div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {selected.driverName && <div><span className="text-xs text-gray-500">Driver Name:</span> <span className="text-sm font-semibold text-gray-800 ml-1">{selected.driverName}</span></div>}
-                  {selected.driverMobile && <div><span className="text-xs text-gray-500">Driver Mobile:</span> <span className="text-sm font-semibold text-gray-800 ml-1">{selected.driverMobile}</span></div>}
-                  {selected.cabNumber && <div className="sm:col-span-2"><span className="text-xs text-gray-500">Cab Number:</span> <span className="text-sm font-semibold text-gray-800 ml-1">{selected.cabNumber}</span></div>}
+              <div className="pt-2 border-t border-gray-100">
+                <p className="text-xs font-semibold text-blue-600 tracking-wide mb-1">🚗 Driver Details</p>
+                <div className="space-y-1">
+                  {selected.driverName && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-gray-400">Name</span>
+                      <span className="text-[11px] text-gray-800">{selected.driverName}</span>
+                    </div>
+                  )}
+                  {selected.driverMobile && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-gray-400">Mobile</span>
+                      <span className="text-[11px] text-gray-800">{selected.driverMobile}</span>
+                    </div>
+                  )}
+                  {selected.cabNumber && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-gray-400">Cab</span>
+                      <span className="text-[11px] text-gray-800">{selected.cabNumber}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

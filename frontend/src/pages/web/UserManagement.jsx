@@ -1626,7 +1626,7 @@ export default function UserManagement() {
                 )}
               </div>
               <div className="flex-1">
-                <div className="text-xl font-bold text-gray-900">{selected.name}</div>
+                <div className="text-xl font-extrabold text-gray-900">{selected.name}</div>
                 <div className="flex items-center gap-2 mt-1.5">
                   <StatusBadge status={selected.role} />
                   <span className="text-xs text-gray-500 font-mono">{selected.employeeCode}</span>
@@ -1664,7 +1664,7 @@ export default function UserManagement() {
                     return (
                       <div key={k} className="flex items-center justify-between py-1.5">
                         <span className="text-sm text-gray-500">{k}</span>
-                        <span className="text-sm font-semibold text-gray-900">{String(v)}</span>
+                        <span className="text-sm text-gray-900">{String(v)}</span>
                       </div>
                     );
                   })}
@@ -1685,7 +1685,7 @@ export default function UserManagement() {
                   ].map(([k, v]) => (
                     <div key={k} className="flex items-center justify-between py-1.5">
                       <span className="text-sm text-gray-500">{k}</span>
-                      <span className="text-sm font-semibold text-gray-900 text-right max-w-[60%]">{String(v)}</span>
+                      <span className="text-sm text-gray-900 text-right max-w-[60%]">{String(v)}</span>
                     </div>
                   ))}
                 </div>
@@ -1700,13 +1700,13 @@ export default function UserManagement() {
                     {selected.nomineeName && (
                       <div className="flex items-center justify-between py-1.5">
                         <span className="text-sm text-gray-500">Nominee Name</span>
-                        <span className="text-sm font-semibold text-gray-900">{selected.nomineeName}</span>
+                        <span className="text-sm text-gray-900">{selected.nomineeName}</span>
                       </div>
                     )}
                     {selected.nomineeRelationship && (
                       <div className="flex items-center justify-between py-1.5">
                         <span className="text-sm text-gray-500">Relationship</span>
-                        <span className="text-sm font-semibold text-gray-900">{selected.nomineeRelationship}</span>
+                        <span className="text-sm text-gray-900">{selected.nomineeRelationship}</span>
                       </div>
                     )}
                   </div>
@@ -1722,31 +1722,31 @@ export default function UserManagement() {
                     {selected.bankName && (
                       <div className="flex items-center justify-between py-1.5">
                         <span className="text-sm text-gray-500">Bank Name</span>
-                        <span className="text-sm font-semibold text-gray-900">{selected.bankName}</span>
+                        <span className="text-sm text-gray-900">{selected.bankName}</span>
                       </div>
                     )}
                     {selected.bankAccountNo && (
                       <div className="flex items-center justify-between py-1.5">
                         <span className="text-sm text-gray-500">Account No</span>
-                        <span className="text-sm font-mono font-semibold text-gray-900">{selected.bankAccountNo}</span>
+                        <span className="text-sm font-mono text-gray-900">{selected.bankAccountNo}</span>
                       </div>
                     )}
                     {selected.ifscCode && (
                       <div className="flex items-center justify-between py-1.5">
                         <span className="text-sm text-gray-500">IFSC Code</span>
-                        <span className="text-sm font-mono font-semibold text-gray-900">{selected.ifscCode}</span>
+                        <span className="text-sm font-mono text-gray-900">{selected.ifscCode}</span>
                       </div>
                     )}
                     {selected.bankBranch && (
                       <div className="flex items-center justify-between py-1.5">
                         <span className="text-sm text-gray-500">Branch</span>
-                        <span className="text-sm font-semibold text-gray-900">{selected.bankBranch}</span>
+                        <span className="text-sm text-gray-900">{selected.bankBranch}</span>
                       </div>
                     )}
                     {selected.panNo && (
                       <div className="flex items-center justify-between py-1.5">
                         <span className="text-sm text-gray-500">PAN No</span>
-                        <span className="text-sm font-mono font-semibold text-gray-900">{selected.panNo}</span>
+                        <span className="text-sm font-mono text-gray-900">{selected.panNo}</span>
                       </div>
                     )}
                   </div>
