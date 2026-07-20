@@ -1,4 +1,5 @@
-import { IsString, IsNotEmpty, IsOptional, IsInt, IsDateString } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsString, IsNotEmpty, IsOptional, IsInt, IsDateString, Allow } from 'class-validator';
 
 export class CreateCustomerDto {
   @IsString()
@@ -26,24 +27,54 @@ export class CreateCustomerDto {
   status?: string;
 
   @IsInt()
+  @Type(() => Number)
   @IsOptional()
-  siteId?: number;
+  createdBy?: number;
 
   @IsInt()
+  @Type(() => Number)
   @IsOptional()
-  salesManagerId?: number;
+  siteId?: number;
+    @Allow()
+    @IsInt()
+    @IsOptional()
+    salesManagerId?: number;
 
-  @IsString()
-  @IsOptional()
-  visitDate?: string;
+    @Allow()
+    @IsString()
+    @IsOptional()
+    salesManagerName?: string;
+
+    @Allow()
+    @IsString()
+    @IsOptional()
+    salesManagerMobile?: string;
+
+    @Allow()
+    @IsString()
+    @IsOptional()
+    siteName?: string;
 
   @IsString()
   @IsOptional()
   visitTime?: string;
 
   @IsInt()
+  @Transform(({ value }) => typeof value === 'string' ? parseInt(value, 10) : value)
   @IsOptional()
   persons?: number;
+
+  @IsString()
+  @IsOptional()
+  purchaseMode?: string;
+
+
+
+
+
+  @IsDateString()
+  @IsOptional()
+  visitDate?: Date;
 
   @IsString()
   @IsOptional()
@@ -68,16 +99,4 @@ export class CreateCustomerDto {
   @IsString()
   @IsOptional()
   pinCode?: string;
-
-  @IsString()
-  @IsOptional()
-  siteName?: string;
-
-  @IsString()
-  @IsOptional()
-  salesManagerName?: string;
-
-  @IsString()
-  @IsOptional()
-  salesManagerMobile?: string;
 }
