@@ -1178,7 +1178,7 @@ export default function UserManagement() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
           { role: "Admin", icon: Shield, color: "indigo" },
           { role: "Director", icon: Crown, color: "blue" },
@@ -1214,7 +1214,7 @@ export default function UserManagement() {
             green: "text-green-600",
           };
           return (
-            <div key={role} onClick={() => setFilterRole(prev => prev === role ? "" : role)} className="min-w-[180px]">
+            <div key={role} onClick={() => setFilterRole(prev => prev === role ? "" : role)} className="min-w-0">
               <div className={`card p-5 transition-all duration-200 ${isActive ? activeStyles[color] : "bg-white hover:shadow-md"}`}>
                 <div className="flex items-start justify-between mb-3">
                   <div className={`w-12 h-12 rounded-2xl ${iconWrapperClasses[color]} flex items-center justify-center`}>
