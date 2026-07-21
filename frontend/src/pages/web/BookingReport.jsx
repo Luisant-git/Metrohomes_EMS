@@ -27,7 +27,7 @@ export default function BookingReport() {
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
-        <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-2"><BarChart3 size={22} />Booking Report</h1>
+        <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2"><BarChart3 size={22} />Booking Report</h1>
         <p className="text-gray-400 text-sm mt-0.5">Comprehensive booking analytics</p>
       </div>
 
@@ -41,7 +41,7 @@ export default function BookingReport() {
         ].map(s => (
           <div key={s.label} className={`card p-4 ${s.bg}`}>
             <s.icon size={20} className={`${s.color} mb-2`} />
-            <div className={`text-2xl font-extrabold ${s.color}`}>{s.value}</div>
+            <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
             <div className="text-sm text-gray-500 mt-0.5">{s.label}</div>
           </div>
         ))}
@@ -50,7 +50,7 @@ export default function BookingReport() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="card p-5">
-        <h3 className="font-bold text-gray-800 mb-4">Monthly Bookings Revenue (₹ Crore)</h3>
+        <h3 className="font-semibold text-gray-800 mb-4">Monthly Bookings Revenue (₹ Crore)</h3>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={MONTHLY}>
               <defs>
@@ -69,7 +69,7 @@ export default function BookingReport() {
         </div>
 
         <div className="card p-5">
-          <h3 className="font-bold text-gray-800 mb-4">Bookings & Visits</h3>
+          <h3 className="font-semibold text-gray-800 mb-4">Bookings & Visits</h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={MONTHLY}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -86,14 +86,14 @@ export default function BookingReport() {
       {/* Sales Manager Performance Table */}
       <div className="card overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100">
-        <h3 className="font-bold text-gray-800">Sales Manager Performance</h3>
+        <h3 className="font-semibold text-gray-800">Sales Manager Performance</h3>
       </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
                 {["Rank", "Sales Manager", "Sales", "Revenue", "Visits", "Conversion %"].map(h => (
-                  <th key={h} className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase">{h}</th>
+                  <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -101,20 +101,20 @@ export default function BookingReport() {
               {SM_PERF.sort((a, b) => b.sales - a.sales).map((sm, i) => (
                 <tr key={sm.name} className="hover:bg-gray-50/50">
                   <td className="px-5 py-3.5">
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? "bg-yellow-100 text-yellow-700" : i === 1 ? "bg-gray-100 text-gray-600" : i === 2 ? "bg-orange-100 text-orange-700" : "bg-gray-50 text-gray-400"}`}>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold ${i === 0 ? "bg-yellow-100 text-yellow-700" : i === 1 ? "bg-gray-100 text-gray-600" : i === 2 ? "bg-orange-100 text-orange-700" : "bg-gray-50 text-gray-400"}`}>
                       {i + 1}
                     </div>
                   </td>
-                  <td className="px-5 py-3.5 font-semibold text-sm text-gray-800">{sm.name}</td>
-                  <td className="px-5 py-3.5 text-sm font-bold text-blue-600">{sm.sales}</td>
-                  <td className="px-5 py-3.5 text-sm font-semibold text-green-600">₹{(sm.revenue / 10000000).toFixed(1)}Cr</td>
+                  <td className="px-5 py-3.5 font-medium text-sm text-gray-800">{sm.name}</td>
+                  <td className="px-5 py-3.5 text-sm font-semibold text-blue-600">{sm.sales}</td>
+                  <td className="px-5 py-3.5 text-sm font-medium text-green-600">₹{(sm.revenue / 10000000).toFixed(1)}Cr</td>
                   <td className="px-5 py-3.5 text-sm text-gray-700">{sm.visits}</td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
                       <div className="flex-1 bg-gray-100 rounded-full h-1.5 w-20">
                         <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${sm.conversion}%` }} />
                       </div>
-                      <span className="text-xs font-semibold text-gray-600">{sm.conversion}%</span>
+                      <span className="text-xs font-medium text-gray-600">{sm.conversion}%</span>
                     </div>
                   </td>
                 </tr>
@@ -126,14 +126,14 @@ export default function BookingReport() {
 
       {/* Customer Status Breakdown */}
       <div className="card p-5">
-        <h3 className="font-bold text-gray-800 mb-4">Customer Status Breakdown</h3>
+        <h3 className="font-semibold text-gray-800 mb-4">Customer Status Breakdown</h3>
         <div className="flex flex-wrap gap-3">
           {["Interested", "Visit Scheduled", "Visit Completed", "Ready for Booking", "Booked", "Payment Done", "Dropped"].map(s => {
             const count = customers.filter(c => c.status === s).length;
             return (
               <div key={s} className="flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2.5">
                 <StatusBadge status={s} />
-                <span className="font-bold text-gray-800">{count}</span>
+                <span className="font-semibold text-gray-800">{count}</span>
               </div>
             );
           })}

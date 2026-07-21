@@ -10,7 +10,7 @@ import "react-toastify/dist/ReactToastify.css";
 function FormField({ label, icon: Icon, children, required, className }) {
   return (
     <div className={(className ? className + " " : "") + "space-y-2"}>
-      <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
+      <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
         {Icon && <Icon size={16} className="text-gray-500" />}
         {label}
         {required && <span className="text-red-500">*</span>}
@@ -112,7 +112,7 @@ export default function CustomerRegistration() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-2">
+        <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2">
           <User size={24} /> Customer Registration
         </h1>
         <p className="text-gray-400 text-sm mt-1">Register new customer and schedule site visit</p>
@@ -123,13 +123,13 @@ export default function CustomerRegistration() {
         {[1, 2, 3].map(s => (
           <div key={s} className="flex-1 flex items-center gap-2">
             <div className={`flex-1 h-2 rounded-full transition-all ${s <= step ? "bg-blue-600" : "bg-gray-100"}`} />
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${s <= step ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-400"}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${s <= step ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-400"}`}>
               {s <= step && step > 1 ? <CheckCircle size={16} /> : s}
             </div>
           </div>
         ))}
       </div>
-      <div className="text-xs text-gray-400 font-semibold uppercase tracking-wide">
+      <div className="text-xs text-gray-400 font-medium uppercase tracking-wide">
         {step === 1 ? "Personal Info & Occupation" : step === 2 ? "Visit & Purchase Details" : "Review & Submit"}
       </div>
 
@@ -156,7 +156,7 @@ export default function CustomerRegistration() {
                   <input type="tel" value={form.mobile} onChange={e => setForm(p => ({ ...p, mobile: e.target.value }))}
                     className="input-field flex-1" placeholder="10-digit number" maxLength={10} disabled={otpVerified} />
                   {!otpVerified && (
-                    <button onClick={sendOtp} className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
+                    <button onClick={sendOtp} className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors">
                       Get OTP
                     </button>
                   )}
@@ -168,7 +168,7 @@ export default function CustomerRegistration() {
                   <div className="flex gap-2 max-w-sm">
                     <input type="text" value={otp} onChange={e => setOtp(e.target.value)}
                       className="input-field flex-1" placeholder="Enter 4-digit OTP" maxLength={4} />
-                    <button onClick={verifyOtp} className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
+                    <button onClick={verifyOtp} className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors">
                       Verify
                     </button>
                   </div>
@@ -201,7 +201,7 @@ export default function CustomerRegistration() {
                   {["Self Employed", "Salaried", "Business"].map(occ => (
                     <label key={occ} className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all ${form.occupation === occ ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"}`}>
                       <input type="radio" name="occupation" value={occ} checked={form.occupation === occ} onChange={e => setForm(p => ({ ...p, occupation: e.target.value }))} className="hidden" />
-                      <span className="text-sm font-semibold">{occ}</span>
+                      <span className="text-sm font-medium">{occ}</span>
                     </label>
                   ))}
                 </div>
@@ -229,9 +229,9 @@ export default function CustomerRegistration() {
                 <div className="md:col-span-2 bg-blue-50 rounded-xl p-4 flex items-center gap-4">
                   {selectedSite.images?.[0] && <img src={selectedSite.images[0]} className="w-20 h-20 rounded-xl object-cover flex-shrink-0" alt={selectedSite.name} />}
                   <div>
-                    <div className="font-bold text-gray-800">{selectedSite.name}</div>
+                    <div className="font-semibold text-gray-800">{selectedSite.name}</div>
                     <div className="text-sm text-gray-500">{selectedSite.location}</div>
-                    <div className="text-sm text-blue-600 font-semibold mt-1">{selectedSite.availablePlots} plots · ₹{Number(selectedSite.pricePerSqft).toLocaleString("en-IN")}/sqft</div>
+                    <div className="text-sm text-blue-600 font-medium mt-1">{selectedSite.availablePlots} plots · ₹{Number(selectedSite.pricePerSqft).toLocaleString("en-IN")}/sqft</div>
                   </div>
                 </div>
               )}
@@ -241,7 +241,7 @@ export default function CustomerRegistration() {
                   {["Own Funding", "Loan"].map(mode => (
                     <label key={mode} className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all ${form.purchaseMode === mode ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"}`}>
                       <input type="radio" name="purchaseMode" value={mode} checked={form.purchaseMode === mode} onChange={e => setForm(p => ({ ...p, purchaseMode: e.target.value }))} className="hidden" />
-                      <span className="font-semibold">{mode}</span>
+                      <span className="font-medium">{mode}</span>
                     </label>
                   ))}
                 </div>
@@ -277,7 +277,7 @@ export default function CustomerRegistration() {
                 <div className="flex gap-2">
                   <input value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))}
                     className="input-field flex-1" placeholder="lat,lng or address" />
-                  <button type="button" className="flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
+                  <button type="button" className="flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors">
                     <Navigation size={16} />
                   </button>
                 </div>
@@ -317,7 +317,7 @@ export default function CustomerRegistration() {
               ].map(([k, v]) => (
                 <div key={k} className="flex items-start justify-between px-5 py-3">
                   <span className="text-sm text-gray-500 font-medium">{k}</span>
-                  <span className="text-sm font-semibold text-gray-800 text-right max-w-[60%]">{v}</span>
+                  <span className="text-sm font-medium text-gray-800 text-right max-w-[60%]">{v}</span>
                 </div>
               ))}
             </div>
@@ -332,12 +332,12 @@ export default function CustomerRegistration() {
       {/* Navigation Buttons */}
       <div className="flex gap-3">
         {step > 1 && (
-          <button onClick={() => setStep(s => s - 1)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2">
+          <button onClick={() => setStep(s => s - 1)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2">
             <ArrowLeft size={18} /> Back
           </button>
         )}
         <button onClick={() => step < 3 ? setStep(s => s + 1) : handleSubmit()}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2">
+          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2">
           {step === 3 ? "✅ Submit Registration" : <>Continue <ArrowRight size={18} /></>}
         </button>
       </div>

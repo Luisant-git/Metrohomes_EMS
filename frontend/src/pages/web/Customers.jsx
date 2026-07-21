@@ -79,7 +79,7 @@ export default function WebCustomers() {
   const columns = [
     { key: "name", label: "Customer", render: (v, row) => (
       <div>
-        <div className="font-semibold text-gray-800">{v}</div>
+        <div className="font-medium text-gray-800">{v}</div>
         <div className="text-xs text-gray-400 flex items-center gap-1"><Phone size={10} />{row.mobile}</div>
       </div>
     )},
@@ -93,7 +93,7 @@ export default function WebCustomers() {
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
-        <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-2"><UserCheck size={22} />Customers</h1>
+        <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2"><UserCheck size={22} />Customers</h1>
         <p className="text-gray-400 text-sm mt-0.5">{customers.length} total customers</p>
       </div>
 
@@ -165,11 +165,11 @@ export default function WebCustomers() {
             <div className="mx-auto w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mb-4">
               <AlertTriangle size={28} className="text-red-600" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Are you sure?</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Are you sure?</h3>
             <p className="text-sm text-gray-500 mb-1">
               You are about to delete this customer:
             </p>
-            <p className="text-sm font-semibold text-gray-800 mb-4">
+            <p className="text-sm font-medium text-gray-800 mb-4">
               "{deleteTarget.name}"
               <span className="block text-xs font-normal text-gray-400 mt-1">
                 {deleteTarget.mobile} · {deleteTarget.siteName}
@@ -266,7 +266,7 @@ export default function WebCustomers() {
       <Modal open={modal === "edit"} onClose={() => setModal(null)} title="Update Customer">
         {selected && (
           <div className="space-y-4">
-            <div className="font-semibold text-gray-800 mb-4">{selected.name}</div>
+            <div className="font-medium text-gray-800 mb-4">{selected.name}</div>
             
             <div>
               <label className="label">Current Status</label>
@@ -284,7 +284,7 @@ export default function WebCustomers() {
             </div>
 
             <div className="border-t border-gray-200 pt-4 mt-4">
-              <div className="text-sm font-semibold text-gray-700 mb-3">🚗 Driver Details (Optional)</div>
+              <div className="text-sm font-bold text-gray-700 mb-3">🚗 Driver Details (Optional)</div>
               <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label className="label">Driver Name</label>

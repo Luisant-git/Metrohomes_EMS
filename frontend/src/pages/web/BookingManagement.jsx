@@ -129,11 +129,11 @@ export default function BookingManagement() {
 
   const columns = [
     { key: "invoiceNo", label: "Invoice" },
-    { key: "customerName", label: "Customer", render: (v, row) => (<div><div className="font-semibold">{v}</div><div className="text-xs text-gray-400">{row.siteName}</div></div>) },
+    { key: "customerName", label: "Customer", render: (v, row) => (<div><div className="font-medium">{v}</div><div className="text-xs text-gray-400">{row.siteName}</div></div>) },
     { key: "projectNo", label: "Project No." },
     { key: "plotPrice", label: "Plot Price", render: v => `₹${Number(v).toLocaleString("en-IN")}` },
-    { key: "paidAmount", label: "Paid", render: v => <span className="text-green-600 font-semibold">₹{Number(v).toLocaleString("en-IN")}</span> },
-    { key: "remainingAmount", label: "Pending", render: v => <span className={`font-semibold ${v > 0 ? "text-red-500" : "text-green-500"}`}>₹{Number(v).toLocaleString("en-IN")}</span> },
+    { key: "paidAmount", label: "Paid", render: v => <span className="text-green-600 font-medium">₹{Number(v).toLocaleString("en-IN")}</span> },
+    { key: "remainingAmount", label: "Pending", render: v => <span className={`font-medium ${v > 0 ? "text-red-500" : "text-green-500"}`}>₹{Number(v).toLocaleString("en-IN")}</span> },
     { key: "status", label: "Status", render: v => <StatusBadge status={v} /> },
     { key: "bookingDate", label: "Date" },
   ];
@@ -142,7 +142,7 @@ export default function BookingManagement() {
     <div className="space-y-6 animate-fadeIn">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-2"><BookOpen size={22} />Booking Management</h1>
+          <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2"><BookOpen size={22} />Booking Management</h1>
           <p className="text-gray-400 text-sm mt-0.5">{bookings.length} bookings · {readyCustomers.length} ready to book</p>
         </div>
         <button onClick={() => { setForm(empty); setFoundCustomer(null); setMobileSearch(""); setModal("add"); }} className="btn-primary"><Plus size={16} />New Booking</button>
@@ -157,7 +157,7 @@ export default function BookingManagement() {
           { label: "Ready to Book", value: readyCustomers.length, color: "text-orange-600", bg: "bg-orange-50" },
         ].map(s => (
           <div key={s.label} className={`card p-4 ${s.bg}`}>
-            <div className={`text-2xl font-extrabold ${s.color}`}>{s.value}</div>
+            <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
             <div className="text-sm text-gray-500 mt-0.5">{s.label}</div>
           </div>
         ))}
@@ -166,13 +166,13 @@ export default function BookingManagement() {
       {/* Ready to Book */}
       {readyCustomers.length > 0 && (
         <div className="card p-5 border-l-4 border-orange-400">
-          <h3 className="font-bold text-orange-700 flex items-center gap-2 mb-3"><Bell size={18} /> Ready for Booking ({readyCustomers.length})</h3>
+          <h3 className="font-semibold text-orange-700 flex items-center gap-2 mb-3"><Bell size={18} /> Ready for Booking ({readyCustomers.length})</h3>
           <div className="flex flex-wrap gap-2">
             {readyCustomers.map(c => (
               <div key={c.id} className="bg-orange-50 border border-orange-200 rounded-xl px-3 py-2 flex items-center gap-2">
-                <div className="w-7 h-7 bg-orange-400 rounded-full flex items-center justify-center text-white text-xs font-bold">{c.name.charAt(0)}</div>
+                <div className="w-7 h-7 bg-orange-400 rounded-full flex items-center justify-center text-white text-xs font-semibold">{c.name.charAt(0)}</div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-800">{c.name}</div>
+                  <div className="text-sm font-medium text-gray-800">{c.name}</div>
                   <div className="text-xs text-gray-400">{c.siteName}</div>
                 </div>
               </div>
@@ -186,7 +186,7 @@ export default function BookingManagement() {
           <>
             <button onClick={() => { setSelected(row); setModal("view"); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Eye size={15} /></button>
             {row.remainingAmount > 0 && (
-              <button onClick={() => { setSelected(row); setPaymentAmt(""); setModal("payment"); }} className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg text-xs font-semibold transition-colors">
+              <button onClick={() => { setSelected(row); setPaymentAmt(""); setModal("payment"); }} className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg text-xs font-medium transition-colors">
                 <IndianRupee size={12} />Pay
               </button>
             )}
@@ -239,7 +239,7 @@ export default function BookingManagement() {
               <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-xl">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-bold text-gray-800">{foundCustomer.name}</div>
+                    <div className="text-sm font-semibold text-gray-800">{foundCustomer.name}</div>
                     <div className="text-xs text-gray-600">{foundCustomer.siteName} · {foundCustomer.email}</div>
                   </div>
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -288,7 +288,7 @@ export default function BookingManagement() {
 
           {/* Project Details */}
           <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-            <div className="text-xs font-semibold text-blue-900 mb-3">PROJECT DETAILS</div>
+            <div className="text-xs font-medium text-blue-900 mb-3">PROJECT DETAILS</div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="label">Project Name *</label>
@@ -331,7 +331,7 @@ export default function BookingManagement() {
               <div>
                 <label className="label">Project Price (₹) *</label>
                 <input type="number" value={form.plotPrice} readOnly
-                  className="input-field bg-white border-blue-200 font-semibold text-blue-700" placeholder="Auto-calculated" />
+                  className="input-field bg-white border-blue-200 font-medium text-blue-700" placeholder="Auto-calculated" />
                 {form.plotPrice && (
                   <p className="text-xs text-gray-500 mt-1">
                     = {form.plotArea} × ₹{form.pricePerSqft} = ₹{Number(form.plotPrice).toLocaleString("en-IN")}
@@ -343,12 +343,12 @@ export default function BookingManagement() {
 
           {/* Payment Mode */}
           <div>
-            <label className="label font-semibold text-gray-700">Payment Mode *</label>
+            <label className="label font-medium text-gray-700">Payment Mode *</label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
               {["Cheque", "DD", "Cash", "Online Transfer"].map(mode => (
                 <label key={mode} className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all ${form.paymentMode === mode ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"}`}>
                   <input type="radio" name="paymentMode" value={mode} checked={form.paymentMode === mode} onChange={e => setForm(p => ({ ...p, paymentMode: e.target.value }))} className="hidden" />
-                  <span className="text-sm font-semibold">{mode}</span>
+                  <span className="text-sm font-medium">{mode}</span>
                 </label>
               ))}
             </div>
@@ -387,7 +387,7 @@ export default function BookingManagement() {
                 {["Own Fund", "Loan"].map(fund => (
                   <label key={fund} className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all ${form.loanOrOwn === fund ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"}`}>
                     <input type="radio" name="loanOrOwn" value={fund} checked={form.loanOrOwn === fund} onChange={e => setForm(p => ({ ...p, loanOrOwn: e.target.value }))} className="hidden" />
-                    <span className="text-sm font-semibold">{fund}</span>
+                    <span className="text-sm font-medium">{fund}</span>
                   </label>
                 ))}
               </div>
@@ -412,7 +412,7 @@ export default function BookingManagement() {
         </div>
         <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
           <button onClick={handleBook} className="btn-primary flex-1 justify-center py-2.5"><BookOpen size={16} />Register Booking</button>
-          <button onClick={() => { setForm(empty); setFoundCustomer(null); setMobileSearch(""); }} className="btn-secondary flex-1 justify-center py-2.5"><span className="text-orange-600 font-semibold">Clear</span></button>
+          <button onClick={() => { setForm(empty); setFoundCustomer(null); setMobileSearch(""); }} className="btn-secondary flex-1 justify-center py-2.5"><span className="text-orange-600 font-medium">Clear</span></button>
           <button onClick={() => setModal(null)} className="btn-secondary flex-1 justify-center py-2.5">Cancel</button>
         </div>
       </Modal>
@@ -422,9 +422,9 @@ export default function BookingManagement() {
         {selected && (
           <div className="space-y-4">
             <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">Customer</span><span className="font-semibold">{selected.customerName}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Plot Price</span><span className="font-semibold">₹{Number(selected.plotPrice).toLocaleString("en-IN")}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Paid So Far</span><span className="font-semibold text-green-600">₹{Number(selected.paidAmount).toLocaleString("en-IN")}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Customer</span><span className="font-medium">{selected.customerName}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Plot Price</span><span className="font-medium">₹{Number(selected.plotPrice).toLocaleString("en-IN")}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Paid So Far</span><span className="font-medium text-green-600">₹{Number(selected.paidAmount).toLocaleString("en-IN")}</span></div>
               <div className="flex justify-between text-base font-bold"><span className="text-red-500">Remaining</span><span className="text-red-500">₹{Number(selected.remainingAmount).toLocaleString("en-IN")}</span></div>
             </div>
             <div><label className="label">Payment Amount (₹)</label><input type="number" value={paymentAmt} onChange={e => setPaymentAmt(e.target.value)} className="input-field" placeholder="Enter amount" /></div>
@@ -441,13 +441,13 @@ export default function BookingManagement() {
         {selected && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div><div className="font-bold text-lg">{selected.customerName}</div><div className="text-gray-400 text-sm">{selected.siteName}</div></div>
+              <div><div className="font-semibold text-lg">{selected.customerName}</div><div className="text-gray-400 text-sm">{selected.siteName}</div></div>
               <StatusBadge status={selected.status} />
             </div>
-            <div className="bg-blue-50 rounded-xl p-3 text-sm font-mono text-blue-700 font-semibold">{selected.invoiceNo}</div>
+            <div className="bg-blue-50 rounded-xl p-3 text-sm font-mono text-blue-700 font-medium">{selected.invoiceNo}</div>
             <div className="grid grid-cols-2 gap-3">
               {[["Property Type", selected.propertyType], ["Project No.", selected.projectNo], ["Plot Area", `${selected.plotArea} sq.yd.`], ["Plot Price", `₹${Number(selected.plotPrice).toLocaleString("en-IN")}`], ["Paid", `₹${Number(selected.paidAmount).toLocaleString("en-IN")}`], ["Remaining", `₹${Number(selected.remainingAmount).toLocaleString("en-IN")}`], ["Booked On", selected.bookingDate], ["Payment Mode", selected.paymentMode]].map(([k, v]) => (
-                <div key={k} className="bg-gray-50 rounded-xl p-3"><div className="text-xs text-gray-400 font-semibold">{k}</div><div className="font-bold text-gray-800 text-sm mt-0.5">{v}</div></div>
+                <div key={k} className="bg-gray-50 rounded-xl p-3"><div className="text-xs text-gray-400 font-medium">{k}</div><div className="font-semibold text-gray-800 text-sm mt-0.5">{v}</div></div>
               ))}
             </div>
             <div className="flex gap-3">

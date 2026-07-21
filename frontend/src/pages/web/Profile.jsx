@@ -85,7 +85,7 @@ export default function WebProfile() {
             {form.avatar ? (
               <img src={form.avatar} alt={user?.name} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-4xl font-extrabold text-white">{user?.name?.charAt(0)}</span>
+              <span className="text-4xl font-bold text-white">{user?.name?.charAt(0)}</span>
             )}
           </div>
           {editing && (
@@ -95,27 +95,27 @@ export default function WebProfile() {
             </label>
           )}
         </div>
-        <div className="mt-4 font-extrabold text-2xl">{user?.name}</div>
-        <div className={`inline-block mt-2 px-3 py-0.5 rounded-full text-xs font-semibold ${getRoleBadgeClass(user?.role)}`}>
+        <div className="mt-4 font-bold text-2xl">{user?.name}</div>
+        <div className={`inline-block mt-2 px-3 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeClass(user?.role)}`}>
           {user?.role}
         </div>
       </div>
 
       <div className="relative z-30 w-full max-w-3xl mx-auto -mt-12 bg-white rounded-3xl border border-gray-100 shadow-[0_25px_60px_rgba(15,23,42,0.15)] p-6 space-y-4 transition-all duration-300">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-800">My Information</h3>
+          <h3 className="text-sm font-semibold text-gray-800">My Information</h3>
           <button onClick={() => { setEditing(p => !p); if (editing) { setForm({ ...user }); setPhotoFile(null); } }}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${editing ? "bg-gray-100 text-gray-600" : "bg-blue-50 text-blue-600"}`}>
+            className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${editing ? "bg-gray-100 text-gray-600" : "bg-blue-50 text-blue-600"}`}>
             <Edit2 size={12} />{editing ? "Cancel" : "Edit"}
           </button>
         </div>
 
         {/* Name */}
         <div>
-          <label className="flex items-center gap-2 text-base font-bold text-gray-700 mb-2"><User size={20} className="text-blue-600" />Full Name</label>
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2"><User size={16} className="text-blue-600" />Full Name</label>
           <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
             readOnly={!editing}
-            className={`w-full border rounded-xl px-4 py-3 text-lg font-semibold focus:outline-none transition-all ${editing ? "border-blue-300 focus:ring-2 focus:ring-blue-500 bg-white" : "border-transparent bg-gray-50 text-gray-700"}`} />
+            className={`w-full border rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none transition-all ${editing ? "border-blue-300 focus:ring-2 focus:ring-blue-500 bg-white" : "border-transparent bg-gray-50 text-gray-700"}`} />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -125,16 +125,16 @@ export default function WebProfile() {
             { icon: Shield, label: "Role", key: "role", readOnly: true },
           ].map(f => (
             <div key={f.key} className={f.key === "email" ? "sm:col-span-3" : ""}>
-              <label className="flex items-center gap-2 text-base font-bold text-gray-700 mb-2"><f.icon size={20} className="text-blue-600" />{f.label}</label>
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2"><f.icon size={16} className="text-blue-600" />{f.label}</label>
               <input type={f.type || "text"} value={form[f.key] || "—"} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
                 readOnly={!editing || f.readOnly}
-                className={`w-full border rounded-xl px-4 py-3 text-lg focus:outline-none transition-all ${editing && !f.readOnly ? "border-blue-300 focus:ring-2 focus:ring-blue-500 bg-white" : "border-transparent bg-gray-50 text-gray-500"}`} />
+                className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none transition-all ${editing && !f.readOnly ? "border-blue-300 focus:ring-2 focus:ring-blue-500 bg-white" : "border-transparent bg-gray-50 text-gray-500"}`} />
             </div>
           ))}
         </div>
 
         {editing && (
-          <button onClick={handleSave} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm">
+          <button onClick={handleSave} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm">
             <Save size={14} />Save Changes
           </button>
         )}
@@ -142,7 +142,7 @@ export default function WebProfile() {
 
       {/* Web info */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 w-full max-w-3xl mx-auto">
-        <h3 className="font-bold text-gray-800 text-sm mb-3">💻 Web Settings</h3>
+        <h3 className="font-semibold text-gray-800 text-sm mb-3">💻 Web Settings</h3>
         <div className="space-y-2 text-sm">
           {[
             ["Platform", "Web (Desktop)"],
@@ -152,7 +152,7 @@ export default function WebProfile() {
           ].map(([k, v]) => (
             <div key={k} className="flex justify-between items-center py-1">
               <span className="text-gray-500">{k}</span>
-              <span className="font-semibold text-gray-700 text-right text-xs">{v}</span>
+              <span className="font-medium text-gray-700 text-right text-xs">{v}</span>
             </div>
           ))}
         </div>
@@ -160,7 +160,7 @@ export default function WebProfile() {
 
       {/* Logout */}
       <div className="w-full max-w-3xl mx-auto">
-        <button onClick={logout} className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold py-4 rounded-2xl transition-colors border border-red-100">
+        <button onClick={logout} className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-4 rounded-2xl transition-colors border border-red-100">
           <LogOut size={18} />Sign Out
         </button>
       </div>
