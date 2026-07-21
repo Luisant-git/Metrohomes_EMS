@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useData } from "../../context/DataContext.jsx";
 import DataTable from "../../components/DataTable.jsx";
 import Modal from "../../components/Modal.jsx";
@@ -131,7 +131,7 @@ export default function SiteManagement() {
     {
       key: "name", label: "Site Name", render: (v, row) => (
         <div>
-          <div className="font-semibold text-gray-800">{v}</div>
+          <div className="font-medium text-gray-800">{v}</div>
           <div className="text-xs text-gray-400 flex items-center gap-1"><MapPin size={10} />{row.location}</div>
         </div>
       )
@@ -139,7 +139,7 @@ export default function SiteManagement() {
     { key: "type", label: "Type", render: v => <StatusBadge status={v} /> },
     { key: "totalPlots", label: "Total Plots" },
     { key: "availablePlots", label: "Available" },
-    { key: "pricePerSqft", label: "Price/sqft", render: v => `₹${Number(v).toLocaleString("en-IN")}` },
+    { key: "pricePerSqft", label: "Price/sqft", render: v => `â‚¹${Number(v).toLocaleString("en-IN")}` },
     { key: "status", label: "Status", render: v => <StatusBadge status={v} /> },
   ];
 
@@ -159,7 +159,7 @@ export default function SiteManagement() {
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><Building2 size={22} />Site Master</h1>
+        <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2"><Building2 size={22} />Site Master</h1>
         <p className="text-gray-400 text-sm mt-0.5">{sites.length} total sites</p>
       </div>
 
@@ -237,7 +237,7 @@ export default function SiteManagement() {
           <FormField label="Available Plots">
             <input type="number" value={form.availablePlots} onChange={e => setForm(p => ({ ...p, availablePlots: e.target.value }))} className="input-field" />
           </FormField>
-          <FormField label="Price per Sqft (₹)">
+          <FormField label="Price per Sqft (â‚¹)">
             <input type="number" value={form.pricePerSqft} onChange={e => setForm(p => ({ ...p, pricePerSqft: e.target.value }))} className="input-field" />
           </FormField>
           <FormField label="Status">
@@ -249,7 +249,7 @@ export default function SiteManagement() {
 
           {/* Upload Section */}
           <div className="sm:col-span-2">
-            <div className="text-sm font-semibold text-gray-700 mb-3">Upload Files</div>
+            <div className="text-sm font-medium text-gray-700 mb-3">Upload Files</div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Images */}
               <div className="border-2 border-dashed border-gray-200 rounded-xl p-5 hover:border-blue-300 hover:bg-blue-50/30 transition-all">
@@ -257,9 +257,9 @@ export default function SiteManagement() {
                   <div className="w-11 h-11 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-2">
                     <ImageIcon size={22} />
                   </div>
-                  <p className="text-sm font-semibold text-gray-700">Site Images</p>
+                  <p className="text-sm font-medium text-gray-700">Site Images</p>
                   <p className="text-[10px] text-gray-400 mt-0.5">JPG, PNG, WebP</p>
-                  <label className="mt-2.5 px-4 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg cursor-pointer hover:bg-blue-700 transition-colors inline-flex items-center gap-1">
+                  <label className="mt-2.5 px-4 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg cursor-pointer hover:bg-blue-700 transition-colors inline-flex items-center gap-1">
                     <Plus size={12} /> Add Images
                     <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
                   </label>
@@ -272,9 +272,9 @@ export default function SiteManagement() {
                   <div className="w-11 h-11 rounded-xl bg-green-100 text-green-600 flex items-center justify-center mb-2">
                     <FileText size={22} />
                   </div>
-                  <p className="text-sm font-semibold text-gray-700">Brochure</p>
+                  <p className="text-sm font-medium text-gray-700">Brochure</p>
                   <p className="text-[10px] text-gray-400 mt-0.5">PDF, DOC</p>
-                  <label className="mt-2.5 px-4 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg cursor-pointer hover:bg-green-700 transition-colors inline-flex items-center gap-1">
+                  <label className="mt-2.5 px-4 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg cursor-pointer hover:bg-green-700 transition-colors inline-flex items-center gap-1">
                     <Plus size={12} /> {form.brochure ? "Change" : "Upload"}
                     <input type="file" accept=".pdf,.doc,.docx" onChange={handleBrochureUpload} className="hidden" />
                   </label>
@@ -287,9 +287,9 @@ export default function SiteManagement() {
                   <div className="w-11 h-11 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center mb-2">
                     <File size={22} />
                   </div>
-                  <p className="text-sm font-semibold text-gray-700">Documents</p>
+                  <p className="text-sm font-medium text-gray-700">Documents</p>
                   <p className="text-[10px] text-gray-400 mt-0.5">PDF, DOC, XLS</p>
-                  <label className="mt-2.5 px-4 py-1.5 bg-purple-600 text-white text-xs font-semibold rounded-lg cursor-pointer hover:bg-purple-700 transition-colors inline-flex items-center gap-1">
+                  <label className="mt-2.5 px-4 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg cursor-pointer hover:bg-purple-700 transition-colors inline-flex items-center gap-1">
                     <Plus size={12} /> Add Files
                     <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx" multiple onChange={handleDocumentUpload} className="hidden" />
                   </label>
@@ -302,7 +302,7 @@ export default function SiteManagement() {
               {/* Images preview */}
               {(form.images || []).length > 0 && (
                 <div>
-                  <div className="text-xs font-semibold text-gray-500 mb-1.5 flex items-center gap-1"><ImageIcon size={12} className="text-blue-500" /> Images ({form.images.length})</div>
+                  <div className="text-xs font-medium text-gray-500 mb-1.5 flex items-center gap-1"><ImageIcon size={12} className="text-blue-500" /> Images ({form.images.length})</div>
                   <div className="grid grid-cols-6 gap-2">
                     {(form.images || []).map((img, idx) => (
                       <div key={idx} className="relative group">
@@ -319,7 +319,7 @@ export default function SiteManagement() {
               {/* Brochure preview */}
               {form.brochure && (
                 <div>
-                  <div className="text-xs font-semibold text-gray-500 mb-1.5 flex items-center gap-1"><FileText size={12} className="text-green-500" /> Brochure</div>
+                  <div className="text-xs font-medium text-gray-500 mb-1.5 flex items-center gap-1"><FileText size={12} className="text-green-500" /> Brochure</div>
                   <div className="flex items-center gap-2 px-3 py-2.5 bg-green-50 rounded-lg border border-green-200">
                     <FileText size={16} className="text-green-600 flex-shrink-0" />
                     <span className="text-xs text-green-700 flex-1 truncate font-medium">
@@ -335,7 +335,7 @@ export default function SiteManagement() {
               {/* Documents preview */}
               {(form.documents || []).length > 0 && (
                 <div>
-                  <div className="text-xs font-semibold text-gray-500 mb-1.5 flex items-center gap-1"><File size={12} className="text-purple-500" /> Documents ({form.documents.length})</div>
+                  <div className="text-xs font-medium text-gray-500 mb-1.5 flex items-center gap-1"><File size={12} className="text-purple-500" /> Documents ({form.documents.length})</div>
                   <div className="space-y-1 max-h-28 overflow-y-auto">
                     {(form.documents || []).map((doc, idx) => (
                       <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-purple-200 transition-colors">
@@ -383,47 +383,47 @@ export default function SiteManagement() {
             )}
 
             <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-4 border border-gray-200">
-              <h3 className="text-xl font-semibold text-gray-900">{selected.name}</h3>
+              <h3 className="text-xl font-medium text-gray-900">{selected.name}</h3>
               <p className="text-gray-500 text-sm flex items-center gap-1 mt-1"><MapPin size={12} />{selected.location}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-blue-50 rounded-xl p-3">
                 <div className="text-xs text-gray-500 font-medium mb-1">Type</div>
-                <div className="font-semibold text-gray-800 text-sm"><StatusBadge status={selected.type} /></div>
+                <div className="font-medium text-gray-800 text-sm"><StatusBadge status={selected.type} /></div>
               </div>
               <div className="bg-green-50 rounded-xl p-3">
                 <div className="text-xs text-gray-500 font-medium mb-1">Status</div>
-                <div className="font-semibold text-gray-800 text-sm"><StatusBadge status={selected.status} /></div>
+                <div className="font-medium text-gray-800 text-sm"><StatusBadge status={selected.status} /></div>
               </div>
               <div className="bg-purple-50 rounded-xl p-3">
                 <div className="text-xs text-gray-500 font-medium mb-1">Total Plots</div>
-                <div className="font-semibold text-gray-800 text-lg">{selected.totalPlots}</div>
+                <div className="font-medium text-gray-800 text-lg">{selected.totalPlots}</div>
               </div>
               <div className="bg-orange-50 rounded-xl p-3">
                 <div className="text-xs text-gray-500 font-medium mb-1">Available</div>
-                <div className="font-semibold text-gray-800 text-lg">{selected.availablePlots}</div>
+                <div className="font-medium text-gray-800 text-lg">{selected.availablePlots}</div>
               </div>
               <div className="bg-indigo-50 rounded-xl p-3">
                 <div className="text-xs text-gray-500 font-medium mb-1">Price/sqft</div>
-                <div className="font-semibold text-gray-800 text-sm">₹{Number(selected.pricePerSqft).toLocaleString("en-IN")}</div>
+                <div className="font-medium text-gray-800 text-sm">â‚¹{Number(selected.pricePerSqft).toLocaleString("en-IN")}</div>
               </div>
               <div className="bg-pink-50 rounded-xl p-3">
                 <div className="text-xs text-gray-500 font-medium mb-1">Area</div>
-                <div className="font-semibold text-gray-800 text-sm">{selected.totalArea}</div>
+                <div className="font-medium text-gray-800 text-sm">{selected.totalArea}</div>
               </div>
             </div>
 
             {selected.description && (
               <div className="bg-gray-50 rounded-xl p-4">
-                <div className="text-xs font-semibold text-gray-500 mb-2">Description</div>
+                <div className="text-xs font-medium text-gray-500 mb-2">Description</div>
                 <p className="text-sm text-gray-700">{selected.description}</p>
               </div>
             )}
 
             {(selected.brochure || selected.documents?.length > 0) && (
               <div>
-                <div className="text-xs font-semibold text-gray-500 mb-2">Documents</div>
+                <div className="text-xs font-medium text-gray-500 mb-2">Documents</div>
                 <div className="space-y-2">
                   {selected.brochure && (
                     <div className="flex items-center gap-2 px-3 py-2.5 bg-green-50 rounded-lg border border-green-200">
@@ -458,11 +458,11 @@ export default function SiteManagement() {
               <AlertTriangle size={28} className="text-red-600" />
             </div>
 
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Are you sure you want to delete?</h3>
+            <h3 className="text-lg font-normal text-gray-900 mb-2">Are you sure you want to delete?</h3>
             <p className="text-sm text-gray-500 mb-1">
               You are about to delete this site:
             </p>
-            <p className="text-sm font-semibold text-gray-800 mb-4">
+            <p className="text-sm font-medium text-gray-800 mb-4">
               "{deleteTarget.name}"
             </p>
 
