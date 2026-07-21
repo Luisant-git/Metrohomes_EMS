@@ -20,7 +20,7 @@ export default function DataTable({ columns, data, actions, searchKey, title, on
       {/* Header */}
       {(title || onAdd) && (
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-4">
-          {title && <h3 className="font-bold text-gray-800 text-base">{title}</h3>}
+          {title && <h3 className="font-semibold text-gray-800 text-base">{title}</h3>}
           <div className="flex items-center gap-3 ml-auto">
             <div className="relative">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -42,11 +42,11 @@ export default function DataTable({ columns, data, actions, searchKey, title, on
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100">
               {columns.map(col => (
-                <th key={col.key} className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                <th key={col.key} className="text-left px-5 py-3.5 text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">
                   {col.label}
                 </th>
               ))}
-              {actions && <th className="text-right px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wide">Actions</th>}
+              {actions && <th className="text-right px-5 py-3.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">

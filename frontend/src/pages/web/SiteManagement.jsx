@@ -159,7 +159,7 @@ export default function SiteManagement() {
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
-        <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-2"><Building2 size={22} />Site Master</h1>
+        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><Building2 size={22} />Site Master</h1>
         <p className="text-gray-400 text-sm mt-0.5">{sites.length} total sites</p>
       </div>
 
@@ -175,7 +175,7 @@ export default function SiteManagement() {
       <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={() => setFilterType("")}
-          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${!filterType
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${!filterType
             ? "bg-gray-900 text-white shadow-lg shadow-gray-200"
             : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
             }`}
@@ -195,7 +195,7 @@ export default function SiteManagement() {
             <button
               key={type}
               onClick={() => setFilterType(isActive ? "" : type)}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${isActive ? activeMap[type] : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border ${isActive ? activeMap[type] : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
                 }`}
             >
               {type} <span className="ml-1 text-xs opacity-70">({count})</span>
@@ -383,7 +383,7 @@ export default function SiteManagement() {
             )}
 
             <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-4 border border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900">{selected.name}</h3>
+              <h3 className="text-xl font-semibold text-gray-900">{selected.name}</h3>
               <p className="text-gray-500 text-sm flex items-center gap-1 mt-1"><MapPin size={12} />{selected.location}</p>
             </div>
 
@@ -398,19 +398,19 @@ export default function SiteManagement() {
               </div>
               <div className="bg-purple-50 rounded-xl p-3">
                 <div className="text-xs text-gray-500 font-medium mb-1">Total Plots</div>
-                <div className="font-bold text-gray-800 text-lg">{selected.totalPlots}</div>
+                <div className="font-semibold text-gray-800 text-lg">{selected.totalPlots}</div>
               </div>
               <div className="bg-orange-50 rounded-xl p-3">
                 <div className="text-xs text-gray-500 font-medium mb-1">Available</div>
-                <div className="font-bold text-gray-800 text-lg">{selected.availablePlots}</div>
+                <div className="font-semibold text-gray-800 text-lg">{selected.availablePlots}</div>
               </div>
               <div className="bg-indigo-50 rounded-xl p-3">
                 <div className="text-xs text-gray-500 font-medium mb-1">Price/sqft</div>
-                <div className="font-bold text-gray-800 text-sm">₹{Number(selected.pricePerSqft).toLocaleString("en-IN")}</div>
+                <div className="font-semibold text-gray-800 text-sm">₹{Number(selected.pricePerSqft).toLocaleString("en-IN")}</div>
               </div>
               <div className="bg-pink-50 rounded-xl p-3">
                 <div className="text-xs text-gray-500 font-medium mb-1">Area</div>
-                <div className="font-bold text-gray-800 text-sm">{selected.totalArea}</div>
+                <div className="font-semibold text-gray-800 text-sm">{selected.totalArea}</div>
               </div>
             </div>
 

@@ -84,8 +84,12 @@ export default function WebLayout({ children }) {
             <div className="relative">
               <button onClick={() => setShowUserMenu(p => !p)}
                 className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 rounded-xl px-3 py-2 transition-colors">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  {user?.name?.charAt(0)}
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold overflow-hidden">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                  ) : (
+                    user?.name?.charAt(0)
+                  )}
                 </div>
                 <div className="text-left hidden sm:block">
                   <div className="text-sm font-semibold text-gray-800 leading-tight">{user?.name}</div>

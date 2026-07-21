@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown } from "lucide-react";
+ import { TrendingUp, TrendingDown } from "lucide-react";
 
 export default function StatCard({ icon: Icon, label, value, change, changeType = "up", color = "blue", prefix = "", suffix = "" }) {
   const colorMap = {
@@ -25,7 +25,7 @@ export default function StatCard({ icon: Icon, label, value, change, changeType 
           </div>
         )}
       </div>
-      <div className="text-2xl font-extrabold text-gray-900 mb-0.5">
+      <div className="text-2xl font-semibold text-gray-900 mb-0.5">
         {prefix}{typeof value === "number" ? value.toLocaleString("en-IN") : value}{suffix}
       </div>
       <div className="text-sm text-gray-400 font-medium">{label}</div>

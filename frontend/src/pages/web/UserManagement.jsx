@@ -467,12 +467,16 @@ function AddUserModal({
               <div className="p-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-start gap-2">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                      {verifiedManager.name?.charAt(0)}
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 overflow-hidden">
+                      {verifiedManager.avatar ? (
+                        <img src={verifiedManager.avatar} alt={verifiedManager.name} className="w-full h-full object-cover" />
+                      ) : (
+                        verifiedManager.name?.charAt(0)
+                      )}
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 font-medium">Name</p>
-                      <p className="font-semibold text-gray-900 text-sm">{verifiedManager.name}</p>
+                      <p className="font-medium text-gray-900 text-sm">{verifiedManager.name}</p>
                     </div>
                   </div>
                   <div>
@@ -485,7 +489,7 @@ function AddUserModal({
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 font-medium">Mobile</p>
-                    <p className="font-semibold text-gray-900 text-sm flex items-center gap-1">
+                    <p className="font-medium text-gray-900 text-sm flex items-center gap-1">
                       <Phone size={12} className="text-gray-400" />
                       {verifiedManager.mobile}
                     </p>
@@ -788,7 +792,7 @@ function TreeNode({ node, users, customers, bookings, depth = 0, onViewTeam }) {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-gray-800 truncate">{node.name}</span>
+            <span className="text-sm font-medium text-gray-800 truncate">{node.name}</span>
             <StatusBadge status={node.role} />
             <span className="text-[10px] text-gray-400 font-mono">{node.employeeCode}</span>
           </div>
@@ -1117,12 +1121,12 @@ export default function UserManagement() {
   };
 
   const columns = [
-    { key: "employeeCode", label: "User ID", render: v => <span className="font-mono text-sm font-bold text-gray-700">{v || "—"}</span> },
+    { key: "employeeCode", label: "User ID", render: v => <span className="font-mono text-sm font-medium text-gray-700">{v || "—"}</span> },
     {
       key: "name", label: "Name", render: (v, row) => (
         <div>
-          <div className="font-semibold text-gray-800">{v}</div>
-          <div className="text-xs text-gray-400">{row.email}</div>
+          <div className="font-medium text-gray-800">{v}</div>
+          <div className="text-xs text-gray-500">{row.email}</div>
         </div>
       )
     },
@@ -1155,7 +1159,7 @@ export default function UserManagement() {
     <div className="space-y-6 animate-fadeIn">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-2">
+          <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2">
             <Users size={22} /> User Management
           </h1>
         </div>
@@ -1217,10 +1221,10 @@ export default function UserManagement() {
                     <Icon size={22} className={colorTextClasses[color]} />
                   </div>
                 </div>
-                <div className="text-2xl font-extrabold text-gray-900 tabular-nums mb-0.5">
+                <div className="text-2xl font-bold text-gray-700 tabular-nums mb-0.5">
                   {count}
                 </div>
-                <div className={`${isActive ? `font-bold ${colorTextClasses[color]}` : "font-medium text-gray-500"} text-xs`}>
+                <div className={`${isActive ? `font-semibold ${colorTextClasses[color]}` : "font-medium text-gray-500"} text-xs`}>
                   {role}
                 </div>
               </div>
@@ -1238,7 +1242,7 @@ export default function UserManagement() {
           )}
         </div>
         <div className="flex-1">
-          <div className="text-sm font-bold text-gray-800">
+          <div className="text-sm font-medium text-gray-800">
             {user?.name} · <StatusBadge status={user?.role} /> · <span className="font-mono text-gray-500 font-normal">{user?.employeeCode}</span>
           </div>
           <div className="text-xs text-gray-400 mt-0.5">
@@ -1304,7 +1308,7 @@ export default function UserManagement() {
 
       {showTree ? (
         <div className="card p-5">
-          <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <h3 className="font-medium text-gray-800 mb-4 flex items-center gap-2">
             <Building2 size={16} /> Organization Hierarchy
             <span className="text-xs font-normal text-gray-400 ml-1">
               ({users.length} total · {treeRoots.length} top-level)
@@ -1589,11 +1593,11 @@ export default function UserManagement() {
             <div className="mx-auto w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mb-4">
               <AlertTriangle size={28} className="text-red-600" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Are you sure?</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Are you sure?</h3>
             <p className="text-sm text-gray-500 mb-1">
               You are about to delete this user:
             </p>
-            <p className="text-sm font-semibold text-gray-800 mb-4">
+            <p className="text-sm font-medium text-gray-800 mb-4">
               "{deleteTarget.name}"
               <span className="block text-xs font-normal text-gray-400 mt-1">
                 {deleteTarget.role} · {deleteTarget.employeeCode}
@@ -1793,7 +1797,7 @@ export default function UserManagement() {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold text-gray-900 truncate">{r.name}</div>
+                          <div className="text-sm font-medium text-gray-900 truncate">{r.name}</div>
                           <div className="flex items-center gap-1.5">
                             <StatusBadge status={r.role} />
                             <span className="text-[10px] text-gray-400 font-mono">{r.employeeCode}</span>

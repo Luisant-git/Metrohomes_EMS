@@ -14,7 +14,7 @@ export default function TeamMembersCard({ totalTeam, roleCounts }) {
           <Users size={22} className={colorMap.icon} />
         </div>
       </div>
-      <div className="text-2xl font-extrabold text-gray-900 mb-0.5">
+      <div className="text-xl font-semibold text-gray-700 mb-0.5">
         {totalTeam.toLocaleString("en-IN")}
       </div>
       <div className="text-sm text-gray-400 font-medium mb-2">Active Team Members</div>

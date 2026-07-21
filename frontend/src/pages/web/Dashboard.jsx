@@ -79,7 +79,7 @@ export default function WebDashboard() {
     <div className="space-y-6 animate-fadeIn">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-extrabold text-gray-900">Dashboard</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
         <p className="text-gray-400 text-sm mt-0.5">
           Welcome back, {user?.name} ({user?.role}) · {new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
           {!["Admin", "Director"].includes(user?.role) && (
@@ -88,17 +88,21 @@ export default function WebDashboard() {
         </p>
       </div>
 
-      {/* Stats - Row 1: Total Booking, Total Customers, Total Site Visit, Active Sites */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats - Row 1: 4 stat cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard icon={BookOpen} label="Total Booking" value={totalBookings} color="blue" />
         <StatCard icon={UserCheck} label="Total Customers" value={totalCustomers} color="purple" />
         <StatCard icon={MapPin} label="Total Site Visit" value={totalSiteVisit} color="orange" />
         <StatCard icon={Building2} label="Active Sites" value={activeSites} color="green" />
       </div>
 
-      {/* Stats - Row 2: Active Team Members, No of Achievers */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Stats - Row 2: Team Members full width */}
+      <div className="grid grid-cols-1 gap-4">
         <TeamMembersCard totalTeam={teamInfo.totalTeam} roleCounts={teamInfo.roleCounts} />
+      </div>
+
+      {/* Stats - Row 3: Achievers */}
+      <div className="grid grid-cols-1 gap-4">
         <StatCard icon={Trophy} label="No of Achievers" value={teamInfo.achievers} color="yellow" />
       </div>
     </div>
