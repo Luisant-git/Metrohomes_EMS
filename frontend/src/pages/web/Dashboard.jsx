@@ -89,20 +89,16 @@ export default function WebDashboard() {
       </div>
 
       {/* Stats - Row 1: 4 stat cards */}
-      <div className="grid grid-cols-4 gap-2 sm:gap-3 lg:gap-4 min-w-0 w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 w-full">
         <StatCard icon={BookOpen} label="Total Booking" value={totalBookings} color="blue" />
         <StatCard icon={UserCheck} label="Total Customers" value={totalCustomers} color="purple" />
         <StatCard icon={MapPin} label="Total Site Visit" value={totalSiteVisit} color="orange" />
         <StatCard icon={Building2} label="Active Sites" value={activeSites} color="green" />
       </div>
 
-      {/* Stats - Row 2: Team Members full width */}
-      <div className="grid grid-cols-1 gap-4">
+      {/* Stats - Row 2: Team Members and Achievers */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <TeamMembersCard totalTeam={teamInfo.totalTeam} roleCounts={teamInfo.roleCounts} />
-      </div>
-
-      {/* Stats - Row 3: Achievers */}
-      <div className="grid grid-cols-1 gap-4">
         <StatCard icon={Trophy} label="No of Achievers" value={teamInfo.achievers} color="yellow" />
       </div>
     </div>
