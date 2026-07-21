@@ -1230,8 +1230,12 @@ export default function UserManagement() {
       </div>
 
       <div className="card p-4 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-sm">
-          {user?.name?.charAt(0)}
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-sm overflow-hidden flex-shrink-0">
+          {user?.avatar ? (
+            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+          ) : (
+            user?.name?.charAt(0)
+          )}
         </div>
         <div className="flex-1">
           <div className="text-sm font-bold text-gray-800">
@@ -1781,8 +1785,12 @@ export default function UserManagement() {
                   <div className="space-y-2">
                     {reports.map(r => (
                       <div key={r.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 transition-colors">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
-                          {r.name?.charAt(0)}
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold overflow-hidden flex-shrink-0">
+                          {r.avatar ? (
+                            <img src={r.avatar} alt={r.name} className="w-full h-full object-cover" />
+                          ) : (
+                            r.name?.charAt(0)
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-semibold text-gray-900 truncate">{r.name}</div>

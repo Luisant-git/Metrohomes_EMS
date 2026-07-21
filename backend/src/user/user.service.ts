@@ -133,6 +133,7 @@ const employeeCode = await this.generateEmployeeCode(createUserDto.role);
         parentUserId: parentId,
         createdBy: createdById,
         status: 'Active',
+        avatar: createUserDto.avatar,
       },
       include: {
         parent: true,
@@ -153,7 +154,7 @@ const employeeCode = await this.generateEmployeeCode(createUserDto.role);
       this.logger.log(`WhatsApp notification sent to ${user.mobile} for ${user.name}`);
     } catch (error) {
       // Don't block user creation if WhatsApp fails
-      this.logger.error(`WhatsApp notification failed for ${user.mobile}: ${error.message}`);
+      this.logger.error(`WhatsApp notification failed for ${user.mobile}: ${(error as Error).message}`);
     }
 
     const { pin, ...result } = user;
