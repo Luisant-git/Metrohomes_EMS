@@ -152,6 +152,8 @@ export function DataProvider({ children }) {
     try {
       await customerApi.update(id, updates);
       await refreshCustomers();
+      // Also refresh users if driver details were updated (to keep any related data fresh)
+      await refreshUsers();
     } catch (err) {
       console.error("Failed to update customer:", err);
       throw err;

@@ -8,7 +8,7 @@ import StatusBadge from "../../components/StatusBadge.jsx";
 import { Eye, SquarePen, Trash2, UserCheck, Phone, UserPlus, AlertTriangle, Search, X } from "lucide-react";
 import { toast } from "react-toastify";
 
-const STATUSES = ["Interested", "Visit Scheduled", "Visit Completed", "Ready for Booking", "Booked", "Payment Done", "Dropped"];
+const STATUSES = ["Interested", "Visit Scheduled", "Visit Completed", "Booked", "Payment Done"];
 
 export default function WebCustomers() {
   const navigate = useNavigate();
@@ -83,7 +83,7 @@ export default function WebCustomers() {
         <div className="text-xs text-gray-400 flex items-center gap-1"><Phone size={10} />{row.mobile}</div>
       </div>
     )},
-    { key: "siteName", label: "Site", render: v => v || "—" },
+    { key: "siteName", label: "Project", render: v => v || "—" },
     { key: "salesManagerName", label: "Sales Manager", render: v => v || "—" },
     { key: "visitDate", label: "Visit Date", render: (v) => formatDate(v) },
     { key: "status", label: "Status", render: v => <StatusBadge status={v} /> },
@@ -93,8 +93,8 @@ export default function WebCustomers() {
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
-        <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2"><UserCheck size={22} />Customers</h1>
-        <p className="text-gray-400 text-sm mt-0.5">{customers.length} total customers</p>
+        <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2"><UserCheck size={22} />Project Visit</h1>
+        <p className="text-gray-400 text-sm mt-0.5">{customers.length} total visits</p>
       </div>
 
       {/* Status filter chips */}
@@ -142,7 +142,7 @@ export default function WebCustomers() {
         </div>
       </div>
 
-      <DataTable title="Customer List" columns={columns} data={filtered} searchKey={[]}
+      <DataTable title="Project Visit List" columns={columns} data={filtered} searchKey={[]} hideSearch={true}
         extraActions={
           <button onClick={() => navigate("/customer-registration")}
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-blue-200">
@@ -206,7 +206,7 @@ export default function WebCustomers() {
             <div className="space-y-2.5">
               {[
                 ["Email", selected.email],
-                ["Site", selected.siteName],
+                ["Project", selected.siteName],
                 ["Sales Manager", selected.salesManagerName],
                 ["SM ID", (() => { const sm = users.find(u => u.name === selected.salesManagerName); return sm ? sm.employeeCode : (selected.salesManagerName || "—"); })()],
                 ["Visit Date", formatDate(selected.visitDate)],
@@ -233,7 +233,7 @@ export default function WebCustomers() {
               </div>
             )}
 
-            {(selected.driverName || selected.driverMobile || selected.cabNumber) && user?.role === "Sales Manager" && (
+            {(selected.driverName || selected.driverMobile || selected.cabNumber) && (
               <div className="pt-2 border-t border-gray-100">
                 <p className="text-xs font-semibold text-blue-600 tracking-wide mb-1">🚗 Driver Details</p>
                 <div className="space-y-1">

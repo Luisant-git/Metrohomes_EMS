@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Search, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 
-export default function DataTable({ columns, data, actions, searchKey, title, onAdd, addLabel = "Add New" }) {
+export default function DataTable({ columns, data, actions, searchKey, title, onAdd, addLabel = "Add New", hideSearch }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const perPage = 8;
@@ -22,11 +22,13 @@ export default function DataTable({ columns, data, actions, searchKey, title, on
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-4">
           {title && <h3 className="font-semibold text-gray-800 text-base">{title}</h3>}
           <div className="flex items-center gap-3 ml-auto">
-            <div className="relative">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-                placeholder="Search…" className="bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2 text-sm w-52 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
+            {!hideSearch && (
+              <div className="relative">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+                  placeholder="Search…" className="bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2 text-sm w-52 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            )}
             {onAdd && (
               <button onClick={onAdd} className="btn-primary">
                 {addLabel}
