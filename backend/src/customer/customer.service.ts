@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 
@@ -6,7 +6,18 @@ import { CreateCustomerDto } from './dto/create-customer.dto';
 export class CustomerService {
   constructor(private readonly prisma: PrismaService) {}
 
-  register(dto: CreateCustomerDto) {
+  async register(dto: CreateCustomerDto) {
+    if (!dto.mobile) {
+      throw new BadRequestException('Mobile number is required');
+    }
+
+    const existing = await this.prisma.customer.findFirst({
+      where: { phone: dto.mobile },
+    });
+    if (existing) {
+      throw new BadRequestException('A customer with this mobile number is already registered');
+    }
+
     const data: any = {
       name: dto.name,
       phone: dto.mobile,
@@ -27,7 +38,15 @@ export class CustomerService {
       pinCode: dto.pinCode,
       createdBy: dto.createdBy,
     };
-    return this.prisma.customer.create({ data });
+
+    try {
+      return await this.prisma.customer.create({ data });
+    } catch (error) {
+      if (error?.code === 'P2002') {
+        throw new BadRequestException('A customer with this mobile number is already registered');
+      }
+      throw error;
+    }
   }
 
   async findAll() {
