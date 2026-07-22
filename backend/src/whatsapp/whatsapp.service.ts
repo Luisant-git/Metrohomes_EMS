@@ -16,19 +16,18 @@ export class WhatsappService {
 
   /**
    * Send Employee Registration Success Template
-   * Template Name: employeea_registration_success
+   * Template Name: employeea_registration_success_v2
    * Parameters:
    *   1 - Name
    *   2 - Employee Code (User ID)
    *   3 - Role
-   *   4 - Referred By
    */
   async sendEmployeeRegistrationSuccess(
     toPhoneNumber: string,
     name: string,
     employeeCode: string,
     role: string,
-    referredBy: string,
+    referredBy?: string,
   ): Promise<any> {
     // Add 91 if it's a 10 digit number and doesn't start with country code
     let formattedNumber = toPhoneNumber.trim();
@@ -44,7 +43,7 @@ export class WhatsappService {
           to: formattedNumber,
           type: 'template',
           template: {
-            name: 'employeea_registration_success',
+            name: 'employeea_registration_success_v2',
             language: {
               code: 'en',
             },
@@ -58,15 +57,11 @@ export class WhatsappService {
                   },
                   {
                     type: 'text',
-                    text: employeeCode, // {{2}} - Employee Code
+                    text: employeeCode, // {{2}} - Employee Code (User ID)
                   },
                   {
                     type: 'text',
                     text: role, // {{3}} - Role
-                  },
-                  {
-                    type: 'text',
-                    text: referredBy, // {{4}} - Referred By
                   },
                 ],
               },
