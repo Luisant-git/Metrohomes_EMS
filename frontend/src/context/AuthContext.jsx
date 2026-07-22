@@ -1,7 +1,11 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { auth } from "../api/auth.js";
 
+
 const AuthContext = createContext(null);
+
+// Hook to access auth context
+export const useAuth = () => useContext(AuthContext);
 
 export const ROLES = {
   ADMIN: "Admin",
@@ -202,6 +206,31 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // OTP functions
+  const requestOtp = async (employeeCode) => {
+    try {
+      const result = await auth.requestOtp(employeeCode);
+      return result;
+    } catch (e) {
+      return { error: e.message };
+    }
+  };
+
+  const verifyOtp = async (employeeCode, otp) => {
+    try {
+      const result = await auth.verifyOtp(employeeCode, otp);
+      if (result?.accessToken && result?.user) {
+        const { password: _, ...safeUser } = result.user;
+        setUser(safeUser);
+        localStorage.setItem("re_user", JSON.stringify(safeUser));
+        localStorage.setItem("authToken", result.accessToken);
+      }
+      return result;
+    } catch (e) {
+      return { error: e.message };
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem("re_user");
@@ -276,12 +305,8 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateProfile, loading, isWebRole, isPWARole, hierarchy, MOCK_USERS }}>
+    <AuthContext.Provider value={{ user, login, logout, requestOtp, verifyOtp, updateProfile, loading, isWebRole, isPWARole, hierarchy, MOCK_USERS }}>
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  return useContext(AuthContext);
 }

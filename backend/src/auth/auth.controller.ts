@@ -5,6 +5,8 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RequestOtpDto } from './dto/request-otp.dto';
+import { VerifyOtpDto } from './dto/verify-otp.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -22,13 +24,16 @@ export class AuthController {
     return this.authService.registerAdmin(body);
   }
 
-  @Post('login')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'User login with PIN' })
-  @ApiBody({ type: LoginDto })
-  login(@Body() body: LoginDto) {
-    return this.authService.login(body);
+  @Post('request-otp')
+  async requestOtp(@Body() dto: RequestOtpDto) {
+    return this.authService.requestOtp(dto.employeeCode);
   }
+
+  @Post('verify-otp')
+  async verifyOtp(@Body() dto: VerifyOtpDto) {
+    return this.authService.verifyOtp(dto.employeeCode, dto.otp);
+  }
+
 
   @Get('me')
   @UseGuards(JwtAuthGuard)

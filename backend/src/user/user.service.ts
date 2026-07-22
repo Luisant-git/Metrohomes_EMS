@@ -8,6 +8,7 @@ import { WhatsappService } from '../whatsapp/whatsapp.service';
 
 @Injectable()
 export class UserService {
+
   private readonly logger = new Logger(UserService.name);
 
   constructor(
@@ -107,8 +108,9 @@ export class UserService {
 
 const employeeCode = await this.generateEmployeeCode(createUserDto.role);
 
-    const hashedPin = await bcrypt.hash(createUserDto.pin, 10);
-
+    // If PIN is provided, hash it; otherwise generate a temporary 4‑digit PIN for backend purposes
+    const pinValue = createUserDto.pin ?? Math.floor(1000 + Math.random() * 9000).toString();
+    const hashedPin = await bcrypt.hash(pinValue, 10);
     const parentId = isFirstUser ? null : (createUserDto.parentUserId || currentUser?.id || null);
     const createdById = isFirstUser ? null : (currentUser?.id || null);
 
@@ -224,6 +226,14 @@ const employeeCode = await this.generateEmployeeCode(createUserDto.role);
     return result;
   }
 
+  // Find user by mobile number (no auth checks)
+  async findOneByMobile(mobile: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { mobile },
+    });
+    return user;
+  }
+
   // ─── FIND BY IDENTIFIER ──────────────────────────────────────────
   async findByIdentifier(identifier: string) {
     return this.prisma.user.findFirst({
@@ -302,6 +312,10 @@ const employeeCode = await this.generateEmployeeCode(createUserDto.role);
     const updateData: any = { ...updateUserDto };
     if (updateUserDto.dob) {
       updateData.dob = new Date(updateUserDto.dob);
+    }
+    // If pin is explicitly set to null, remove it to satisfy Prisma non‑null constraint
+    if (updateData.pin === null) {
+      delete updateData.pin;
     }
 
     const updatedUser = await this.prisma.user.update({

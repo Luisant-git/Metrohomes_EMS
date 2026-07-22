@@ -1,5 +1,5 @@
 // src/auth/auth.service.ts
-import { Injectable, UnauthorizedException, ConflictException, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UserService } from '../user/user.service';
@@ -97,5 +97,67 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
     return user;
+  }
+
+  // ---------------------------------------------------
+  // OTP flow
+  // ---------------------------------------------------
+  async requestOtp(employeeCode: string) {
+    const user = await this.userService.findByIdentifier(employeeCode);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // generate 4‑digit OTP preserving leading zeros
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+
+    await this.userService.update(user.id, {
+      pin: hashedOtp,
+      pinExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      pinAttempts: 0,
+    } as any);
+
+    // send via WhatsApp (assume sendOtp method exists)
+    await this.whatsappService.sendOtp(user.mobile, otp);
+    return { message: 'OTP sent' };
+  }
+
+  async verifyOtp(employeeCode: string, otp: string) {
+    const user = await this.userService.findByIdentifier(employeeCode);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.pin || !user.pinExpiresAt) {
+      throw new BadRequestException('No OTP requested');
+    }
+
+    if (new Date() > user.pinExpiresAt) {
+      await this.userService.update(user.id, {
+        pin: null,
+        pinExpiresAt: null,
+        pinAttempts: 0,
+      } as any);
+      throw new BadRequestException('OTP has expired. Please request a new OTP.');
+    }
+
+    const isMatch = await bcrypt.compare(otp, user.pin);
+    if (!isMatch) {
+      await this.userService.update(user.id, { pinAttempts: { increment: 1 } } as any);
+      throw new BadRequestException('Invalid OTP');
+    }
+
+    // Successful verification – clear OTP fields
+    await this.userService.update(user.id, {
+      pin: null,
+      pinExpiresAt: null,
+      pinAttempts: 0,
+    } as any);
+
+    const payload = { sub: user.id, mobileNumber: user.mobile };
+    const accessToken = this.jwtService.sign(payload);
+    const { pin: _, ...userData } = user;
+    return { accessToken, user: userData };
   }
 }

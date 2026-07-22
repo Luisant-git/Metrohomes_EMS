@@ -62,17 +62,17 @@ export class CreateUserDto {
   @Matches(/^[0-9]{10}$/, { message: 'Mobile must be exactly 10 digits' })
   mobile: string;
 
-  @ApiProperty({
-    description: '4-digit PIN for login',
+  @ApiPropertyOptional({
+    description: '4-digit PIN for login (optional, will be generated if omitted)',
     example: '1234',
     minLength: 4,
     maxLength: 4,
   })
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @Length(4, 4)
   @Matches(/^[0-9]{4}$/, { message: 'PIN must be exactly 4 digits' })
-  pin: string;
+  pin?: string;
 
   @ApiProperty({
     description: 'Role of the user',

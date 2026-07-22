@@ -36,6 +36,32 @@ export const auth = {
     return handleResponse(response);
   },
 
+  // Request OTP (employee code)
+  async requestOtp(employeeCode) {
+    const response = await fetch(`${VITE_API_URL}/auth/request-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ employeeCode }),
+    });
+    return handleResponse(response);
+  },
+
+  // Verify OTP (employee code + OTP)
+  async verifyOtp(employeeCode, otp) {
+    const response = await fetch(`${VITE_API_URL}/auth/verify-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ employeeCode, otp }),
+    });
+    const data = await handleResponse(response);
+    // Store token and user similar to login if successful
+    if (data?.accessToken && data?.user) {
+      localStorage.setItem("authToken", data.accessToken);
+      localStorage.setItem("user", JSON.stringify(data.user));
+    }
+    return data;
+  },
+
   // Login with identifier (employeeCode, email, or mobile)
   async login(identifier, pin) {
     const response = await fetch(`${VITE_API_URL}/auth/login`, {

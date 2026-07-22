@@ -93,4 +93,56 @@ export class WhatsappService {
       throw error;
     }
   }
-}
+
+  // Send OTP via WhatsApp using metrohomes_verification_code_v1 template
+  async sendOtp(toPhoneNumber: string, otp: string): Promise<any> {
+    let formattedNumber = toPhoneNumber.trim();
+    if (/^\d{10}$/.test(formattedNumber)) {
+      formattedNumber = `91${formattedNumber}`;
+    }
+    try {
+      const response = await axios.post(
+        `${this.apiUrl}/${this.phoneNumberId}/messages`,
+        {
+          messaging_product: 'whatsapp',
+          to: formattedNumber,
+          type: 'template',
+          template: {
+            name: 'metrohomes_verification_code_v1',
+            language: { code: 'en' },
+            components: [
+                {
+                  type: 'body',
+                  parameters: [
+                    {
+                      type: 'text',
+                      text: otp, // {{1}} - OTP
+                    },
+                  ],
+                },
+                {
+                  type: 'button',
+                  sub_type: 'url',
+                  index: 0,
+                  parameters: [
+                    { type: 'text', text: otp },
+                  ],
+                },
+              ],
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+      this.logger.log(`OTP template sent to ${formattedNumber}`);
+      return response.data;
+    } catch (error: any) {
+      this.logger.error('Error sending OTP template', error.response?.data || error.message);
+      throw error;
+    }
+  }
+}

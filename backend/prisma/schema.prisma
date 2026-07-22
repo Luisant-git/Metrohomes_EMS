@@ -16,6 +16,8 @@ model User {
   email                 String   @unique
   mobile                String   @unique
   pin                   String               // 4-digit PIN (hashed)
+  pinExpiresAt          DateTime?
+  pinAttempts           Int      @default(0)
   role                  String               // Admin, Director, Regional Manager, etc.
   status                String   @default("Active")
   

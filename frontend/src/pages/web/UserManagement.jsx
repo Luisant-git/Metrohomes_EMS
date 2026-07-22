@@ -19,7 +19,7 @@ const emptyForm = {
   email: "",
   mobile: "",
   role: "Sales Manager",
-  pin: "",
+
   fatherHusbandName: "",
   address: "",
   dob: "",
@@ -185,12 +185,6 @@ function AddUserModal({
       newErrors.mobile = "Mobile is required";
     } else if (!/^\d{10}$/.test(form.mobile.replace(/\D/g, ''))) {
       newErrors.mobile = "Mobile must contain exactly 10 digits";
-    }
-
-    if (!form.pin?.trim()) {
-      newErrors.pin = "PIN is required";
-    } else if (!/^\d{4}$/.test(form.pin)) {
-      newErrors.pin = "PIN must contain exactly 4 numeric digits";
     }
 
     if (form.ifscCode?.trim() && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(form.ifscCode)) {
@@ -570,22 +564,6 @@ function AddUserModal({
                   className="input-field"
                   autoComplete="off"
                 />
-              </FormField>
-              <FormField label="PIN (4 digits)" required>
-                <input
-                  type="password"
-                  value={form.pin}
-                  onChange={e => {
-                    const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 4);
-                    setForm(p => ({ ...p, pin: val }));
-                  }}
-                  className={`input-field ${errors.pin ? "border-red-500 focus:ring-red-500" : ""}`}
-                  placeholder="Enter 4-digit PIN"
-                  autoComplete="off"
-                  maxLength={4}
-                  inputMode="numeric"
-                />
-                {errors.pin && <p className="text-red-500 text-xs mt-1">{errors.pin}</p>}
               </FormField>
               <FormField label="Address" span>
                 <textarea
@@ -972,7 +950,7 @@ export default function UserManagement() {
       email: u.email || "",
       mobile: u.mobile || "",
       role: u.role || "",
-      pin: u.pin || "",
+      // pin field removed
       fatherHusbandName: u.fatherHusbandName || "",
       address: u.address || "",
       dob: u.dob || "",
@@ -1019,7 +997,7 @@ export default function UserManagement() {
           email: form.email,
           mobile: cleanMobile,
           role: form.role,
-          pin: form.pin,
+          // pin field removed
           parentUserId: Number(form.parentUserId) || Number(user?.id),
           createdBy: Number(user?.id),
         };
