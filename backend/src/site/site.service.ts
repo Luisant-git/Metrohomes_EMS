@@ -16,11 +16,9 @@ export class SiteService {
             data: {
                 name: createSiteDto.name,
                 location: createSiteDto.location,
-                type: createSiteDto.type,
                 totalPlots: createSiteDto.totalPlots,
                 availablePlots: createSiteDto.availablePlots,
                 pricePerSqft: createSiteDto.pricePerSqft,
-                totalArea: createSiteDto.totalArea,
                 description: createSiteDto.description,
                 images: createSiteDto.images || [],
                 brochure: createSiteDto.brochure,
@@ -35,11 +33,10 @@ export class SiteService {
     }
 
     // ─── FIND ALL SITES ─────────────────────────────────────────────
-    async findAll(search?: string, status?: string, type?: string) {
+    async findAll(search?: string, status?: string) {
         const where: any = {};
 
         if (status) where.status = status;
-        if (type) where.type = type;
 
         if (search) {
             where.OR = [

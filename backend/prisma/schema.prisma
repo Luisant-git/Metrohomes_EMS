@@ -55,11 +55,9 @@ model Site {
   id              Int      @id @default(autoincrement())
   name            String
   location        String
-  type            String?
   totalPlots      Int?  
   availablePlots  Int?
   pricePerSqft    Float?   
-  totalArea       String?
   description     String?
   images          Json?                             // Array of image URLs
   brochure        String?                           // Brochure file URL

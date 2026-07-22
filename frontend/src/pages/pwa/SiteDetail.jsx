@@ -91,7 +91,7 @@ export default function PWASiteDetail() {
               <h2 className="text-xl font-extrabold text-gray-900">{site.name}</h2>
               <div className="flex items-center gap-1 text-gray-400 text-sm mt-0.5"><MapPin size={13} />{site.location}</div>
             </div>
-            <StatusBadge status={site.type} />
+            <StatusBadge status={site.status || "Active"} />
           </div>
           {!isRestricted ? (
             <div className="mt-2">
@@ -105,8 +105,8 @@ export default function PWASiteDetail() {
 
         {/* Stats */}
         {!isRestricted ? (
-          <div className="grid grid-cols-3 gap-2">
-            {[["Total Plots", site.totalPlots], ["Available", site.availablePlots], ["Area", site.totalArea]].map(([k, v]) => (
+          <div className="grid grid-cols-2 gap-2">
+            {[["Total Plots", site.totalPlots], ["Available", site.availablePlots]].map(([k, v]) => (
               <div key={k} className="bg-gray-50 rounded-2xl p-3 text-center">
                 <div className="font-extrabold text-gray-900">{v}</div>
                 <div className="text-xs text-gray-400 mt-0.5">{k}</div>

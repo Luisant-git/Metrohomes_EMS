@@ -14,11 +14,8 @@ export default function PWASites() {
   const [imgIdx, setImgIdx] = useState(0);
 
   const approved = sites.filter(s => s.status === "Active");
-  const types = ["All", ...new Set(approved.map(s => s.type))];
   const filtered = approved.filter(s => {
-    const matchType = typeFilter === "All" || s.type === typeFilter;
-    const matchSearch = !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.location.toLowerCase().includes(search.toLowerCase());
-    return matchType && matchSearch;
+    return !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.location.toLowerCase().includes(search.toLowerCase());
   });
 
   const openGallery = (site, e) => {
@@ -49,15 +46,6 @@ export default function PWASites() {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search sites…"
             className="w-full bg-white border border-gray-200 rounded-2xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" />
         </div>
-        {/* Type filters */}
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {types.map(t => (
-            <button key={t} onClick={() => setTypeFilter(t)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${typeFilter === t ? "bg-blue-600 text-white shadow-sm" : "bg-white border border-gray-200 text-gray-600"}`}>
-              {t} {t === "All" ? `(${approved.length})` : `(${approved.filter(s => s.type === t).length})`}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Site cards */}
@@ -73,9 +61,6 @@ export default function PWASites() {
                   <Home size={48} />
                 </div>
               )}
-              <div className="absolute top-3 left-3">
-                <StatusBadge status={site.type} />
-              </div>
               <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-xl px-2.5 py-1 text-xs font-bold text-green-600">
                 {site.availablePlots} available
               </div>
@@ -101,7 +86,6 @@ export default function PWASites() {
                   <span className="text-lg font-extrabold text-blue-600">₹{Number(site.pricePerSqft).toLocaleString("en-IN")}</span>
                   <span className="text-xs text-gray-400">/sqft</span>
                 </div>
-                <div className="text-xs text-gray-400">{site.totalArea}</div>
               </div>
               {/* Amenities preview */}
               {site.amenities?.length > 0 && (

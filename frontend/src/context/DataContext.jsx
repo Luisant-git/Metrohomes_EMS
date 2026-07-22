@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useAuth } from "./AuthContext.jsx";
 import { user as userApi } from "../api/user.js";
 import { site as siteApi } from "../api/site.js";
 import { customer as customerApi } from "../api/customer.js";
@@ -14,7 +15,9 @@ export function DataProvider({ children }) {
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(true);
 
-  // Fetch customers from API on mount
+  const { user } = useAuth();
+
+  // Fetch customers from API when user changes or on mount (if user exists)
   const refreshCustomers = useCallback(async () => {
     try {
       setCustomersLoading(true);
@@ -51,10 +54,12 @@ export function DataProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    refreshCustomers();
-  }, [refreshCustomers]);
+    if (user) {
+      refreshCustomers();
+    }
+  }, [user, refreshCustomers]);
 
-  // Fetch users from API on mount
+  // Fetch users from API when user changes or on mount
   const refreshUsers = useCallback(async () => {
     try {
       setUsersLoading(true);
@@ -68,10 +73,12 @@ export function DataProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    refreshUsers();
-  }, [refreshUsers]);
+    if (user) {
+      refreshUsers();
+    }
+  }, [user, refreshUsers]);
 
-  // Fetch sites from API on mount
+  // Fetch sites from API when user changes or on mount
   const refreshSites = useCallback(async () => {
     try {
       const data = await siteApi.getAll();
@@ -82,8 +89,10 @@ export function DataProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    refreshSites();
-  }, [refreshSites]);
+    if (user) {
+      refreshSites();
+    }
+  }, [user, refreshSites]);
 
   // Sites — API-backed
   const addSite = async (siteData) => {

@@ -41,13 +41,11 @@ export class SiteController {
     @ApiOperation({ summary: 'Get all sites' })
     @ApiQuery({ name: 'search', required: false, description: 'Search by name or location' })
     @ApiQuery({ name: 'status', required: false, description: 'Filter by status' })
-    @ApiQuery({ name: 'type', required: false, description: 'Filter by type' })
     findAll(
         @Query('search') search?: string,
         @Query('status') status?: string,
-        @Query('type') type?: string,
     ) {
-        return this.siteService.findAll(search, status, type);
+        return this.siteService.findAll(search, status);
     }
 
     @Get('stats')

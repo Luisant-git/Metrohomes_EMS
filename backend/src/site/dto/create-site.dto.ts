@@ -11,13 +11,6 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export enum SiteType {
-    RESIDENTIAL = 'Residential',
-    COMMERCIAL = 'Commercial',
-    VILLA = 'Villa',
-    INDUSTRIAL = 'Industrial',
-}
-
 export enum SiteStatus {
     ACTIVE = 'Active',
     INACTIVE = 'Inactive',
@@ -49,15 +42,6 @@ export class CreateSiteDto {
     location: string;
 
     @ApiPropertyOptional({
-        description: 'Type of site',
-        enum: SiteType,
-        example: SiteType.RESIDENTIAL,
-    })
-    @IsOptional()
-    @IsEnum(SiteType)
-    type?: SiteType;
-
-    @ApiPropertyOptional({
         description: 'Total number of plots',
         example: 120,
     })
@@ -80,14 +64,6 @@ export class CreateSiteDto {
     @IsOptional()
     @IsNumber()
     pricePerSqft?: number;
-
-    @ApiPropertyOptional({
-        description: 'Total area of the site',
-        example: '25 Acres',
-    })
-    @IsOptional()
-    @IsString()
-    totalArea?: string;
 
     @ApiPropertyOptional({
         description: 'Description of the site',

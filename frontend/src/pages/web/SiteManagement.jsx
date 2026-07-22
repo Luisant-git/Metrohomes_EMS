@@ -1,14 +1,14 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useData } from "../../context/DataContext.jsx";
 import DataTable from "../../components/DataTable.jsx";
 import Modal from "../../components/Modal.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import StatCard from "../../components/StatCard.jsx";
-import { SquarePen, Trash2, Eye, Building2, MapPin, FileText, Image as ImageIcon, X, Plus, File, Download, Loader2, AlertTriangle, Globe, CheckCircle, XCircle, LayoutGrid } from "lucide-react";
+import { SquarePen, Trash2, Eye, Building2, MapPin, FileText, Image as ImageIcon, X, Plus, File, Download, Loader2, AlertTriangle, Globe, CheckCircle, XCircle, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "react-toastify";
 import { uploadAPI } from "../../api/upload.js";
 
-const empty = { name: "", location: "", type: "Residential", totalPlots: "", availablePlots: "", pricePerSqft: "", totalArea: "", description: "", status: "Active", images: [], brochure: null, documents: [] };
+const empty = { name: "", location: "", totalPlots: "", availablePlots: "", pricePerSqft: "", description: "", status: "Active", images: [], brochure: null, documents: [] };
 
 function FormField({ label, children, span, required }) {
   return (
@@ -29,11 +29,7 @@ export default function SiteManagement() {
   const [form, setForm] = useState(empty);
   const [imgIdx, setImgIdx] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [filterType, setFilterType] = useState("");
-
-  const filteredSites = filterType
-    ? sites.filter(s => s.type === filterType)
-    : sites;
+  const [saving, setSaving] = useState(false);
 
   const openAdd = () => { setForm(empty); setModal("add"); };
   const openEdit = (s) => {
@@ -67,13 +63,10 @@ export default function SiteManagement() {
   const removeImage = (index) => setForm(p => ({ ...p, images: p.images.filter((_, i) => i !== index) }));
   const removeDocument = (index) => setForm(p => ({ ...p, documents: p.documents.filter((_, i) => i !== index) }));
 
-  const [saving, setSaving] = useState(false);
-
   const handleSave = async () => {
     if (!form.name || !form.location) { toast.error("Name and location required"); return; }
     setSaving(true);
     try {
-      // Upload new image files and get URLs
       const newImageFiles = (form.images || []).filter(img => typeof img !== 'string');
       const existingImageUrls = (form.images || []).filter(img => typeof img === 'string');
       let uploadedImageUrls = [];
@@ -82,14 +75,12 @@ export default function SiteManagement() {
         uploadedImageUrls = results.map(r => r.url);
       }
 
-      // Upload new brochure file and get URL
       let brochureUrl = form.brochure;
       if (form.brochure && typeof form.brochure !== 'string') {
         const result = await uploadAPI.uploadFile(form.brochure);
         brochureUrl = result.url;
       }
 
-      // Upload new document files and get URLs
       const newDocFiles = (form.documents || []).filter(doc => typeof doc !== 'string');
       const existingDocUrls = (form.documents || []).filter(doc => typeof doc === 'string');
       let uploadedDocUrls = [];
@@ -98,7 +89,6 @@ export default function SiteManagement() {
         uploadedDocUrls = results.map(r => r.url);
       }
 
-      // Strip server-only fields that DTO validation rejects
       const { id, createdBy, createdAt, updatedAt, ...cleanForm } = form;
       const payload = {
         ...cleanForm,
@@ -112,14 +102,14 @@ export default function SiteManagement() {
 
       if (modal === "add") {
         await addSite(payload);
-        toast.success("Site added!");
+        toast.success("Project added!");
       } else {
         await updateSite(selected.id, payload);
-        toast.success("Site updated!");
+        toast.success("Project updated!");
       }
       setModal(null);
     } catch (err) {
-      toast.error(err.message || "Failed to save site");
+      toast.error(err.message || "Failed to save project");
     } finally {
       setSaving(false);
     }
@@ -129,17 +119,16 @@ export default function SiteManagement() {
 
   const columns = [
     {
-      key: "name", label: "Site Name", render: (v, row) => (
+      key: "name", label: "Project Name", render: (v, row) => (
         <div>
           <div className="font-medium text-gray-800">{v}</div>
           <div className="text-xs text-gray-400 flex items-center gap-1"><MapPin size={10} />{row.location}</div>
         </div>
       )
     },
-    { key: "type", label: "Type", render: v => <StatusBadge status={v} /> },
     { key: "totalPlots", label: "Total Plots" },
     { key: "availablePlots", label: "Available" },
-    { key: "pricePerSqft", label: "Price/sqft", render: v => `â‚¹${Number(v).toLocaleString("en-IN")}` },
+    { key: "pricePerSqft", label: "Price/sqft", render: v => `₹${Number(v).toLocaleString("en-IN")}` },
     { key: "status", label: "Status", render: v => <StatusBadge status={v} /> },
   ];
 
@@ -147,10 +136,10 @@ export default function SiteManagement() {
     if (!deleteTarget) return;
     try {
       await deleteSite(deleteTarget.id);
-      toast.success(`Site "${deleteTarget.name}" deleted`);
+      toast.success(`Project "${deleteTarget.name}" deleted`);
       setDeleteTarget(null);
     } catch (err) {
-      toast.error(err.message || "Failed to delete site");
+      toast.error(err.message || "Failed to delete project");
     }
   };
 
@@ -159,52 +148,18 @@ export default function SiteManagement() {
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
-        <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2"><Building2 size={22} />Site Master</h1>
-        <p className="text-gray-400 text-sm mt-0.5">{sites.length} total sites</p>
+        <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2"><Building2 size={22} />Project Master</h1>
+        <p className="text-gray-400 text-sm mt-0.5">{sites.length} total projects</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard icon={Globe} label="Total Sites" value={sites.length} color="blue" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={Globe} label="Total Projects" value={sites.length} color="blue" />
         <StatCard icon={CheckCircle} label="Active" value={sites.filter(s => s.status === "Active").length} color="green" />
         <StatCard icon={XCircle} label="Inactive" value={sites.filter(s => s.status === "Inactive").length} color="orange" />
         <StatCard icon={LayoutGrid} label="Total Plots" value={sites.reduce((a, s) => a + (s.totalPlots || 0), 0)} color="purple" />
-        <StatCard icon={Building2} label="Filtered" value={filteredSites.length} color="teal" />
       </div>
 
-      {/* Type Filter */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <button
-          onClick={() => setFilterType("")}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${!filterType
-            ? "bg-gray-900 text-white shadow-lg shadow-gray-200"
-            : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
-            }`}
-        >
-          All
-        </button>
-        {["Residential", "Commercial", "Villa", "Industrial"].map(type => {
-          const count = sites.filter(s => s.type === type).length;
-          const isActive = filterType === type;
-          const activeMap = {
-            Residential: "bg-blue-600 text-white shadow-lg shadow-blue-200 border-blue-600",
-            Commercial: "bg-purple-600 text-white shadow-lg shadow-purple-200 border-purple-600",
-            Villa: "bg-green-600 text-white shadow-lg shadow-green-200 border-green-600",
-            Industrial: "bg-orange-600 text-white shadow-lg shadow-orange-200 border-orange-600",
-          };
-          return (
-            <button
-              key={type}
-              onClick={() => setFilterType(isActive ? "" : type)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border ${isActive ? activeMap[type] : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-                }`}
-            >
-              {type} <span className="ml-1 text-xs opacity-70">({count})</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <DataTable title="All Sites" columns={columns} data={filteredSites} searchKey={["name", "location", "type"]} onAdd={openAdd} addLabel="+ Add Site"
+      <DataTable title="All Projects" columns={columns} data={sites} searchKey={["name", "location"]} onAdd={openAdd} addLabel="+ Add Project"
         actions={(row) => (
           <>
             <button onClick={() => openView(row)} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="View"><Eye size={15} /></button>
@@ -215,29 +170,22 @@ export default function SiteManagement() {
       />
 
       {/* Add/Edit Modal */}
-      <Modal key={modal} open={modal === "add" || modal === "edit"} onClose={() => setModal(null)} title={modal === "add" ? "Add New Site" : "Edit Site"} size="lg">
+      <Modal key={modal} open={modal === "add" || modal === "edit"} onClose={() => setModal(null)} title={modal === "add" ? "Add New Project" : "Edit Project"} size="lg">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField label="Site Name" required>
-            <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="input-field" placeholder="Site name" autoComplete="off" />
+          <FormField label="Project Name" required>
+            <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="input-field" placeholder="Project name" autoComplete="off" />
           </FormField>
           <FormField label="Location" required>
             <input value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))} className="input-field" placeholder="Area, City" autoComplete="off" />
           </FormField>
-          <FormField label="Type">
-            <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))} className="input-field">
-              {["Residential", "Commercial", "Villa", "Industrial"].map(t => <option key={t}>{t}</option>)}
-            </select>
-          </FormField>
-          <FormField label="Total Area">
-            <input value={form.totalArea} onChange={e => setForm(p => ({ ...p, totalArea: e.target.value }))} className="input-field" placeholder="e.g. 25 Acres" />
-          </FormField>
+
           <FormField label="Total Plots">
             <input type="number" value={form.totalPlots} onChange={e => setForm(p => ({ ...p, totalPlots: e.target.value }))} className="input-field" />
           </FormField>
           <FormField label="Available Plots">
             <input type="number" value={form.availablePlots} onChange={e => setForm(p => ({ ...p, availablePlots: e.target.value }))} className="input-field" />
           </FormField>
-          <FormField label="Price per Sqft (â‚¹)">
+          <FormField label="Price per Sqft (₹)">
             <input type="number" value={form.pricePerSqft} onChange={e => setForm(p => ({ ...p, pricePerSqft: e.target.value }))} className="input-field" />
           </FormField>
           <FormField label="Status">
@@ -257,7 +205,7 @@ export default function SiteManagement() {
                   <div className="w-11 h-11 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-2">
                     <ImageIcon size={22} />
                   </div>
-                  <p className="text-sm font-medium text-gray-700">Site Images</p>
+                  <p className="text-sm font-medium text-gray-700">Project Images</p>
                   <p className="text-[10px] text-gray-400 mt-0.5">JPG, PNG, WebP</p>
                   <label className="mt-2.5 px-4 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg cursor-pointer hover:bg-blue-700 transition-colors inline-flex items-center gap-1">
                     <Plus size={12} /> Add Images
@@ -354,104 +302,188 @@ export default function SiteManagement() {
           </div>
 
           <FormField label="Description" span>
-            <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className="input-field h-20 resize-none" placeholder="Site description..." />
+            <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className="input-field h-20 resize-none" placeholder="Project description..." />
           </FormField>
         </div>
         <div className="flex gap-3 mt-6">
           <button onClick={handleSave} disabled={saving} className="btn-primary flex-1 justify-center py-2.5 disabled:opacity-50">
-            {saving ? <><Loader2 size={16} className="animate-spin inline mr-1" /> Saving...</> : (modal === "add" ? "Add Site" : "Save Changes")}
+            {saving ? <><Loader2 size={16} className="animate-spin inline mr-1" /> Saving...</> : (modal === "add" ? "Add Project" : "Save Changes")}
           </button>
           <button onClick={() => setModal(null)} disabled={saving} className="btn-secondary flex-1 justify-center py-2.5">Cancel</button>
         </div>
       </Modal>
 
       {/* View Modal */}
-      <Modal open={modal === "view"} onClose={() => setModal(null)} title="Site Details" size="lg">
+      <Modal open={modal === "view"} onClose={() => setModal(null)} title="Project Overview & Details" size="lg">
         {selected && (
-          <div className="space-y-4">
+          <div className="space-y-5">
+            {/* Image Gallery */}
             {selected.images?.length > 0 && (
-              <div className="relative h-48 rounded-xl overflow-hidden bg-gray-100">
-                <img src={selected.images[imgIdx]} alt={selected.name} className="w-full h-full object-cover" />
+              <div className="relative rounded-xl overflow-hidden bg-gray-100">
+                <div className="relative h-64 w-full">
+                  <img 
+                    src={typeof selected.images[imgIdx] === 'string' ? selected.images[imgIdx] : URL.createObjectURL(selected.images[imgIdx])} 
+                    alt={selected.name} 
+                    className="w-full h-full object-cover"
+                  />
+                  
+                  {/* Image Navigation */}
+                  {selected.images.length > 1 && (
+                    <>
+                      <button 
+                        onClick={() => setImgIdx((prev) => (prev === 0 ? selected.images.length - 1 : prev - 1))}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all"
+                      >
+                        <ChevronLeft size={18} />
+                      </button>
+                      <button 
+                        onClick={() => setImgIdx((prev) => (prev === selected.images.length - 1 ? 0 : prev + 1))}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all"
+                      >
+                        <ChevronRight size={18} />
+                      </button>
+                      <div className="absolute bottom-3 right-3 px-3 py-1 bg-black/60 text-white text-xs font-medium rounded-full">
+                        {imgIdx + 1} / {selected.images.length}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Thumbnails */}
                 {selected.images.length > 1 && (
-                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                    {selected.images.map((_, i) => (
-                      <button key={i} onClick={() => setImgIdx(i)} className={`w-2 h-2 rounded-full transition-all ${i === imgIdx ? "bg-white w-4" : "bg-white/60"}`} />
+                  <div className="flex gap-2 p-2 bg-white border-t overflow-x-auto">
+                    {selected.images.map((img, i) => (
+                      <button 
+                        key={i} 
+                        onClick={() => setImgIdx(i)} 
+                        className={`relative h-12 w-16 flex-shrink-0 rounded-md overflow-hidden border-2 transition-all ${
+                          i === imgIdx ? "border-blue-500" : "border-transparent opacity-60 hover:opacity-100"
+                        }`}
+                      >
+                        <img src={typeof img === 'string' ? img : URL.createObjectURL(img)} alt="" className="w-full h-full object-cover" />
+                      </button>
                     ))}
                   </div>
                 )}
               </div>
             )}
 
-            <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-4 border border-gray-200">
-              <h3 className="text-xl font-medium text-gray-900">{selected.name}</h3>
-              <p className="text-gray-500 text-sm flex items-center gap-1 mt-1"><MapPin size={12} />{selected.location}</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-blue-50 rounded-xl p-3">
-                <div className="text-xs text-gray-500 font-medium mb-1">Type</div>
-                <div className="font-medium text-gray-800 text-sm"><StatusBadge status={selected.type} /></div>
+            {/* Header with Project Name, Location and Status */}
+            <div className="flex items-start justify-between gap-4 pb-4 border-b border-gray-200">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <StatusBadge status={selected.status} />
+                </div>
+                <h2 className="text-2xl  text-gray-800">{selected.name}</h2>
+                <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-1">
+                  <MapPin size={16} className="text-blue-500 flex-shrink-0" />
+                  {selected.location}
+                </p>
               </div>
-              <div className="bg-green-50 rounded-xl p-3">
-                <div className="text-xs text-gray-500 font-medium mb-1">Status</div>
-                <div className="font-medium text-gray-800 text-sm"><StatusBadge status={selected.status} /></div>
-              </div>
-              <div className="bg-purple-50 rounded-xl p-3">
-                <div className="text-xs text-gray-500 font-medium mb-1">Total Plots</div>
-                <div className="font-medium text-gray-800 text-lg">{selected.totalPlots}</div>
-              </div>
-              <div className="bg-orange-50 rounded-xl p-3">
-                <div className="text-xs text-gray-500 font-medium mb-1">Available</div>
-                <div className="font-medium text-gray-800 text-lg">{selected.availablePlots}</div>
-              </div>
-              <div className="bg-indigo-50 rounded-xl p-3">
-                <div className="text-xs text-gray-500 font-medium mb-1">Price/sqft</div>
-                <div className="font-medium text-gray-800 text-sm">â‚¹{Number(selected.pricePerSqft).toLocaleString("en-IN")}</div>
-              </div>
-              <div className="bg-pink-50 rounded-xl p-3">
-                <div className="text-xs text-gray-500 font-medium mb-1">Area</div>
-                <div className="font-medium text-gray-800 text-sm">{selected.totalArea}</div>
+              <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                <Building2 size={24} className="text-blue-600" />
               </div>
             </div>
 
-            {selected.description && (
-              <div className="bg-gray-50 rounded-xl p-4">
-                <div className="text-xs font-medium text-gray-500 mb-2">Description</div>
-                <p className="text-sm text-gray-700">{selected.description}</p>
+            {/* Key Metrics Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                <p className="text-xs font-medium text-blue-600 uppercase tracking-wider">Total Plots</p>
+                <p className="text-xl font-bold text-gray-900 mt-1">{selected.totalPlots || 0}</p>
+              </div>
+              <div className="bg-green-50 rounded-xl p-4 border border-green-100">
+                <p className="text-xs font-medium text-green-600 uppercase tracking-wider">Available</p>
+                <p className="text-xl font-bold text-gray-900 mt-1">{selected.availablePlots || 0}</p>
+              </div>
+              <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
+                <p className="text-xs font-medium text-purple-600 uppercase tracking-wider">Price/sqft</p>
+                <p className="text-xl font-bold text-gray-900 mt-1">₹{Number(selected.pricePerSqft || 0).toLocaleString("en-IN")}</p>
+              </div>
+             
+            </div>
+
+           
+
+            {/* Brochure Download */}
+            {selected.brochure && (
+              <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
+                <h4 className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <FileText size={14} />
+                  Project Brochure
+                </h4>
+                <a 
+                  href={selected.brochure} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  <Download size={16} />
+                  Download Brochure
+                </a>
               </div>
             )}
 
-            {(selected.brochure || selected.documents?.length > 0) && (
-              <div>
-                <div className="text-xs font-medium text-gray-500 mb-2">Documents</div>
+            {/* Documents & Attachments */}
+            {(selected.documents?.length > 0) && (
+              <div className="bg-white rounded-xl p-4 border border-gray-200">
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <File size={14} className="text-purple-600" />
+                  Documents & Attachments
+                </h4>
                 <div className="space-y-2">
-                  {selected.brochure && (
-                    <div className="flex items-center gap-2 px-3 py-2.5 bg-green-50 rounded-lg border border-green-200">
-                      <FileText size={16} className="text-green-600" />
-                      <span className="text-sm text-gray-700 flex-1 font-medium">Brochure</span>
-                      <a href={selected.brochure} target="_blank" rel="noopener noreferrer" className="w-6 h-6 flex items-center justify-center bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors">
-                        <Download size={12} />
-                      </a>
-                    </div>
-                  )}
-                  {selected.documents?.map((doc, idx) => (
-                    <div key={idx} className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                      <File size={16} className="text-purple-500" />
-                      <span className="text-sm text-gray-700 flex-1">Document {idx + 1}</span>
-                      <a href={doc} target="_blank" rel="noopener noreferrer" className="w-6 h-6 flex items-center justify-center bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors">
-                        <Download size={12} />
+                  {selected.documents.map((doc, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-purple-600 text-white flex items-center justify-center flex-shrink-0">
+                          <File size={18} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Document #{idx + 1}</p>
+                          <p className="text-xs text-gray-500">Attachment File</p>
+                        </div>
+                      </div>
+                      <a 
+                        href={typeof doc === 'string' ? doc : URL.createObjectURL(doc)} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="p-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                        title="View Document"
+                      >
+                        <Download size={16} />
                       </a>
                     </div>
                   ))}
                 </div>
               </div>
             )}
+
+             {/* Description */}
+            {selected.description && (
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <FileText size={14} className="text-blue-600" />
+                  Description
+                </h4>
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{selected.description}</p>
+              </div>
+            )}
+
+            {/* Close Button */}
+            <div className="flex justify-end pt-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setModal(null)}
+                className="px-6 py-2.5 rounded-xl text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all active:scale-95"
+              >
+                Close
+              </button>
+            </div>
           </div>
         )}
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Delete Site" size="sm">
+      <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Delete Project" size="sm">
         {deleteTarget && (
           <div className="text-center">
             <div className="mx-auto w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mb-4">
@@ -460,7 +492,7 @@ export default function SiteManagement() {
 
             <h3 className="text-lg font-normal text-gray-900 mb-2">Are you sure you want to delete?</h3>
             <p className="text-sm text-gray-500 mb-1">
-              You are about to delete this site:
+              You are about to delete this project:
             </p>
             <p className="text-sm font-medium text-gray-800 mb-4">
               "{deleteTarget.name}"
