@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { customer } from "../../api/customer.js";
-import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Users, Briefcase, DollarSign, ArrowLeft, ArrowRight, Car } from "lucide-react";
+import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Users, Briefcase, DollarSign, ArrowLeft, ArrowRight, Clock } from "lucide-react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -22,6 +22,7 @@ function FormField({ label, icon: Icon, children, required, className }) {
 
 const F = FormField;
 
+
 export default function CustomerRegistration() {
   const { sites } = useData();
   const { user } = useAuth();
@@ -38,7 +39,7 @@ export default function CustomerRegistration() {
     location: "",
     siteId: "",
     visitDate: "",
-    visitTime: "",
+    visitTime: "09:00",
     persons: "",
     purchaseMode: "Own Funding",
     notes: "",
@@ -47,6 +48,7 @@ export default function CustomerRegistration() {
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const approvedSites = sites.filter(s => s.status === "Active");
   const selectedSite = approvedSites.find(s => s.id === +form.siteId);
@@ -62,7 +64,6 @@ export default function CustomerRegistration() {
       toast.error("Enter valid 10-digit mobile number");
       return;
     }
-    // Demo OTP
     toast.success(`Demo OTP: 1234`);
     setOtpSent(true);
   };
@@ -76,19 +77,116 @@ export default function CustomerRegistration() {
     }
   };
 
+  const validateStep1 = () => {
+    const newErrors = {};
+    let errorMessages = [];
+
+    if (!form.name) {
+      newErrors.name = "Applicant name is required";
+      errorMessages.push("Applicant name is required");
+    }
+    if (!form.mobile) {
+      newErrors.mobile = "Mobile number is required";
+      errorMessages.push("Mobile number is required");
+    } else if (form.mobile.length !== 10) {
+      newErrors.mobile = "Enter valid 10-digit mobile number";
+      errorMessages.push("Enter valid 10-digit mobile number");
+    }
+    if (form.email && !/\S+@\S+\.\S+/.test(form.email)) {
+      newErrors.email = "Enter valid email address";
+      errorMessages.push("Enter valid email address");
+    }
+    if (!form.pinCode) {
+      newErrors.pinCode = "Pin code is required";
+      errorMessages.push("Pin code is required");
+    } else if (form.pinCode.length !== 6) {
+      newErrors.pinCode = "Pin code must be 6 digits";
+      errorMessages.push("Pin code must be 6 digits");
+    }
+    if (!form.address) {
+      newErrors.address = "Address is required";
+      errorMessages.push("Address is required");
+    }
+    if (!form.occupation) {
+      newErrors.occupation = "Occupation is required";
+      errorMessages.push("Occupation is required");
+    }
+
+    setErrors(newErrors);
+
+    if (errorMessages.length > 0) {
+      toast.error(errorMessages[0]);
+    }
+
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateStep2 = () => {
+    const newErrors = {};
+    let errorMessages = [];
+
+    if (!form.siteId) {
+      newErrors.siteId = "Please select a project";
+      errorMessages.push("Please select a project");
+    }
+    if (!form.visitDate) {
+      newErrors.visitDate = "Visit date is required";
+      errorMessages.push("Visit date is required");
+    }
+    if (!form.visitTime) {
+      newErrors.visitTime = "Visit time is required";
+      errorMessages.push("Visit time is required");
+    }
+    if (!form.persons) {
+      newErrors.persons = "Number of persons is required";
+      errorMessages.push("Number of persons is required");
+    } else if (Number(form.persons) < 1) {
+      newErrors.persons = "At least 1 person required";
+      errorMessages.push("At least 1 person required");
+    }
+    if (!form.purchaseMode) {
+      newErrors.purchaseMode = "Purchase mode is required";
+      errorMessages.push("Purchase mode is required");
+    }
+
+    setErrors(newErrors);
+
+    if (errorMessages.length > 0) {
+      toast.error(errorMessages[0]);
+    }
+
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNextStep = () => {
+    if (step === 1) {
+      const isValid = validateStep1();
+      if (!isValid) return;
+    }
+    if (step === 2) {
+      const isValid = validateStep2();
+      if (!isValid) return;
+    }
+    setStep(s => s + 1);
+  };
+
   const handleSubmit = async () => {
-    if (!form.name || !form.mobile || !form.email || !form.siteId || !form.visitDate || !form.visitTime || !form.persons) {
-      toast.error("Please fill all required fields");
+    const step1Valid = validateStep1();
+    const step2Valid = validateStep2();
+
+    if (!step1Valid || !step2Valid) {
       return;
     }
+
     if (!otpVerified) {
       toast.error("Please verify OTP to continue");
       return;
     }
+
     try {
       const payload = {
         name: form.name,
-        email: form.email,
+        email: form.email || "",
         mobile: form.mobile,
         address: form.address,
         visitDate: form.visitDate,
@@ -105,15 +203,36 @@ export default function CustomerRegistration() {
       toast.success("Customer registered successfully! 🎉");
       navigate("/customers");
     } catch (err) {
-      toast.error(err.message || "Registration failed");
+      if (err.response?.data?.errors) {
+        const backendErrors = err.response.data.errors;
+        let firstError = "";
+
+        backendErrors.forEach(error => {
+          const message = error.message || error.msg || "Invalid value";
+          if (firstError === "") firstError = message;
+        });
+
+        if (firstError) {
+          toast.error(firstError);
+        } else {
+          toast.error("Please fix the errors below");
+        }
+      } else if (err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else if (err.message) {
+        toast.error(err.message);
+      } else {
+        toast.error("Registration failed. Please try again.");
+      }
     }
   };
+
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2">
-          <User size={24} /> Customer Registration
+          <User size={24} /> Project Visit Registration
         </h1>
         <p className="text-gray-400 text-sm mt-1">Register new customer and schedule site visit</p>
       </div>
@@ -138,7 +257,7 @@ export default function CustomerRegistration() {
         {step === 1 && (
           <div className="space-y-5 animate-fadeIn">
             <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700 font-medium">
-               Enter customer details and verify mobile number
+              Enter customer details and verify mobile number
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -146,9 +265,10 @@ export default function CustomerRegistration() {
                 <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                   className="input-field" placeholder="Full name" />
               </F>
-              <F label="Email" icon={User} required>
+
+              <F label="Email" icon={User}>
                 <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                  className="input-field" placeholder="email@example.com" />
+                  className="input-field" placeholder="email@example.com (optional)" />
               </F>
 
               <F label="Mobile Number" icon={Phone} required>
@@ -181,11 +301,6 @@ export default function CustomerRegistration() {
                 </div>
               )}
 
-              <F label="Email (optional)" icon={User}>
-                <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                  className="input-field" placeholder="customer@email.com" />
-              </F>
-
               <F label="Pin Code" required>
                 <input type="number" value={form.pinCode} onChange={e => setForm(p => ({ ...p, pinCode: e.target.value }))}
                   className="input-field" placeholder="6-digit pin code" maxLength={6} />
@@ -217,7 +332,7 @@ export default function CustomerRegistration() {
               Select project and schedule visit
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ overflow: 'visible' }}>
               <F label="Select Project" icon={Building2} required className="md:col-span-2">
                 <select value={form.siteId} onChange={e => setForm(p => ({ ...p, siteId: e.target.value }))} className="input-field">
                   <option value="">Choose project…</option>
@@ -248,29 +363,27 @@ export default function CustomerRegistration() {
               </F>
 
               <F label="Visit Date" icon={Calendar} required>
-                <input type="date" value={form.visitDate} onChange={e => setForm(p => ({ ...p, visitDate: e.target.value }))}
-                  min={new Date().toISOString().split("T")[0]} className="input-field" />
+                <input
+                  type="date"
+                  value={form.visitDate}
+                  onChange={e => setForm(p => ({ ...p, visitDate: e.target.value }))}
+                  min={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })()}
+                  className={`input-field ${errors.visitDate ? 'border-red-500' : ''}`}
+                />
               </F>
 
-              <F label="Visit Time" required>
-                <input type="text" value={form.visitTime} onChange={e => {
-                  const val = e.target.value.replace(/[^\d:]/g, '');
-                  if (/^\d{0,2}:?\d{0,2}$/.test(val)) {
-                    setForm(p => ({ ...p, visitTime: val }));
-                  }
-                }} onBlur={e => {
-                  const val = e.target.value;
-                  if (val && !/^\d{2}:\d{2}$/.test(val)) {
-                    toast.error("Time format: HH:MM");
-                  }
-                }}
-                    className="input-field" placeholder="_ _ : _ _" maxLength={5} />
+              <F label="Visit Time" icon={Clock} required>
+                <input
+                  type="time"
+                  value={form.visitTime}
+                  onChange={e => setForm(p => ({ ...p, visitTime: e.target.value }))}
+                  className={`input-field ${errors.visitTime ? 'border-red-500' : ''}`}
+                />
               </F>
 
               <F label="Number of Persons" icon={Users} required>
                 <input type="text" value={form.persons} onChange={e => setForm(p => ({ ...p, persons: e.target.value.replace(/[^\d]/g, '') }))}
                   className="input-field" placeholder="1" maxLength={2} />
-
               </F>
 
               <F label="Pickup Location" icon={MapPin}>
@@ -295,7 +408,7 @@ export default function CustomerRegistration() {
         {step === 3 && (
           <div className="space-y-5 animate-fadeIn">
             <div className="bg-purple-50 rounded-xl p-4 text-sm text-purple-700 font-medium">
-               Review all details before submitting
+              Review all details before submitting
             </div>
 
             <div className="bg-gray-50 rounded-xl border border-gray-200 divide-y divide-gray-200">
@@ -336,7 +449,7 @@ export default function CustomerRegistration() {
             <ArrowLeft size={18} /> Back
           </button>
         )}
-        <button onClick={() => step < 3 ? setStep(s => s + 1) : handleSubmit()}
+        <button onClick={() => step < 3 ? handleNextStep() : handleSubmit()}
           className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2">
           {step === 3 ? "✅ Submit Registration" : <>Continue <ArrowRight size={18} /></>}
         </button>

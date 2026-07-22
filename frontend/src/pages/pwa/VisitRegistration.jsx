@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Users, Briefcase, IndianRupee } from "lucide-react";
+import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Users, Briefcase, IndianRupee, Clock } from "lucide-react";
 import { toast } from "react-toastify";
 
 function FormField({ label, icon: Icon, children, required, className }) {
@@ -31,7 +31,7 @@ export default function PWAVisitRegistration() {
   const [form, setForm] = useState({
     name: "", mobile: "", email: "", address: "", pinCode: "",
     occupation: "",
-    location: "", siteId: prefillSite || "", visitDate: "", visitTime: "",
+    location: "", siteId: prefillSite || "", visitDate: "", visitTime: "09:00",
     persons: "", purchaseMode: "Own Funding",
     notes: "", status: "Interested",
   });
@@ -39,6 +39,7 @@ export default function PWAVisitRegistration() {
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [locLoading, setLocLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const approvedSites = sites.filter(s => s.status === "Active");
   const selectedSite = approvedSites.find(s => s.id === +form.siteId);
@@ -72,37 +73,135 @@ export default function PWAVisitRegistration() {
 
   const sendOtp = async () => {
     if (!form.mobile || form.mobile.length !== 10) {
-      toast.error("Enter valid 10-digit mobile number");
+      setErrors({ mobile: "Enter valid 10-digit mobile number" });
       return;
     }
     // Demo OTP
     toast.success(`Demo OTP: 1234`);
     setOtpSent(true);
+    setErrors({});
   };
 
   const verifyOtp = () => {
     if (otp === "1234") {
       setOtpVerified(true);
       toast.success("Mobile verified!");
+      setErrors({});
     } else {
-      toast.error("Invalid OTP");
+      setErrors({ otp: "Invalid OTP" });
     }
   };
 
-  const handleSubmit = async () => {
-    if (!form.name || !form.mobile || !form.siteId || !form.visitDate || !form.visitTime || !form.persons) {
-      toast.error("Please fill all required fields");
+  const validateStep1 = () => {
+    const newErrors = {};
+    let errorMessages = [];
+
+    if (!form.name) {
+      newErrors.name = "Applicant name is required";
+      errorMessages.push("Applicant name is required");
+    }
+    if (!form.mobile) {
+      newErrors.mobile = "Mobile number is required";
+      errorMessages.push("Mobile number is required");
+    } else if (form.mobile.length !== 10) {
+      newErrors.mobile = "Enter valid 10-digit mobile number";
+      errorMessages.push("Enter valid 10-digit mobile number");
+    }
+    if (form.email && !/\S+@\S+\.\S+/.test(form.email)) {
+      newErrors.email = "Enter valid email address";
+      errorMessages.push("Enter valid email address");
+    }
+    if (!form.address) {
+      newErrors.address = "Address is required";
+      errorMessages.push("Address is required");
+    }
+    if (!form.pinCode) {
+      newErrors.pinCode = "Pin code is required";
+      errorMessages.push("Pin code is required");
+    } else if (form.pinCode.length !== 6) {
+      newErrors.pinCode = "Pin code must be 6 digits";
+      errorMessages.push("Pin code must be 6 digits");
+    }
+    if (!form.occupation) {
+      newErrors.occupation = "Occupation is required";
+      errorMessages.push("Occupation is required");
+    }
+
+    setErrors(newErrors);
+
+    if (errorMessages.length > 0) {
+      toast.error(errorMessages[0]);
+    }
+
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateStep2 = () => {
+    const newErrors = {};
+    let errorMessages = [];
+
+    if (!form.siteId) {
+      newErrors.siteId = "Please select a project";
+      errorMessages.push("Please select a project");
+    }
+    if (!form.visitDate) {
+      newErrors.visitDate = "Visit date is required";
+      errorMessages.push("Visit date is required");
+    }
+    if (!form.visitTime) {
+      newErrors.visitTime = "Visit time is required";
+      errorMessages.push("Visit time is required");
+    }
+    if (!form.persons) {
+      newErrors.persons = "Number of persons is required";
+      errorMessages.push("Number of persons is required");
+    } else if (Number(form.persons) < 1) {
+      newErrors.persons = "At least 1 person required";
+      errorMessages.push("At least 1 person required");
+    }
+    if (!form.purchaseMode) {
+      newErrors.purchaseMode = "Purchase mode is required";
+      errorMessages.push("Purchase mode is required");
+    }
+
+    setErrors(newErrors);
+
+    if (errorMessages.length > 0) {
+      toast.error(errorMessages[0]);
+    }
+
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNextStep = () => {
+    setErrors({});
+    if (step === 1 && !validateStep1()) {
       return;
     }
+    if (step === 2 && !validateStep2()) {
+      return;
+    }
+    setStep(s => s + 1);
+  };
+
+  const handleSubmit = async () => {
+    const step1Valid = validateStep1();
+    const step2Valid = validateStep2();
+
+    if (!step1Valid || !step2Valid) {
+      return;
+    }
+
     if (!otpVerified) {
       toast.error("Please verify OTP to continue");
       return;
     }
+
     try {
       await addCustomer({
         name: form.name,
         mobile: form.mobile,
-        email: form.email,
+        email: form.email || "",
         address: form.address,
         pinCode: form.pinCode,
         occupation: form.occupation,
@@ -119,11 +218,32 @@ export default function PWAVisitRegistration() {
       toast.success("Customer registered & visit scheduled! 🎉");
       navigate("/customers");
     } catch (err) {
-      toast.error(err.message || "Registration failed");
+      if (err.response?.data?.errors) {
+        const backendErrors = err.response.data.errors;
+        let firstError = "";
+
+        backendErrors.forEach(error => {
+          const message = error.message || error.msg || "Invalid value";
+          if (firstError === "") firstError = message;
+        });
+
+        if (firstError) {
+          toast.error(firstError);
+        } else {
+          toast.error("Please fix the errors below");
+        }
+      } else if (err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else if (err.message) {
+        toast.error(err.message);
+      } else {
+        toast.error("Registration failed. Please try again.");
+      }
     }
   };
 
-  const F = FormField
+  const F = FormField;
+
   return (
     <div className="pb-40 relative z-10 max-w-2xl mx-auto">
       {/* Header */}
@@ -159,28 +279,28 @@ export default function PWAVisitRegistration() {
                   className="input-field" placeholder="Full name" />
               </F>
 
-               <F label="Mobile Number" icon={Phone} required>
-                 <div className="flex gap-2 items-center">
-                   <input type="tel" value={form.mobile} onChange={e => setForm(p => ({ ...p, mobile: e.target.value }))}
-                     className="input-field flex-1" placeholder="10-digit number" maxLength={10} disabled={otpVerified} />
-                   {!otpVerified && (
-                     <button onClick={sendOtp} className="flex-shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors h-[46px]">
-                       Get OTP
-                     </button>
-                   )}
-                 </div>
-               </F>
+              <F label="Mobile Number" icon={Phone} required>
+                <div className="flex gap-2 items-center">
+                  <input type="tel" value={form.mobile} onChange={e => setForm(p => ({ ...p, mobile: e.target.value }))}
+                    className="input-field flex-1" placeholder="10-digit number" maxLength={10} disabled={otpVerified} />
+                  {!otpVerified && (
+                    <button onClick={sendOtp} className="flex-shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors h-[46px]">
+                      Get OTP
+                    </button>
+                  )}
+                </div>
+              </F>
 
               {otpSent && !otpVerified && (
-                 <F label="Enter OTP" required>
-                   <div className="flex gap-2 items-center">
-                     <input type="text" value={otp} onChange={e => setOtp(e.target.value)}
-                       className="input-field flex-1" placeholder="Enter 4-digit OTP" maxLength={4} />
-                     <button onClick={verifyOtp} className="flex-shrink-0 bg-green-100 hover:bg-green-200 text-green-700 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors h-[46px]">
-                       Verify
-                     </button>
-                   </div>
-                 </F>
+                <F label="Enter OTP" required>
+                  <div className="flex gap-2 items-center">
+                    <input type="text" value={otp} onChange={e => setOtp(e.target.value)}
+                      className="input-field flex-1" placeholder="Enter 4-digit OTP" maxLength={4} />
+                    <button onClick={verifyOtp} className="flex-shrink-0 bg-green-100 hover:bg-green-200 text-green-700 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors h-[46px]">
+                      Verify
+                    </button>
+                  </div>
+                </F>
               )}
 
               {otpVerified && (
@@ -189,9 +309,10 @@ export default function PWAVisitRegistration() {
                 </div>
               )}
 
-              <F label="Email (optional)">
+              <F label="Email">
                 <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                  className="input-field" placeholder="customer@email.com" />
+                  className={`input-field ${errors.email ? 'border-red-500 focus:ring-red-500' : ''}`} placeholder="email@example.com (optional)" />
+                {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
               </F>
 
               <F label="Address" icon={MapPin} required>
@@ -256,25 +377,24 @@ export default function PWAVisitRegistration() {
                 </div>
               </F>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 <F label="Visit Date" icon={Calendar} required>
-                  <input type="date" value={form.visitDate} onChange={e => setForm(p => ({ ...p, visitDate: e.target.value }))}
-                    min={new Date().toISOString().split("T")[0]} className="input-field" />
+                  <input
+                    type="date"
+                    value={form.visitDate}
+                    onChange={e => setForm(p => ({ ...p, visitDate: e.target.value }))}
+                    min={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })()}
+                    className={`input-field ${errors.visitDate ? 'border-red-500' : ''}`}
+                  />
                 </F>
 
-                <F label="Visit Time" required>
-                  <input type="text" value={form.visitTime} onChange={e => {
-                    const val = e.target.value.replace(/[^\d:]/g, '');
-                    if (/^\d{0,2}:?\d{0,2}$/.test(val)) {
-                      setForm(p => ({ ...p, visitTime: val }));
-                    }
-                  }} onBlur={e => {
-                    const val = e.target.value;
-                    if (val && !/^\d{2}:\d{2}$/.test(val)) {
-                      toast.error("Time format: HH:MM");
-                    }
-                  }}
-                    className="input-field" placeholder="_ _ : _ _" maxLength={5} />
+                <F label="Visit Time" icon={Clock} required>
+                  <input
+                    type="time"
+                    value={form.visitTime}
+                    onChange={e => setForm(p => ({ ...p, visitTime: e.target.value }))}
+                    className={`input-field ${errors.visitTime ? 'border-red-500' : ''}`}
+                  />
                 </F>
               </div>
 
@@ -284,17 +404,17 @@ export default function PWAVisitRegistration() {
                 {form.persons === '' && <p className="text-xs text-gray-400 mt-1">Enter number of persons</p>}
               </F>
 
-               <F label="Pickup Location (GPS)" icon={MapPin}>
-                 <div className="flex gap-2 items-center">
-                   <input value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))}
-                     className="input-field flex-1" placeholder="lat,lng or use GPS" />
-                   <button onClick={getLocation} disabled={locLoading}
-                     className="flex-shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1 h-[46px]">
-                     {locLoading ? <div className="w-4 h-4 border-2 border-blue-500 border-t transparent rounded-full animate-spin" /> : <Navigation size={14} />}
-                     {locLoading ? "" : "GPS"}
-                   </button>
-                 </div>
-               </F>
+              <F label="Pickup Location (GPS)" icon={MapPin}>
+                <div className="flex gap-2 items-center">
+                  <input value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))}
+                    className="input-field flex-1" placeholder="lat,lng or use GPS" />
+                  <button onClick={getLocation} disabled={locLoading}
+                    className="flex-shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1 h-[46px]">
+                    {locLoading ? <div className="w-4 h-4 border-2 border-blue-500 border-t transparent rounded-full animate-spin" /> : <Navigation size={14} />}
+                    {locLoading ? "" : "GPS"}
+                  </button>
+                </div>
+              </F>
 
               <F label="Notes / Requirements" icon={FileText}>
                 <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
@@ -349,7 +469,7 @@ export default function PWAVisitRegistration() {
               ← Back
             </button>
           )}
-          <button onClick={() => step < 3 ? setStep(s => s + 1) : handleSubmit()}
+          <button onClick={() => step < 3 ? handleNextStep() : handleSubmit()}
             className={`${step > 1 ? "flex-1" : "w-full"} bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-xl shadow-md shadow-blue-200 transition-all flex items-center justify-center text-sm`}>
             {step === 3 ? "Submit Registration" : "Continue →"}
           </button>
