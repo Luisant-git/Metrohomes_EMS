@@ -83,6 +83,7 @@ export default function PWADashboard() {
           ],
           teamTitle: null, teamList: null, teamEmpty: null, teamPath: null,
           quickActions: [
+            { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
             { label: "My Team", icon: Users, path: "/my-team", color: "bg-blue-500" },
             { label: "Customers", icon: UserCheck, path: "/customers", color: "bg-green-500" },
             { label: "Reports", icon: BarChart3, path: "/sales-report", color: "bg-orange-500" },
@@ -103,6 +104,7 @@ export default function PWADashboard() {
           ],
           teamTitle: "My BDMs", teamList: myBDMs, teamEmpty: "No BDMs assigned", teamPath: "/my-team",
           quickActions: [
+            { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
             { label: "My Team", icon: Users, path: "/my-team", color: "bg-blue-500" },
             { label: "Customers", icon: UserCheck, path: "/customers", color: "bg-green-500" },
             { label: "Reports", icon: BarChart3, path: "/sales-report", color: "bg-orange-500" },
@@ -122,6 +124,7 @@ export default function PWADashboard() {
           ],
           teamTitle: "My Sales Managers", teamList: mySMs, teamEmpty: "No Sales Managers assigned", teamPath: "/my-team",
           quickActions: [
+            { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
             { label: "My Team", icon: Users, path: "/my-team", color: "bg-blue-500" },
             { label: "Sales Targets", icon: TrendingUp, path: "/sales-targets", color: "bg-purple-500" },
             { label: "Customers", icon: UserCheck, path: "/customers", color: "bg-green-500" },
@@ -152,10 +155,10 @@ export default function PWADashboard() {
           ],
           teamTitle: null, teamList: null, teamEmpty: null, teamPath: null,
           quickActions: [
-            { label: "Customer Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
-            { label: "View Sites", icon: Building2, path: "/sites", color: "bg-purple-500" },
+            { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
+            { label: "View Projects", icon: Building2, path: "/sites", color: "bg-purple-500" },
             { label: "My Customers", icon: Users, path: "/customers", color: "bg-orange-500" },
-            { label: "Site Visits", icon: MapPin, path: "/visits", color: "bg-emerald-500" },
+            { label: "Project Visits", icon: MapPin, path: "/visits", color: "bg-emerald-500" },
           ],
           showPipeline: true, statusCounts, myCustomers,
         };

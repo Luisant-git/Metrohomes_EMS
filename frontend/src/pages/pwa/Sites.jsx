@@ -190,10 +190,7 @@ export default function PWASites() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-blue-50 rounded-xl p-3">
-                  <div className="text-xs text-gray-500 mb-1">Type</div>
-                  <div className="font-semibold text-gray-800 text-sm"><StatusBadge status={selectedSite.type} /></div>
-                </div>
+               
                 <div className="bg-green-50 rounded-xl p-3">
                   <div className="text-xs text-gray-500 mb-1">Status</div>
                   <div className="font-semibold text-gray-800 text-sm"><StatusBadge status={selectedSite.status} /></div>
@@ -210,10 +207,7 @@ export default function PWASites() {
                   <div className="text-xs text-gray-500 mb-1">Price/sqft</div>
                   <div className="font-bold text-gray-800 text-sm">₹{Number(selectedSite.pricePerSqft).toLocaleString("en-IN")}</div>
                 </div>
-                <div className="bg-pink-50 rounded-xl p-3">
-                  <div className="text-xs text-gray-500 mb-1">Area</div>
-                  <div className="font-bold text-gray-800 text-sm">{selectedSite.totalArea}</div>
-                </div>
+                
               </div>
               {selectedSite.description && (
                 <div className="bg-gray-50 rounded-xl p-4">

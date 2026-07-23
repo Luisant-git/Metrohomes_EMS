@@ -70,6 +70,7 @@ function AppRoutes() {
           <Route path="/" element={<PWADashboard />} />
           <Route path="/my-team" element={<TeamPage />} />
           <Route path="/customers" element={<PWACustomers />} />
+          <Route path="/customer-registration" element={<PWAVisitRegistration />} />
           <Route path="/visits" element={<PWAVisits />} />
           <Route path="/bookings" element={<PWABookings />} />
           <Route path="/sales-report" element={<PWASReport />} />

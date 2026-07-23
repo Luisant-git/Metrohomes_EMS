@@ -136,23 +136,7 @@ export default function PWAProfile() {
           )}
         </div>
 
-        {/* PWA info */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
-          <h3 className="font-bold text-gray-800 text-sm mb-3">📱 PWA Settings</h3>
-          <div className="space-y-2 text-sm">
-            {[
-              ["Platform", "PWA (Mobile App)"],
-              ["Offline Mode", "✅ Enabled"],
-              ["Auto Sync", "✅ Active"],
-              ["Last Sync", new Date().toLocaleString("en-IN")],
-            ].map(([k, v]) => (
-              <div key={k} className="flex justify-between items-center py-1">
-                <span className="text-gray-500">{k}</span>
-                <span className="font-semibold text-gray-700 text-right text-xs">{v}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+      
 
         {/* Logout */}
         <button onClick={logout} className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold py-4 rounded-2xl transition-colors border border-red-100">

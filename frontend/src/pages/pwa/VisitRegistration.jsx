@@ -514,6 +514,9 @@ export default function PWAVisitRegistration() {
                 ["Persons", form.persons],
                 ["Pickup", form.location || "—"],
                 ["Notes", form.notes || "—"],
+                ["Created By Role", salesManager.role],
+                ["Sales Manager", salesManager.name],
+                ["Sales Manager Mobile", salesManager.mobile],
               ].map(([k, v]) => (
                 <div key={k} className="flex items-start justify-between px-4 py-3">
                   <span className="text-sm text-gray-400 font-medium">{k}</span>

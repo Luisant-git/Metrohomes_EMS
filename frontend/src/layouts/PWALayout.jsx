@@ -6,25 +6,28 @@ import logo from "../assests/logo 1.png";
 const ROLE_BOTTOM_NAV = {
   "Regional Manager": [
     { path: "/", icon: LayoutDashboard, label: "Dashboard" },
+    { path: "/sites", icon: Building2, label: "Projects" },
     { path: "/my-team", icon: Users, label: "My Team" },
     { path: "/sales-report", icon: BarChart3, label: "Reports" },
     { path: "/profile", icon: User, label: "Profile" },
   ],
   "Branch Manager": [
     { path: "/", icon: LayoutDashboard, label: "Dashboard" },
+    { path: "/sites", icon: Building2, label: "Projects" },
     { path: "/my-team", icon: Users, label: "My Team" },
     { path: "/sales-report", icon: BarChart3, label: "Reports" },
     { path: "/profile", icon: User, label: "Profile" },
   ],
   "BDM": [
     { path: "/", icon: LayoutDashboard, label: "Dashboard" },
+    { path: "/sites", icon: Building2, label: "Projects" },
     { path: "/my-team", icon: Users, label: "My Team" },
     { path: "/customers", icon: Users, label: "Customers" },
     { path: "/profile", icon: User, label: "Profile" },
   ],
   "Sales Manager": [
     { path: "/", icon: LayoutDashboard, label: "Home" },
-    { path: "/sites", icon: Building2, label: "Sites" },
+    { path: "/sites", icon: Building2, label: "Projects" },
     { path: "/customers", icon: Users, label: "Customers" },
     { path: "/visits", icon: MapPin, label: "Visits" },
     { path: "/profile", icon: User, label: "Profile" },

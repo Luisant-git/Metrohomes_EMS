@@ -24,6 +24,7 @@ export default function PWACustomers() {
   const { customers, users, updateCustomer } = useData();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState("All");
+  const [roleFilter, setRoleFilter] = useState("All");
   const [viewCustomer, setViewCustomer] = useState(null);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -41,6 +42,22 @@ export default function PWACustomers() {
     return customers.filter(c => teamUserIds.includes(c.createdById));
   }, [customers, teamUserIds]);
 
+  // Unique roles in the team for role filter
+  const teamRoles = useMemo(() => {
+    const roleSet = new Set();
+    teamUserIds.forEach(id => {
+      const u = users.find(user => user.id === id);
+      if (u?.role) roleSet.add(u.role);
+    });
+    return ["All", ...Array.from(roleSet)];
+  }, [users, teamUserIds]);
+
+  // Helper: get role of the user who created a customer
+  const getCreatorRole = (customer) => {
+    const creator = users.find(u => u.id === (customer.createdById || customer.createdBy));
+    return creator?.role || "";
+  };
+
   // Search filter
   const searchedCustomers = useMemo(() => {
     if (!search.trim()) return myCustomers;
@@ -54,11 +71,17 @@ export default function PWACustomers() {
     );
   }, [myCustomers, search]);
 
-  // Status filter
+  // Status filter + Role filter
   const filteredCustomers = useMemo(() => {
-    if (statusFilter === "All") return searchedCustomers;
-    return searchedCustomers.filter(c => c.status === statusFilter);
-  }, [searchedCustomers, statusFilter]);
+    let result = searchedCustomers;
+    if (statusFilter !== "All") {
+      result = result.filter(c => c.status === statusFilter);
+    }
+    if (roleFilter !== "All") {
+      result = result.filter(c => getCreatorRole(c) === roleFilter);
+    }
+    return result;
+  }, [searchedCustomers, statusFilter, roleFilter, users]);
 
   // Pagination
   const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE);
@@ -90,9 +113,8 @@ export default function PWACustomers() {
     { key: "Interested", label: "Interested", count: statusCounts.Interested },
     { key: "Visit Scheduled", label: "Visit Scheduled", count: statusCounts["Visit Scheduled"] },
     { key: "Visit Completed", label: "Visit Completed", count: statusCounts["Visit Completed"] },
-    { key: "Ready for Booking", label: "Ready to Book", count: statusCounts["Ready for Booking"] },
-    { key: "Booked", label: "Booked / Paid", count: statusCounts.Booked + statusCounts["Payment Done"] },
-    { key: "Dropped", label: "Dropped", count: statusCounts.Dropped },
+    { key: "Booked", label: "Booked", count: statusCounts.Booked },
+    { key: "Payment Done", label: "Payment Done", count: statusCounts["Payment Done"] },
   ];
 
   const formatDate = (dateStr) => {
@@ -141,12 +163,12 @@ export default function PWACustomers() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <h3 className="font-bold text-gray-800 text-sm mb-3">Pipeline</h3>
           <div className="space-y-2">
-            {[
-              { label: "Interested", count: statusCounts.Interested, color: "bg-yellow-400" },
-              { label: "Visit Scheduled", count: statusCounts["Visit Scheduled"], color: "bg-blue-400" },
-              { label: "Visit Completed", count: statusCounts["Visit Completed"], color: "bg-purple-400" },
-              { label: "Ready to Book", count: statusCounts["Ready for Booking"], color: "bg-orange-400" },
-              { label: "Booked / Paid", count: statusCounts.Booked + statusCounts["Payment Done"], color: "bg-green-400" },
+          {[
+            { label: "Interested", count: statusCounts.Interested, color: "bg-yellow-400" },
+            { label: "Visit Scheduled", count: statusCounts["Visit Scheduled"], color: "bg-blue-400" },
+            { label: "Visit Completed", count: statusCounts["Visit Completed"], color: "bg-purple-400" },
+            { label: "Booked", count: statusCounts.Booked, color: "bg-green-400" },
+            { label: "Payment Done", count: statusCounts["Payment Done"], color: "bg-emerald-600" },
             ].map(s => (
               <div key={s.label} className="flex items-center gap-3">
                 <div className={`w-2 h-2 rounded-full ${s.color}`} />
@@ -178,7 +200,22 @@ export default function PWACustomers() {
             </div>
           </div>
 
-          {/* Status Filter Dropdown - line 2 */}
+          {/* Role Filter Dropdown - line 2 */}
+          <div className="px-4 pb-2">
+            <select
+              value={roleFilter}
+              onChange={e => { setRoleFilter(e.target.value); setCurrentPage(1); }}
+              className="w-full rounded-xl px-3 py-2 bg-gray-50 border border-gray-200 text-xs font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {teamRoles.map(role => (
+                <option key={role} value={role}>
+                  {role === "All" ? "All Roles" : role}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status Filter Dropdown - line 3 */}
           <div className="px-4 pb-3">
             <select
               value={statusFilter}

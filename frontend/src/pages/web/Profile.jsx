@@ -140,23 +140,7 @@ export default function WebProfile() {
         )}
       </div>
 
-      {/* Web info */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 w-full max-w-3xl mx-auto">
-        <h3 className="font-semibold text-gray-800 text-sm mb-3">💻 Web Settings</h3>
-        <div className="space-y-2 text-sm">
-          {[
-            ["Platform", "Web (Desktop)"],
-            ["Browser Support", "Chrome, Firefox, Edge, Safari"],
-            ["Auto Sync", "✅ Active"],
-            ["Last Login", new Date().toLocaleString("en-IN")],
-          ].map(([k, v]) => (
-            <div key={k} className="flex justify-between items-center py-1">
-              <span className="text-gray-500">{k}</span>
-              <span className="font-medium text-gray-700 text-right text-xs">{v}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+   
 
       {/* Logout */}
       <div className="w-full max-w-3xl mx-auto">
