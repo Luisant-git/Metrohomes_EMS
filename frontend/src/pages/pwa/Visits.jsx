@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { MapPin, Calendar, CheckCircle, Clock, XCircle } from "lucide-react";
@@ -6,16 +6,31 @@ import StatusBadge from "../../components/StatusBadge.jsx";
 import { toast } from "react-toastify";
 
 export default function PWAVisits() {
-  const { visits, updateVisit, updateCustomer, customers } = useData();
-  const { user } = useAuth();
+  const { customers, updateCustomer, users } = useData();
+  const { user, hierarchy } = useAuth();
   const [filter, setFilter] = useState("All");
 
-  const myVisits = visits.filter(v => v.salesManagerId === user?.id || user?.id === 6);
+  const teamUserIds = useMemo(() => {
+    if (!users.length || !user?.id) return [];
+    const downline = hierarchy.getDownline(users);
+    const allTeam = [user, ...downline].filter(Boolean);
+    return allTeam.map(u => u.id);
+  }, [users, user, hierarchy]);
+
+  const myVisits = useMemo(() => {
+    return customers
+      .filter(c => teamUserIds.includes(c.createdById))
+      .filter(c => ["Visit Scheduled", "Visit Completed", "Booked", "Payment Done"].includes(c.status))
+      .map(c => ({
+        ...c,
+        customerName: c.name,
+      }));
+  }, [customers, teamUserIds]);
+
   const filtered = filter === "All" ? myVisits : myVisits.filter(v => v.status === filter);
 
   const completeVisit = (v) => {
-    updateVisit(v.id, { status: "Visit Completed" });
-    updateCustomer(v.customerId, { status: "Visit Completed" });
+    updateCustomer(v.id, { status: "Visit Completed" });
     toast.success("Visit marked as completed!");
   };
 

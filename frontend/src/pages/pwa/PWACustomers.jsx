@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { UserX, Eye, Search, ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import Modal from "../../components/Modal.jsx";
@@ -13,7 +13,8 @@ export default function PWACustomers() {
   const { user, hierarchy } = useAuth();
   const { customers, users, updateCustomer } = useData();
   const navigate = useNavigate();
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [searchParams] = useSearchParams();
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "All");
   const [roleFilter, setRoleFilter] = useState("All");
   const [viewCustomer, setViewCustomer] = useState(null);
   const [pendingUpdate, setPendingUpdate] = useState(null);
