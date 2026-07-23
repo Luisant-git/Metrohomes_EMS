@@ -172,7 +172,7 @@ function AddUserModal({
     }
 
     if (!form.name?.trim()) {
-      newErrors.name = "Full Name is required";
+      newErrors.name = "Name is required";
     }
 
     if (!form.email?.trim()) {
@@ -511,12 +511,12 @@ function AddUserModal({
               Personal Information
             </h5>
             <div className="grid grid-cols-2 gap-3">
-              <FormField label="Full Name" required>
+              <FormField label="Name" required>
                 <input
                   value={form.name}
                   onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                   className={`input-field ${errors.name ? "border-red-500 focus:ring-red-500" : ""}`}
-                  placeholder="Enter full name"
+                  placeholder="Enter name"
                   autoComplete="off"
                 />
                 {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
@@ -594,13 +594,22 @@ function AddUserModal({
                 />
               </FormField>
               <FormField label="Relationship">
-                <input
+                <select
                   value={form.nomineeRelationship}
                   onChange={e => setForm(p => ({ ...p, nomineeRelationship: e.target.value }))}
                   className="input-field"
-                  placeholder="e.g., Spouse, Son"
-                  autoComplete="off"
-                />
+                >
+                  <option value="">Select Relationship</option>
+                  <option value="Father">Father</option>
+                  <option value="Mother">Mother</option>
+                  <option value="Son">Son</option>
+                  <option value="Daughter">Daughter</option>
+                  <option value="Spouse">Spouse</option>
+                  <option value="Friends">Friends</option>
+                  <option value="Relatives">Relatives</option>
+                  <option value="Neighbours">Neighbours</option>
+                  <option value="Others">Others</option>
+                </select>
               </FormField>
             </div>
           </div>
@@ -1449,8 +1458,8 @@ export default function UserManagement() {
               <h4 className="text-sm font-bold text-gray-700">Personal Information</h4>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <FormField label="Full Name" required>
-                <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="input-field" placeholder="Full name" autoComplete="off" />
+              <FormField label="Name" required>
+                <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="input-field" placeholder="Name" autoComplete="off" />
               </FormField>
               <FormField label="Father's/Husband Name">
                 <input value={form.fatherHusbandName} onChange={e => setForm(p => ({ ...p, fatherHusbandName: e.target.value }))} className="input-field" placeholder="Enter father's/husband name" autoComplete="off" />
@@ -1515,7 +1524,22 @@ export default function UserManagement() {
                 <input value={form.nomineeName} onChange={e => setForm(p => ({ ...p, nomineeName: e.target.value }))} className="input-field" placeholder="Enter nominee name" autoComplete="off" />
               </FormField>
               <FormField label="Nominee Relationship">
-                <input value={form.nomineeRelationship} onChange={e => setForm(p => ({ ...p, nomineeRelationship: e.target.value }))} className="input-field" placeholder="e.g., Spouse, Son, Daughter" autoComplete="off" />
+                <select
+                  value={form.nomineeRelationship}
+                  onChange={e => setForm(p => ({ ...p, nomineeRelationship: e.target.value }))}
+                  className="input-field"
+                >
+                  <option value="">Select Relationship</option>
+                  <option value="Father">Father</option>
+                  <option value="Mother">Mother</option>
+                  <option value="Son">Son</option>
+                  <option value="Daughter">Daughter</option>
+                  <option value="Spouse">Spouse</option>
+                  <option value="Friends">Friends</option>
+                  <option value="Relatives">Relatives</option>
+                  <option value="Neighbours">Neighbours</option>
+                  <option value="Others">Others</option>
+                </select>
               </FormField>
             </div>
           </div>
