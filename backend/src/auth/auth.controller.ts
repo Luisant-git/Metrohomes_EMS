@@ -3,6 +3,7 @@ import { Controller, Post, Body, Get, UseGuards, Request, HttpCode, HttpStatus }
 import { ApiTags, ApiBody, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { AdminLoginDto } from './dto/admin-login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RequestOtpDto } from './dto/request-otp.dto';
@@ -12,6 +13,17 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
+
+  @Post('admin-login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Dedicated login endpoint for Admin role',
+    description: 'Authenticate admin users directly using user identifier and PIN/password.',
+  })
+  @ApiBody({ type: AdminLoginDto })
+  adminLogin(@Body() body: AdminLoginDto) {
+    return this.authService.adminLogin(body);
+  }
 
   @Post('register-admin')
   @HttpCode(HttpStatus.CREATED)

@@ -206,6 +206,22 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const adminLogin = async (identifier, pin) => {
+    try {
+      const data = await auth.adminLogin(identifier, pin);
+      if (data?.user && data?.accessToken) {
+        const { pin: _, ...safeUser } = data.user;
+        setUser(safeUser);
+        localStorage.setItem("re_user", JSON.stringify(safeUser));
+        localStorage.setItem("authToken", data.accessToken);
+        return { success: true, user: safeUser };
+      }
+      return { success: false, error: "Admin login failed" };
+    } catch (err) {
+      return { success: false, error: err.message || "Invalid Admin credentials" };
+    }
+  };
+
   // OTP functions
   const requestOtp = async (employeeCode) => {
     try {
@@ -305,7 +321,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, requestOtp, verifyOtp, updateProfile, loading, isWebRole, isPWARole, hierarchy, MOCK_USERS }}>
+    <AuthContext.Provider value={{ user, login, adminLogin, logout, requestOtp, verifyOtp, updateProfile, loading, isWebRole, isPWARole, hierarchy, MOCK_USERS }}>
       {children}
     </AuthContext.Provider>
   );

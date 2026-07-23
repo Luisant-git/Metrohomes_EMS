@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
-import { UserRound, Send, ShieldCheck, RefreshCw, Check, ArrowLeft } from "lucide-react";
+import { UserRound, Send, ShieldCheck, RefreshCw, Check, ArrowLeft, Lock, Shield } from "lucide-react";
 import { toast } from "react-toastify";
 import logo from "../assests/logo 1.png";
 
@@ -9,14 +9,15 @@ const OTP_EXPIRY_SECONDS = 292;
 const RESEND_COOLDOWN_SECONDS = 45;
 
 export default function LoginPage() {
-  const [step, setStep] = useState("enterId");
+  const [step, setStep] = useState("enterId"); // "enterId" | "adminPin" | "otpSent"
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(""));
   const [identifier, setIdentifier] = useState("");
+  const [adminPin, setAdminPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [expiryLeft, setExpiryLeft] = useState(OTP_EXPIRY_SECONDS);
   const [resendLeft, setResendLeft] = useState(RESEND_COOLDOWN_SECONDS);
 
-  const { requestOtp, verifyOtp } = useAuth();
+  const { requestOtp, verifyOtp, adminLogin } = useAuth();
   const inputsRef = useRef([]);
 
   useEffect(() => {
@@ -58,13 +59,16 @@ export default function LoginPage() {
     inputsRef.current[Math.min(data.length, OTP_LENGTH - 1)]?.focus();
   };
 
-  const handleSendOtp = async (e) => {
+  const handleCheckUser = async (e) => {
     e.preventDefault();
     if (!identifier.trim()) return;
     setLoading(true);
     try {
       const result = await requestOtp(identifier);
-      if (result.success || result.message) {
+      if (result?.isAdmin) {
+        setStep("adminPin");
+        setAdminPin("");
+      } else if (result?.message || result?.success) {
         toast.success("OTP sent to your WhatsApp");
         setStep("otpSent");
         setExpiryLeft(OTP_EXPIRY_SECONDS);
@@ -72,10 +76,10 @@ export default function LoginPage() {
         setOtp(Array(OTP_LENGTH).fill(""));
         setTimeout(() => inputsRef.current[0]?.focus(), 100);
       } else {
-        toast.error(result.error || "Failed to send OTP");
+        toast.error(result.error || "User not found or request failed");
       }
     } catch (err) {
-      toast.error(err.message || "Failed to send OTP");
+      toast.error(err.message || "Failed to identify user");
     } finally {
       setLoading(false);
     }
@@ -91,14 +95,33 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const result = await verifyOtp(identifier, code);
-      if (result.success || result.accessToken) {
+      if (result?.success || result?.accessToken) {
         const name = result.user?.name ?? "";
         toast.success(`Welcome${name ? `, ${name}` : ""}!`);
       } else {
-        toast.error(result.error || "Invalid OTP");
+        toast.error(result?.error || "Invalid OTP");
       }
     } catch (err) {
       toast.error(err.message || "Invalid OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdminLogin = async (e) => {
+    e.preventDefault();
+    if (!identifier.trim() || !adminPin.trim()) return;
+    setLoading(true);
+    try {
+      const result = await adminLogin(identifier, adminPin);
+      if (result?.success || result?.user) {
+        const name = result.user?.name ?? "Admin";
+        toast.success(`Welcome, ${name}!`);
+      } else {
+        toast.error(result?.error || "Invalid Admin credentials");
+      }
+    } catch (err) {
+      toast.error(err.message || "Admin PIN authentication failed");
     } finally {
       setLoading(false);
     }
@@ -109,14 +132,14 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const result = await requestOtp(identifier);
-      if (result.success || result.message) {
+      if (result?.message || result?.success) {
         toast.success("OTP resent");
         setExpiryLeft(OTP_EXPIRY_SECONDS);
         setResendLeft(RESEND_COOLDOWN_SECONDS);
         setOtp(Array(OTP_LENGTH).fill(""));
         inputsRef.current[0]?.focus();
       } else {
-        toast.error(result.error || "Failed to resend OTP");
+        toast.error(result?.error || "Failed to resend OTP");
       }
     } catch (err) {
       toast.error(err.message || "Failed to resend OTP");
@@ -128,6 +151,7 @@ export default function LoginPage() {
   const goBackToEditId = () => {
     setStep("enterId");
     setOtp(Array(OTP_LENGTH).fill(""));
+    setAdminPin("");
   };
 
   return (
@@ -152,21 +176,22 @@ export default function LoginPage() {
         </div>
 
         {/* Right - Card */}
-        <div className="w-full max-w-[340px] mx-auto lg:mx-0">
+        <div className="w-full max-w-[350px] mx-auto lg:mx-0">
           
-        {/* Mobile logo */}
-<div className="flex justify-center mb-5 lg:hidden">
-  <img
-    src={logo}
-    alt="Logo"
-    className="h-32 sm:h-36 w-auto max-w-[260px] object-contain drop-shadow-[0_12px_28px_rgba(29,111,185,0.18)]"
-  />
-</div>
+          {/* Mobile logo */}
+          <div className="flex justify-center mb-5 lg:hidden">
+            <img
+              src={logo}
+              alt="Logo"
+              className="h-32 sm:h-36 w-auto max-w-[260px] object-contain drop-shadow-[0_12px_28px_rgba(29,111,185,0.18)]"
+            />
+          </div>
 
           <div className="bg-white rounded-2xl shadow-[0_15px_45px_rgba(15,23,42,0.08)] p-5 sm:p-6 border border-slate-100">
-            {/* Heading with back arrow on step 2 */}
+            
+            {/* Heading with back arrow on step 2 & admin pin step */}
             <div className="relative text-center mb-4">
-              {step === "otpSent" && (
+              {step !== "enterId" && (
                 <button
                   type="button"
                   onClick={goBackToEditId}
@@ -177,20 +202,26 @@ export default function LoginPage() {
                 </button>
               )}
               <h2 className="text-lg sm:text-xl font-bold text-slate-900">
-                {step === "enterId" ? "Login" : "Verify OTP"}
+                {step === "enterId"
+                  ? "Sign In"
+                  : step === "adminPin"
+                  ? "Admin PIN"
+                  : "Verify OTP"}
               </h2>
               <p className="text-slate-500 text-[11px] mt-0.5">
                 {step === "enterId"
-                  ? "Sign in to continue"
-                  : "Enter the code sent to your WhatsApp"}
+                  ? "Enter your User ID to continue"
+                  : step === "adminPin"
+                  ? `Authenticating Admin (${identifier})`
+                  : `Enter the code sent to your WhatsApp`}
               </p>
             </div>
 
-            {/* Stepper */}
+            {/* Stepper Indicator */}
             <div className="flex items-center justify-center gap-1.5 mb-5">
               <div className="flex flex-col items-center">
                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold bg-[#1D6FB9] text-white">
-                  {step === "otpSent" ? <Check size={12} /> : "1"}
+                  {step !== "enterId" ? <Check size={12} /> : "1"}
                 </div>
                 <span
                   className={`text-[10px] mt-1 font-medium ${
@@ -206,7 +237,7 @@ export default function LoginPage() {
               <div className="flex flex-col items-center">
                 <div
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold transition-all ${
-                    step === "otpSent"
+                    step !== "enterId"
                       ? "bg-[#1D6FB9] text-white"
                       : "bg-slate-100 text-slate-400"
                   }`}
@@ -215,20 +246,20 @@ export default function LoginPage() {
                 </div>
                 <span
                   className={`text-[10px] mt-1 font-medium ${
-                    step === "otpSent" ? "text-[#1D6FB9]" : "text-slate-400"
+                    step !== "enterId" ? "text-[#1D6FB9]" : "text-slate-400"
                   }`}
                 >
-                  Verify OTP
+                  {step === "adminPin" ? "Verify PIN" : "Verify OTP"}
                 </span>
               </div>
             </div>
 
             {/* STEP 1 - Enter User ID */}
             {step === "enterId" && (
-              <form onSubmit={handleSendOtp} className="space-y-3.5">
+              <form onSubmit={handleCheckUser} className="space-y-3.5">
                 <div>
                   <label className="block text-[11px] font-medium text-slate-600 mb-1.5">
-                    User ID
+                    User ID / Employee Code
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2">
@@ -272,22 +303,84 @@ export default function LoginPage() {
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                         />
                       </svg>
-                      <span>Sending...</span>
+                      <span>Processing...</span>
                     </>
                   ) : (
                     <>
                       <Send size={13} />
-                      <span>Get OTP</span>
+                      <span>Continue</span>
                     </>
                   )}
                 </button>
               </form>
             )}
 
-            {/* STEP 2 - Verify OTP */}
+            {/* STEP 2A - Admin PIN Verification */}
+            {step === "adminPin" && (
+              <form onSubmit={handleAdminLogin} className="space-y-3.5">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-600 mb-1.5">
+                    Admin PIN / Password
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2">
+                      <Lock size={14} className="text-slate-400" />
+                    </span>
+                    <input
+                      type="password"
+                      value={adminPin}
+                      onChange={(e) => setAdminPin(e.target.value)}
+                      placeholder="Enter Admin PIN"
+                      required
+                      autoFocus
+                      maxLength={10}
+                      className="w-full bg-white border border-slate-300 rounded-md pl-9 pr-3 py-2.5 text-xs text-slate-900 placeholder-slate-400 outline-none transition-colors focus:border-[#1D6FB9] focus:ring-2 focus:ring-[#1D6FB9]/20"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || !adminPin.trim()}
+                  className="w-full text-white font-semibold py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed text-xs hover:brightness-110 mt-2"
+                  style={{
+                    background: "linear-gradient(135deg, #1D6FB9 0%, #175a97 100%)",
+                    boxShadow: "0 6px 18px rgba(29, 111, 185, 0.25)",
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
+                      </svg>
+                      <span>Authenticating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Shield size={13} />
+                      <span>Verify Admin PIN</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {/* STEP 2B - Verify OTP */}
             {step === "otpSent" && (
               <form onSubmit={handleVerifyOtp} className="space-y-4">
-                {/* OTP inputs */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-[11px] font-medium text-slate-600">
@@ -316,7 +409,6 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* Verify Button */}
                 <button
                   type="submit"
                   disabled={loading || otp.join("").length !== OTP_LENGTH}
@@ -354,7 +446,6 @@ export default function LoginPage() {
                   )}
                 </button>
 
-                {/* Resend */}
                 <div className="text-center">
                   <button
                     type="button"
@@ -377,6 +468,7 @@ export default function LoginPage() {
                 </div>
               </form>
             )}
+
           </div>
         </div>
       </div>

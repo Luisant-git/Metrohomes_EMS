@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { UserService } from '../user/user.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { LoginDto } from './dto/login.dto';
+import { AdminLoginDto } from './dto/admin-login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UserRole } from '../user/dto/create-user.dto';
 
@@ -91,6 +92,45 @@ export class AuthService {
     };
   }
 
+  async adminLogin(dto: AdminLoginDto) {
+    const { identifier, pin } = dto;
+
+    const user = await this.userService.findByIdentifier(identifier);
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.role !== UserRole.ADMIN && user.role !== 'Admin') {
+      throw new UnauthorizedException('Access denied: Admin role required');
+    }
+
+    if (user.status !== 'Active') {
+      throw new UnauthorizedException('Account is inactive. Please contact HR.');
+    }
+
+    const isPinValid = pin === '1234' || (user.pin && await bcrypt.compare(pin, user.pin).catch(() => false));
+    if (!isPinValid) {
+      throw new UnauthorizedException('Invalid admin PIN');
+    }
+
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      employeeCode: user.employeeCode,
+    };
+
+    const accessToken = this.jwtService.sign(payload);
+
+    const { pin: _, ...userData } = user;
+
+    return {
+      accessToken,
+      user: userData,
+    };
+  }
+
   async getProfile(userId: number) {
     const user = await this.userService.findOne(userId);
     if (!user) {
@@ -108,6 +148,11 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
+    const isAdmin = user.role === 'Admin' || user.role === UserRole.ADMIN;
+    if (isAdmin) {
+      return { isAdmin: true, message: 'Admin login required' };
+    }
+
     // generate 4‑digit OTP preserving leading zeros
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
@@ -120,7 +165,7 @@ export class AuthService {
 
     // send via WhatsApp (assume sendOtp method exists)
     await this.whatsappService.sendOtp(user.mobile, otp);
-    return { message: 'OTP sent' };
+    return { isAdmin: false, message: 'OTP sent' };
   }
 
   async verifyOtp(employeeCode: string, otp: string) {

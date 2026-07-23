@@ -75,6 +75,16 @@ export const auth = {
     return data;
   },
 
+  // Admin Login (identifier + pin)
+  async adminLogin(identifier, pin) {
+    const response = await fetch(`${VITE_API_URL}/auth/admin-login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier, pin }),
+    });
+    return handleResponse(response);
+  },
+
   // Get current user profile
   async getProfile() {
     const response = await fetch(`${VITE_API_URL}/auth/me`, {
