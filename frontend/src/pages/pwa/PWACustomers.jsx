@@ -268,7 +268,7 @@ export default function PWACustomers() {
                       <td className="px-4 py-3 text-gray-500 text-xs">{c.siteName || "—"}</td>
                       <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(c.visitDate)}</td>
                       <td className="px-4 py-3">
-                        {["Sales Manager", "Admin"].includes(user?.role) ? (
+                        {(c.createdById === user?.id || ["Admin", "Director"].includes(user?.role)) ? (
                           <select
                             value={c.status}
                             onChange={e => updateCustomer(c.id, { status: e.target.value })}
@@ -276,19 +276,15 @@ export default function PWACustomers() {
                               c.status === "Interested" ? "bg-amber-50 text-amber-700" :
                               c.status === "Visit Scheduled" ? "bg-blue-50 text-blue-700" :
                               c.status === "Visit Completed" ? "bg-violet-50 text-violet-700" :
-                              c.status === "Ready for Booking" ? "bg-orange-50 text-orange-700" :
                               c.status === "Booked" || c.status === "Payment Done" ? "bg-emerald-50 text-emerald-700" :
-                              c.status === "Dropped" ? "bg-red-50 text-red-700" :
                               "bg-gray-50 text-gray-700"
                             }`}
                           >
                             <option value="Interested">Interested</option>
                             <option value="Visit Scheduled">Visit Scheduled</option>
                             <option value="Visit Completed">Visit Completed</option>
-                            <option value="Ready for Booking">Ready for Booking</option>
                             <option value="Booked">Booked</option>
                             <option value="Payment Done">Payment Done</option>
-                            <option value="Dropped">Dropped</option>
                           </select>
                         ) : (
                           <StatusBadge status={c.status} />
@@ -378,8 +374,8 @@ export default function PWACustomers() {
               {[
                 ["Email", selected.email],
                 ["Site", selected.siteName],
-                ["Created By", selected.salesManagerName],
-                ["SM ID", (() => { const sm = users.find(u => u.id === (selected.createdById || selected.createdBy)); return sm ? sm.employeeCode : (selected.createdById || selected.createdBy || "—"); })()],
+                ["Created By", (() => { const creator = users.find(u => u.id === (selected.createdById || selected.createdBy)); return creator ? `${creator.name} (${creator.employeeCode})` : (selected.salesManagerName || "—"); })()],
+                [(() => { const creator = users.find(u => u.id === (selected.createdById || selected.createdBy)); return creator ? `${creator.role} Mobile` : "Mobile"; })(), (() => { const creator = users.find(u => u.id === (selected.createdById || selected.createdBy)); return creator?.mobile || "—"; })()],
                 ["Visit Date", formatDate(selected.visitDate)],
                 ["Visit Time", selected.visitTime ? (() => { const [h, m] = selected.visitTime.split(':'); const hour = parseInt(h, 10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })() : '—'],
                 ["Persons", selected.persons],
@@ -404,7 +400,7 @@ export default function PWACustomers() {
               </div>
             )}
 
-            {(selected.driverName || selected.driverMobile || selected.cabNumber) && user?.role === "Sales Manager" && (
+            {(selected.driverName || selected.driverMobile || selected.cabNumber) && (
               <div className="pt-2 border-t border-gray-100">
                 <p className="text-xs font-semibold text-blue-600 tracking-wide mb-1">🚗 Driver Details</p>
                 <div className="space-y-1">

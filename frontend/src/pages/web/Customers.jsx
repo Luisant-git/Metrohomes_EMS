@@ -207,9 +207,8 @@ export default function WebCustomers() {
               {[
                 ["Email", selected.email],
                 ["Project", selected.siteName],
-                ["Created By", selected.salesManagerName],
-                ["Created By Role", (() => { const creator = users.find(u => u.name === selected.salesManagerName); return creator ? creator.role : (selected.salesManagerName ? "User" : "—"); })()],
-                ["Created By Mobile", (() => { const creator = users.find(u => u.name === selected.salesManagerName); return creator ? creator.mobile : "—"; })()],
+                ["Created By", (() => { const creator = users.find(u => u.name === selected.salesManagerName); return creator ? `${creator.name} (${creator.employeeCode})` : (selected.salesManagerName || "—"); })()],
+                [(() => { const creator = users.find(u => u.name === selected.salesManagerName); return creator ? `${creator.role} Mobile` : "Mobile"; })(), (() => { const creator = users.find(u => u.name === selected.salesManagerName); return creator ? creator.mobile : "—"; })()],
                 ["Visit Date", formatDate(selected.visitDate)],
                 ["Visit Time", selected.visitTime ? (() => { const [h, m] = selected.visitTime.split(':'); const hour = parseInt(h, 10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })() : '—'],
                 ["Persons", selected.persons],
