@@ -63,4 +63,14 @@ export const customer = {
     });
     return handleResponse(response);
   },
+  async checkDuplicate(mobile, email) {
+    const params = new URLSearchParams();
+    if (mobile) params.append('mobile', mobile);
+    if (email) params.append('email', email);
+    const response = await fetch(`${VITE_API_URL}/customers/check-duplicate?${params.toString()}`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
 };

@@ -226,7 +226,7 @@ export function DataProvider({ children }) {
   return (
     <DataContext.Provider value={{
       sites, addSite, updateSite, deleteSite, approveSite,
-      customers, addCustomer, updateCustomer, deleteCustomer,
+      customers, addCustomer, updateCustomer, deleteCustomer, refreshCustomers,
       bookings, addBooking, updateBooking,
       visits, updateVisit,
       users, addUser, updateUser, deleteUser, refreshUsers, usersLoading,

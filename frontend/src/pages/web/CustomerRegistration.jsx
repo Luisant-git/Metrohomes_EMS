@@ -3,9 +3,36 @@ import { useNavigate } from "react-router-dom";
 import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { customer } from "../../api/customer.js";
+import { useRef } from "react";
 import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Users, Briefcase, DollarSign, ArrowLeft, ArrowRight, Clock } from "lucide-react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
+function SuccessModal({ isOpen, onClose, onViewCustomers }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6">
+        <div className="flex flex-col items-center text-center">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
+            <CheckCircle size={40} className="text-green-600" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">Registration Successful!</h3>
+          <p className="text-sm text-gray-500 mb-6">Customer has been registered and visit scheduled successfully.</p>
+          <div className="flex gap-3 w-full">
+            <button onClick={onViewCustomers} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors text-sm">
+              View Customers
+            </button>
+            <button onClick={onClose} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition-colors text-sm">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function FormField({ label, icon: Icon, children, required, className }) {
   return (
@@ -24,10 +51,11 @@ const F = FormField;
 
 
 export default function CustomerRegistration() {
-  const { sites } = useData();
+  const { sites, addCustomer, refreshCustomers } = useData();
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     name: "",
@@ -55,7 +83,8 @@ export default function CustomerRegistration() {
 
   const salesManager = {
     name: user?.name || "Sales Manager",
-    mobile: "9876543210",
+    role: user?.role || "Sales Manager",
+    mobile: user?.mobile || "9876543210",
     id: user?.id || 6,
   };
 
@@ -64,6 +93,32 @@ export default function CustomerRegistration() {
       toast.error("Enter valid 10-digit mobile number");
       return;
     }
+
+    try {
+      const duplicateCheck = await customer.checkDuplicate(form.mobile, form.email || null);
+      if (duplicateCheck && !duplicateCheck.success && duplicateCheck.duplicate) {
+        // Reset OTP state so user can edit mobile number
+        setOtpSent(false);
+        setOtpVerified(false);
+        setOtp("");
+        
+        toast.error(duplicateCheck.message || "Customer with this mobile/email already exists");
+        if (duplicateCheck.message?.toLowerCase().includes('mobile')) {
+          setErrors((prev) => ({ ...prev, mobile: duplicateCheck.message }));
+        } else if (duplicateCheck.message?.toLowerCase().includes('email')) {
+          setErrors((prev) => ({ ...prev, email: duplicateCheck.message }));
+        }
+        return;
+      }
+    } catch (err) {
+      console.warn("Duplicate check failed, proceeding anyway:", err);
+    }
+
+    // Reset OTP state before sending new OTP
+    setOtpSent(false);
+    setOtpVerified(false);
+    setOtp("");
+    
     toast.success(`Demo OTP: 1234`);
     setOtpSent(true);
   };
@@ -186,9 +241,10 @@ export default function CustomerRegistration() {
     try {
       const payload = {
         name: form.name,
-        email: form.email || "",
+        email: form.email || undefined,
         mobile: form.mobile,
         address: form.address,
+        pinCode: form.pinCode,
         visitDate: form.visitDate,
         visitTime: form.visitTime,
         persons: Number(form.persons),
@@ -200,8 +256,9 @@ export default function CustomerRegistration() {
         createdBy: user?.id,
       };
       await customer.registerCustomer(payload);
-      toast.success("Customer registered successfully! 🎉");
-      navigate("/customers");
+      // Refresh customers list to show the newly created customer
+      await refreshCustomers();
+      setSuccessModalOpen(true);
     } catch (err) {
       if (err.response?.data?.errors) {
         const backendErrors = err.response.data.errors;
@@ -230,9 +287,14 @@ export default function CustomerRegistration() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <SuccessModal
+        isOpen={successModalOpen}
+        onClose={() => setSuccessModalOpen(false)}
+        onViewCustomers={() => navigate("/customers")}
+      />
       <div>
         <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2">
-          <User size={24} /> Project Visit Registration
+          <User size={24} /> Site Visit Registration
         </h1>
         <p className="text-gray-400 text-sm mt-1">Register new customer and schedule site visit</p>
       </div>
@@ -302,8 +364,15 @@ export default function CustomerRegistration() {
               )}
 
               <F label="Pin Code" required>
-                <input type="number" value={form.pinCode} onChange={e => setForm(p => ({ ...p, pinCode: e.target.value }))}
-                  className="input-field" placeholder="6-digit pin code" maxLength={6} />
+                <input 
+                  type="text" 
+                  inputMode="numeric"
+                  value={form.pinCode} 
+                  onChange={e => setForm(p => ({ ...p, pinCode: e.target.value.replace(/\D/g, '') }))}
+                  className="input-field" 
+                  placeholder="6-digit pin code" 
+                  maxLength={6} 
+                />
               </F>
 
               <F label="Address" icon={MapPin} required className="md:col-span-2">
@@ -405,41 +474,42 @@ export default function CustomerRegistration() {
         )}
 
         {/* Step 3: Review */}
-        {step === 3 && (
-          <div className="space-y-5 animate-fadeIn">
-            <div className="bg-purple-50 rounded-xl p-4 text-sm text-purple-700 font-medium">
-              Review all details before submitting
-            </div>
+{step === 3 && (
+  <div className="space-y-5 animate-fadeIn">
+    <div className="bg-purple-50 rounded-xl p-4 text-sm text-purple-700 font-medium">
+      Review all details before submitting
+    </div>
 
-            <div className="bg-gray-50 rounded-xl border border-gray-200 divide-y divide-gray-200">
-              {[
-                ["Applicant Name", form.name],
-                ["Mobile Number", form.mobile],
-                ["Email", form.email || "—"],
-                ["Address", form.address],
-                ["Pin Code", form.pinCode],
-                ["Occupation", form.occupation],
-                ["Project Interested", selectedSite?.name || "—"],
-                ["Purchase Mode", form.purchaseMode],
-                ["Visit Date", form.visitDate],
-                ["Visit Time", form.visitTime],
-                ["Number of Persons", form.persons],
-                ["Pickup Location", form.location || "—"],
-                ["Sales Manager", salesManager.name],
-                ["Sales Manager Mobile", salesManager.mobile],
-              ].map(([k, v]) => (
-                <div key={k} className="flex items-start justify-between px-5 py-3">
-                  <span className="text-sm text-gray-500 font-medium">{k}</span>
-                  <span className="text-sm font-medium text-gray-800 text-right max-w-[60%]">{v}</span>
-                </div>
-              ))}
-            </div>
+    <div className="bg-gray-50 rounded-xl border border-gray-200 divide-y divide-gray-200">
+      {[
+        ["Applicant Name", form.name],
+        ["Mobile Number", form.mobile],
+        ["Email", form.email || "—"],
+        ["Address", form.address],
+        ["Pin Code", form.pinCode],
+        ["Occupation", form.occupation],
+        ["Project Interested", selectedSite?.name || "—"],
+        ["Purchase Mode", form.purchaseMode],
+        ["Visit Date", form.visitDate],
+        ["Visit Time", form.visitTime ? (() => { const [h,m] = form.visitTime.split(':'); const hour = parseInt(h,10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })() : '—'],
+        ["Number of Persons", form.persons],
+        ["Pickup Location", form.location || "—"],
+        ["Created By", salesManager.role], // Changed from salesManager.name to salesManager.role
+        ["Sales Manager", salesManager.name], // Added new field for Sales Manager name
+        ["Sales Manager Mobile", salesManager.mobile], // Added mobile number
+      ].map(([k, v]) => (
+        <div key={k} className="flex items-start justify-between px-5 py-3">
+          <span className="text-sm text-gray-500 font-medium">{k}</span>
+          <span className="text-sm font-medium text-gray-800 text-right max-w-[60%]">{v}</span>
+        </div>
+      ))}
+    </div>
 
-            <div className="bg-blue-50 rounded-xl p-4 text-xs text-blue-700">
-              <strong>Note:</strong> Customer will be registered with status <strong>"Interested"</strong> and visit will be scheduled.
-            </div>
-          </div>
-        )}
+    <div className="bg-blue-50 rounded-xl p-4 text-xs text-blue-700">
+      <strong>Note:</strong> Customer will be registered with status <strong>"Interested"</strong> and visit will be scheduled.
+    </div>
+  </div>
+)}
       </div>
 
       {/* Navigation Buttons */}

@@ -172,7 +172,7 @@ export default function PWACustomers() {
               <input
                 value={search}
                 onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-                placeholder="Search by Name, Mobile, Site, Sales Manager..."
+                 placeholder="Search by Name, Mobile, Site, Created By..."
                 className="w-full pl-8 pr-2 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -341,10 +341,10 @@ export default function PWACustomers() {
               {[
                 ["Email", selected.email],
                 ["Site", selected.siteName],
-                ["Sales Manager", selected.salesManagerName],
+                ["Created By", selected.salesManagerName],
                 ["SM ID", (() => { const sm = users.find(u => u.id === (selected.createdById || selected.createdBy)); return sm ? sm.employeeCode : (selected.createdById || selected.createdBy || "—"); })()],
                 ["Visit Date", formatDate(selected.visitDate)],
-                ["Visit Time", selected.visitTime],
+                ["Visit Time", selected.visitTime ? (() => { const [h, m] = selected.visitTime.split(':'); const hour = parseInt(h, 10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })() : '—'],
                 ["Persons", selected.persons],
                 ["Purchase Mode", selected.purchaseMode],
                 ["Location", selected.location],

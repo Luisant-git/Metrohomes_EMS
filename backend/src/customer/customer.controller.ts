@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, Query } from '@nestjs/common';
 import { CustomerService } from './customer.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 
@@ -9,13 +9,22 @@ export class CustomerController {
   @Post()
   async register(@Body() createCustomerDto: CreateCustomerDto) {
     const customer = await this.customerService.register(createCustomerDto);
-    return customer;
+    return { success: true, data: customer };
   }
 
   @Get()
   async findAll() {
     const customers = await this.customerService.findAll();
-    return customers;
+    return { success: true, data: customers };
+  }
+
+  @Get('check-duplicate')
+  async checkDuplicate(@Query('mobile') mobile?: string, @Query('email') email?: string) {
+    const duplicate = await this.customerService.checkDuplicate(mobile, email);
+    if (duplicate) {
+      return { success: false, duplicate: true, message: duplicate };
+    }
+    return { success: true, duplicate: false };
   }
 
   @Get(':id')

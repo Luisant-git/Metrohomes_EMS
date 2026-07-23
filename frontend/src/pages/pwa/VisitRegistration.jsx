@@ -5,6 +5,33 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Users, Briefcase, IndianRupee, Clock } from "lucide-react";
 import { toast } from "react-toastify";
 
+// Success Modal Component
+function SuccessModal({ isOpen, onClose, onViewCustomers }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 animate-fadeIn">
+        <div className="flex flex-col items-center text-center">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
+            <CheckCircle size={40} className="text-green-600" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">Registration Successful!</h3>
+          <p className="text-sm text-gray-500 mb-6">Customer has been registered and visit scheduled successfully.</p>
+          <div className="flex gap-3 w-full">
+            <button onClick={onViewCustomers} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors text-sm">
+              View Customers
+            </button>
+            <button onClick={onClose} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition-colors text-sm">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FormField({ label, icon: Icon, children, required, className }) {
   return (
     <div className={className || ""}>
@@ -27,6 +54,7 @@ export default function PWAVisitRegistration() {
   const prefillSite = location.state?.siteId;
   const prefillSiteName = location.state?.siteName;
 
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     name: "", mobile: "", email: "", address: "", pinCode: "",
@@ -76,6 +104,35 @@ export default function PWAVisitRegistration() {
       setErrors({ mobile: "Enter valid 10-digit mobile number" });
       return;
     }
+
+    // Check for duplicate mobile or email before sending OTP
+    try {
+      const { customer: customerApi } = await import("../../api/customer.js");
+      const duplicateCheck = await customerApi.checkDuplicate(form.mobile, form.email || null);
+      
+      if (duplicateCheck && !duplicateCheck.success && duplicateCheck.duplicate) {
+        // Reset OTP state so user can edit mobile number
+        setOtpSent(false);
+        setOtpVerified(false);
+        setOtp("");
+        
+        toast.error(duplicateCheck.message || "Customer with this mobile/email already exists");
+        if (duplicateCheck.message?.toLowerCase().includes('mobile')) {
+          setErrors({ mobile: duplicateCheck.message });
+        } else if (duplicateCheck.message?.toLowerCase().includes('email')) {
+          setErrors({ email: duplicateCheck.message });
+        }
+        return;
+      }
+    } catch (err) {
+      console.warn("Duplicate check failed, proceeding anyway:", err);
+    }
+
+    // Reset OTP state before sending new OTP
+    setOtpSent(false);
+    setOtpVerified(false);
+    setOtp("");
+    
     // Demo OTP
     toast.success(`Demo OTP: 1234`);
     setOtpSent(true);
@@ -201,7 +258,7 @@ export default function PWAVisitRegistration() {
       await addCustomer({
         name: form.name,
         mobile: form.mobile,
-        email: form.email || "",
+        email: form.email || undefined,
         address: form.address,
         pinCode: form.pinCode,
         occupation: form.occupation,
@@ -215,8 +272,7 @@ export default function PWAVisitRegistration() {
         status: "Interested",
         createdBy: user?.id,
       });
-      toast.success("Customer registered & visit scheduled! 🎉");
-      navigate("/customers");
+      setSuccessModalOpen(true);
     } catch (err) {
       if (err.response?.data?.errors) {
         const backendErrors = err.response.data.errors;
@@ -246,6 +302,11 @@ export default function PWAVisitRegistration() {
 
   return (
     <div className="pb-40 relative z-10 max-w-2xl mx-auto">
+      <SuccessModal
+        isOpen={successModalOpen}
+        onClose={() => setSuccessModalOpen(false)}
+        onViewCustomers={() => navigate("/customers")}
+      />
       {/* Header */}
       <div className="px-4 pt-4">
         <h2 className="text-lg font-extrabold text-gray-900 mb-1">Customer Registration</h2>
@@ -321,8 +382,15 @@ export default function PWAVisitRegistration() {
               </F>
 
               <F label="Pin Code" required>
-                <input type="number" value={form.pinCode} onChange={e => setForm(p => ({ ...p, pinCode: e.target.value }))}
-                  className="input-field" placeholder="6-digit pin code" maxLength={6} />
+                <input 
+                  type="text" 
+                  inputMode="numeric"
+                  value={form.pinCode} 
+                  onChange={e => setForm(p => ({ ...p, pinCode: e.target.value.replace(/\D/g, '') }))}
+                  className="input-field" 
+                  placeholder="6-digit pin code" 
+                  maxLength={6} 
+                />
               </F>
 
               <F label="Occupation" icon={Briefcase} required>
@@ -442,7 +510,7 @@ export default function PWAVisitRegistration() {
                 ["Project", selectedSite?.name || "—"],
                 ["Purchase Mode", form.purchaseMode],
                 ["Visit Date", form.visitDate],
-                ["Visit Time", form.visitTime],
+                ["Visit Time", form.visitTime ? (() => { const [h,m] = form.visitTime.split(':'); const hour = parseInt(h,10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })() : '—'],
                 ["Persons", form.persons],
                 ["Pickup", form.location || "—"],
                 ["Notes", form.notes || "—"],

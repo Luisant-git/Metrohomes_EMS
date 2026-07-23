@@ -11,17 +11,26 @@ export class CustomerService {
       throw new BadRequestException('Mobile number is required');
     }
 
-    const existing = await this.prisma.customer.findFirst({
+    const existingMobile = await this.prisma.customer.findFirst({
       where: { phone: dto.mobile },
     });
-    if (existing) {
+    if (existingMobile) {
       throw new BadRequestException('A customer with this mobile number is already registered');
+    }
+
+    if (dto.email) {
+      const existingEmail = await this.prisma.customer.findFirst({
+        where: { email: dto.email },
+      });
+      if (existingEmail) {
+        throw new BadRequestException('A customer with this email address is already registered');
+      }
     }
 
     const data: any = {
       name: dto.name,
       phone: dto.mobile,
-      email: dto.email,
+      email: dto.email || null,
       address: dto.address,
       location: dto.location,
       status: dto.status || 'Interested',
@@ -40,10 +49,51 @@ export class CustomerService {
     };
 
     try {
-      return await this.prisma.customer.create({ data });
-    } catch (error) {
+      const created = await this.prisma.customer.create({ 
+        data,
+        include: {
+          site: { select: { name: true } },
+          user: { select: { name: true } },
+        }
+      });
+      
+      // Return sanitized response with null -> empty string conversions
+      return {
+        id: created.id,
+        name: created.name,
+        mobile: created.phone,
+        email: created.email || '',
+        address: created.address || '',
+        location: created.location || '',
+        status: created.status || 'Interested',
+        siteId: created.siteId,
+        siteName: created.site?.name || '',
+        createdById: created.createdBy,
+        salesManagerName: created.user?.name || '',
+        visitDate: created.visitDate ? new Date(created.visitDate).toISOString().split('T')[0] : '',
+        visitTime: created.visitTime || '',
+        persons: created.persons,
+        driverName: created.driverName || '',
+        driverMobile: created.driverMobile || '',
+        cabNumber: created.cabNumber || '',
+        notes: created.notes || '',
+        occupation: created.occupation || '',
+        purchaseMode: created.purchaseMode || '',
+        pinCode: created.pinCode || '',
+        registeredDate: created.createdAt ? new Date(created.createdAt).toISOString().split('T')[0] : '',
+        createdAt: created.createdAt,
+        updatedAt: created.updatedAt,
+      };
+    } catch (error: any) {
       if (error?.code === 'P2002') {
-        throw new BadRequestException('A customer with this mobile number is already registered');
+        const target = error?.meta?.target || [];
+        if (target.includes('phone')) {
+          throw new BadRequestException('A customer with this mobile number is already registered');
+        }
+        if (target.includes('email')) {
+          throw new BadRequestException('A customer with this email address is already registered');
+        }
+        throw new BadRequestException('Duplicate entry detected');
       }
       throw error;
     }
@@ -119,5 +169,25 @@ export class CustomerService {
 
   async remove(id: number) {
     return this.prisma.customer.delete({ where: { id } });
+  }
+
+  async checkDuplicate(mobile?: string, email?: string) {
+    if (mobile) {
+      const existingMobile = await this.prisma.customer.findFirst({
+        where: { phone: mobile },
+      });
+      if (existingMobile) {
+        return `A customer with mobile number ${mobile} is already registered`;
+      }
+    }
+    if (email) {
+      const existingEmail = await this.prisma.customer.findFirst({
+        where: { email },
+      });
+      if (existingEmail) {
+        return `A customer with email address ${email} is already registered`;
+      }
+    }
+    return null;
   }
 }

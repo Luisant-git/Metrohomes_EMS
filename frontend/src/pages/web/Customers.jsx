@@ -84,7 +84,7 @@ export default function WebCustomers() {
       </div>
     )},
     { key: "siteName", label: "Project", render: v => v || "—" },
-    { key: "salesManagerName", label: "Sales Manager", render: v => v || "—" },
+    { key: "salesManagerName", label: "Created By", render: v => v || "—" },
     { key: "visitDate", label: "Visit Date", render: (v) => formatDate(v) },
     { key: "status", label: "Status", render: v => <StatusBadge status={v} /> },
     { key: "registeredDate", label: "Registered", render: (v) => formatDate(v) },
@@ -93,7 +93,7 @@ export default function WebCustomers() {
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
-        <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2"><UserCheck size={22} />Project Visit</h1>
+        <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2"><UserCheck size={22} />Site Visit</h1>
         <p className="text-gray-400 text-sm mt-0.5">{customers.length} total visits</p>
       </div>
 
@@ -115,7 +115,7 @@ export default function WebCustomers() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by Name, Mobile, Site, Sales Manager..."
+               placeholder="Search by Name, Mobile, Site, Created By..."
               className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             {search && (
@@ -207,10 +207,11 @@ export default function WebCustomers() {
               {[
                 ["Email", selected.email],
                 ["Project", selected.siteName],
-                ["Sales Manager", selected.salesManagerName],
-                ["SM ID", (() => { const sm = users.find(u => u.name === selected.salesManagerName); return sm ? sm.employeeCode : (selected.salesManagerName || "—"); })()],
+                ["Created By", selected.salesManagerName],
+                ["Created By Role", (() => { const creator = users.find(u => u.name === selected.salesManagerName); return creator ? creator.role : (selected.salesManagerName ? "User" : "—"); })()],
+                ["Created By Mobile", (() => { const creator = users.find(u => u.name === selected.salesManagerName); return creator ? creator.mobile : "—"; })()],
                 ["Visit Date", formatDate(selected.visitDate)],
-                ["Visit Time", selected.visitTime],
+                ["Visit Time", selected.visitTime ? (() => { const [h, m] = selected.visitTime.split(':'); const hour = parseInt(h, 10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })() : '—'],
                 ["Persons", selected.persons],
                 ["Purchase Mode", selected.purchaseMode],
                 ["Location", selected.location],
