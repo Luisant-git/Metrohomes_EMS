@@ -309,7 +309,9 @@ export default function WebCustomers() {
                 onChange={e => { handleStatusChange(selected.id, e.target.value); setSelected(p => ({ ...p, status: e.target.value })); }}
                 className="input-field mt-2"
               >
-                {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                {STATUSES.filter(s => !["Dropped", "Payment Done", "Booked"].includes(s)).map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
               </select>
             </div>
 

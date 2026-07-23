@@ -1,14 +1,17 @@
 import { useState, useMemo } from "react";
 import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { MapPin, Calendar, CheckCircle, Clock, XCircle } from "lucide-react";
+import { MapPin, Calendar, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import { toast } from "react-toastify";
+
+const ITEMS_PER_PAGE = 5;
 
 export default function PWAVisits() {
   const { customers, updateCustomer, users } = useData();
   const { user, hierarchy } = useAuth();
   const [filter, setFilter] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const teamUserIds = useMemo(() => {
     if (!users.length || !user?.id) return [];
@@ -28,6 +31,15 @@ export default function PWAVisits() {
   }, [customers, teamUserIds]);
 
   const filtered = filter === "All" ? myVisits : myVisits.filter(v => v.status === filter);
+  
+  // Pagination calculation
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginatedVisits = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  const handleFilterChange = (newFilter) => {
+    setFilter(newFilter);
+    setCurrentPage(1);
+  };
 
   const completeVisit = (v) => {
     updateCustomer(v.id, { status: "Visit Completed" });
@@ -47,7 +59,7 @@ export default function PWAVisits() {
         {/* Filter chips */}
         <div className="flex gap-2">
           {["All", "Visit Scheduled", "Visit Completed"].map(s => (
-            <button key={s} onClick={() => setFilter(s)}
+            <button key={s} onClick={() => handleFilterChange(s)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${filter === s ? "bg-blue-600 text-white" : "bg-white border border-gray-200 text-gray-600"}`}>
               {s === "All" ? `All (${myVisits.length})` : s.replace("Visit ", "")}
             </button>
@@ -82,7 +94,7 @@ export default function PWAVisits() {
         <div className="text-xs font-bold text-gray-400 uppercase tracking-wide">
           {filter === "All" ? "All Visits" : filter}
         </div>
-        {filtered.map(v => {
+        {paginatedVisits.map(v => {
           const Icon = statusIcon[v.status] || Clock;
           const col = statusColor[v.status] || "text-gray-400";
           return (
@@ -114,6 +126,53 @@ export default function PWAVisits() {
           <div className="text-center py-10 text-gray-400">
             <MapPin size={36} className="mx-auto mb-2 opacity-30" />
             <div className="font-semibold text-sm">No visits found</div>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-2 py-3">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft size={14} /> Prev
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`w-7 h-7 rounded-lg text-xs font-medium transition-all ${
+                      currentPage === pageNum
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Next <ChevronRight size={14} />
+            </button>
           </div>
         )}
       </div>

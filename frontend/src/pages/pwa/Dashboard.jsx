@@ -34,6 +34,7 @@ export default function PWADashboard() {
             { label: "My Team", icon: Users, path: "/my-team", color: "bg-blue-500" },
             { label: "Customers", icon: UserCheck, path: "/customers", color: "bg-green-500" },
             { label: "My Booking", icon: Award, path: "/customers?status=Booked", color: "bg-teal-500" },
+            { label: "Project Visits", icon: MapPin, path: "/visits", color: "bg-emerald-500" },
             { label: "Reports", icon: BarChart3, path: "/sales-report", color: "bg-orange-500" },
           ],
         };
@@ -48,6 +49,7 @@ export default function PWADashboard() {
             { label: "My Team", icon: Users, path: "/my-team", color: "bg-blue-500" },
             { label: "Customers", icon: UserCheck, path: "/customers", color: "bg-green-500" },
             { label: "My Booking", icon: Award, path: "/customers?status=Booked", color: "bg-teal-500" },
+            { label: "Project Visits", icon: MapPin, path: "/visits", color: "bg-emerald-500" },
             { label: "Reports", icon: BarChart3, path: "/sales-report", color: "bg-orange-500" },
           ],
         };
@@ -63,6 +65,7 @@ export default function PWADashboard() {
             { label: "Sales Targets", icon: TrendingUp, path: "/sales-targets", color: "bg-purple-500" },
             { label: "Customers", icon: UserCheck, path: "/customers", color: "bg-green-500" },
             { label: "My Booking", icon: Award, path: "/customers?status=Booked", color: "bg-teal-500" },
+            { label: "Project Visits", icon: MapPin, path: "/visits", color: "bg-emerald-500" },
             { label: "Reports", icon: BarChart3, path: "/sales-report", color: "bg-orange-500" },
           ],
         };
