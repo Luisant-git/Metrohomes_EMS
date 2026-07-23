@@ -2,20 +2,10 @@ import { useState, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
 import { useNavigate } from "react-router-dom";
-import { UserCheck, UserX, Eye, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { UserX, Eye, Search, ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import Modal from "../../components/Modal.jsx";
-
-const STATUS_FILTER_MAP = {
-  All: "All",
-  Interested: "Interested",
-  "Visit Scheduled": "Visit Scheduled",
-  "Visit Completed": "Visit Completed",
-  "Ready for Booking": "Ready for Booking",
-  Booked: "Booked",
-  "Payment Done": "Payment Done",
-  Dropped: "Dropped",
-};
+import { toast } from "react-toastify";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -26,6 +16,7 @@ export default function PWACustomers() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [roleFilter, setRoleFilter] = useState("All");
   const [viewCustomer, setViewCustomer] = useState(null);
+  const [pendingUpdate, setPendingUpdate] = useState(null);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -56,6 +47,12 @@ export default function PWACustomers() {
   const getCreatorRole = (customer) => {
     const creator = users.find(u => u.id === (customer.createdById || customer.createdBy));
     return creator?.role || "";
+  };
+
+  // Helper: get name of the user who created a customer
+  const getCreatorName = (customer) => {
+    const creator = users.find(u => u.id === (customer.createdById || customer.createdBy));
+    return creator ? creator.name : (customer.salesManagerName || "—");
   };
 
   // Search filter
@@ -90,7 +87,7 @@ export default function PWACustomers() {
     return filteredCustomers.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredCustomers, currentPage]);
 
-  // Status counts for filter chips (based on searched results only)
+  // Status counts
   const statusCounts = useMemo(() => {
     const counts = {
       All: myCustomers.length,
@@ -113,8 +110,6 @@ export default function PWACustomers() {
     { key: "Interested", label: "Interested", count: statusCounts.Interested },
     { key: "Visit Scheduled", label: "Visit Scheduled", count: statusCounts["Visit Scheduled"] },
     { key: "Visit Completed", label: "Visit Completed", count: statusCounts["Visit Completed"] },
-    { key: "Booked", label: "Booked", count: statusCounts.Booked },
-    { key: "Payment Done", label: "Payment Done", count: statusCounts["Payment Done"] },
   ];
 
   const formatDate = (dateStr) => {
@@ -132,6 +127,24 @@ export default function PWACustomers() {
     setCurrentPage(1);
   };
 
+  const handleSelectStatus = (customer, newStatus) => {
+    if (customer.status === newStatus) return;
+    setPendingUpdate({ customer, newStatus });
+  };
+
+  const handleConfirmStatusUpdate = async () => {
+    if (!pendingUpdate) return;
+    const { customer, newStatus } = pendingUpdate;
+    try {
+      await updateCustomer(customer.id, { status: newStatus });
+      toast.success(`Status for ${customer.name} updated to ${newStatus}`);
+    } catch (err) {
+      toast.error(err.message || "Failed to update status");
+    } finally {
+      setPendingUpdate(null);
+    }
+  };
+
   const selected = viewCustomer;
 
   return (
@@ -145,37 +158,14 @@ export default function PWACustomers() {
         {/* Summary Cards */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <h3 className="font-bold text-gray-800 text-sm mb-3">Summary</h3>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             {[
               { label: "Total", value: myCustomers.length, color: "text-blue-600" },
               { label: "Booked", value: statusCounts.Booked + statusCounts["Payment Done"], color: "text-green-600" },
-              { label: "Dropped", value: statusCounts.Dropped, color: "text-red-600" },
             ].map(s => (
-              <div key={s.label} className="text-center p-2 bg-gray-50 rounded-xl">
-                <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
-                <div className="text-xs text-gray-400">{s.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Pipeline */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-          <h3 className="font-bold text-gray-800 text-sm mb-3">Pipeline</h3>
-          <div className="space-y-2">
-          {[
-            { label: "Interested", count: statusCounts.Interested, color: "bg-yellow-400" },
-            { label: "Visit Scheduled", count: statusCounts["Visit Scheduled"], color: "bg-blue-400" },
-            { label: "Visit Completed", count: statusCounts["Visit Completed"], color: "bg-purple-400" },
-            { label: "Booked", count: statusCounts.Booked, color: "bg-green-400" },
-            { label: "Payment Done", count: statusCounts["Payment Done"], color: "bg-emerald-600" },
-            ].map(s => (
-              <div key={s.label} className="flex items-center gap-3">
-                <div className={`w-2 h-2 rounded-full ${s.color}`} />
-                <div className="flex-1 flex items-center justify-between">
-                  <span className="text-sm text-gray-600">{s.label}</span>
-                  <span className="text-sm font-bold text-gray-800">{s.count}</span>
-                </div>
+              <div key={s.label} className="text-center p-3 bg-gray-50 rounded-xl">
+                <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
+                <div className="text-xs text-gray-400 mt-0.5">{s.label}</div>
               </div>
             ))}
           </div>
@@ -187,20 +177,20 @@ export default function PWACustomers() {
             <h3 className="font-bold text-gray-800 text-sm">My Customers</h3>
           </div>
 
-          {/* Search Bar - line 1 */}
+          {/* Search Bar */}
           <div className="px-4 pb-2">
             <div className="relative">
               <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               <input
                 value={search}
                 onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-                 placeholder="Search by Name, Mobile, Site, Created By..."
+                placeholder="Search by Name, Mobile, Site, Created By..."
                 className="w-full pl-8 pr-2 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
 
-          {/* Role Filter Dropdown - line 2 */}
+          {/* Role Filter Dropdown */}
           <div className="px-4 pb-2">
             <select
               value={roleFilter}
@@ -215,7 +205,7 @@ export default function PWACustomers() {
             </select>
           </div>
 
-          {/* Status Filter Dropdown - line 3 */}
+          {/* Status Filter Dropdown */}
           <div className="px-4 pb-3">
             <select
               value={statusFilter}
@@ -224,7 +214,7 @@ export default function PWACustomers() {
             >
               {filterOptions.map(opt => (
                 <option key={opt.key} value={opt.key}>
-                  {opt.label} ({opt.key === "Booked" ? statusCounts.Booked + statusCounts["Payment Done"] : statusCounts[opt.key] || 0})
+                  {opt.label} ({opt.key === "All" ? statusCounts.All : statusCounts[opt.key] || 0})
                 </option>
               ))}
             </select>
@@ -240,18 +230,19 @@ export default function PWACustomers() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-t border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Mobile</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Site</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Visit Date</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="text-center px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Action</th>
+                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Customer</th>
+                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Created By</th>
+                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Mobile</th>
+                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Site</th>
+                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Visit Date</th>
+                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="text-center px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {paginatedCustomers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center">
+                    <td colSpan={7} className="px-4 py-8 text-center">
                       <div className="flex flex-col items-center justify-center text-gray-400">
                         <UserX size={32} className="mb-2" />
                         <span className="text-sm">No customers found</span>
@@ -264,27 +255,21 @@ export default function PWACustomers() {
                       <td className="px-4 py-3">
                         <div className="font-semibold text-gray-800 text-sm">{c.name}</div>
                       </td>
+                      <td className="px-4 py-3 text-gray-700 text-xs font-medium">
+                        {getCreatorName(c)}
+                      </td>
                       <td className="px-4 py-3 text-gray-500 text-xs">{c.mobile}</td>
                       <td className="px-4 py-3 text-gray-500 text-xs">{c.siteName || "—"}</td>
                       <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(c.visitDate)}</td>
                       <td className="px-4 py-3">
-                        {(c.createdById === user?.id || ["Admin", "Director"].includes(user?.role)) ? (
+                        {c.status !== "Visit Completed" && (c.createdById === user?.id || ["Admin", "Director"].includes(user?.role)) ? (
                           <select
                             value={c.status}
-                            onChange={e => updateCustomer(c.id, { status: e.target.value })}
-                            className={`text-xs font-semibold rounded-lg px-2 py-1 border-0 ${
-                              c.status === "Interested" ? "bg-amber-50 text-amber-700" :
-                              c.status === "Visit Scheduled" ? "bg-blue-50 text-blue-700" :
-                              c.status === "Visit Completed" ? "bg-violet-50 text-violet-700" :
-                              c.status === "Booked" || c.status === "Payment Done" ? "bg-emerald-50 text-emerald-700" :
-                              "bg-gray-50 text-gray-700"
-                            }`}
+                            onChange={e => handleSelectStatus(c, e.target.value)}
+                            className="text-xs font-semibold rounded-lg px-2 py-1 border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 outline-none cursor-pointer transition-colors"
                           >
-                            <option value="Interested">Interested</option>
-                            <option value="Visit Scheduled">Visit Scheduled</option>
+                            <option value={c.status}>{c.status}</option>
                             <option value="Visit Completed">Visit Completed</option>
-                            <option value="Booked">Booked</option>
-                            <option value="Payment Done">Payment Done</option>
                           </select>
                         ) : (
                           <StatusBadge status={c.status} />
@@ -428,6 +413,35 @@ export default function PWACustomers() {
           </div>
         )}
       </Modal>
+
+      {/* Status Update Confirmation Modal - Only updates when Confirm is clicked */}
+      {pendingUpdate && (
+        <Modal open={!!pendingUpdate} onClose={() => setPendingUpdate(null)} title="Confirm Status Update">
+          <div className="text-center py-4 space-y-3">
+            <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto shadow-inner">
+              <CheckCircle size={28} />
+            </div>
+            <h3 className="text-base font-bold text-gray-800">Update Customer Status</h3>
+            <p className="text-xs text-gray-500 px-2 leading-relaxed">
+              Are you sure you want to update status for <span className="font-semibold text-gray-800">{pendingUpdate.customer.name}</span> to <span className="font-semibold text-blue-600">{pendingUpdate.newStatus}</span>?
+            </p>
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                onClick={() => setPendingUpdate(null)}
+                className="flex-1 bg-gray-100 text-gray-600 font-semibold py-2.5 rounded-xl text-xs hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmStatusUpdate}
+                className="flex-1 bg-blue-600 text-white font-semibold py-2.5 rounded-xl text-xs hover:bg-blue-700 transition-all shadow-md"
+              >
+                Confirm Update
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
@@ -18,9 +18,23 @@ export default function WebCustomers() {
   const [selected, setSelected] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [filterStatus, setFilterStatus] = useState("All");
+  const [roleFilter, setRoleFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+
+  const teamRoles = useMemo(() => {
+    const roleSet = new Set();
+    users.forEach(u => {
+      if (u?.role) roleSet.add(u.role);
+    });
+    return ["All", ...Array.from(roleSet)];
+  }, [users]);
+
+  const getCreatorRole = (customer) => {
+    const creator = users.find(u => u.id === (customer.createdById || customer.createdBy) || u.name === customer.salesManagerName);
+    return creator?.role || "";
+  };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "—";
@@ -35,6 +49,8 @@ export default function WebCustomers() {
   const filtered = customers.filter(c => {
     // Status filter
     if (filterStatus !== "All" && c.status !== filterStatus) return false;
+    // Role filter
+    if (roleFilter !== "All" && getCreatorRole(c) !== roleFilter) return false;
     // Search filter
     if (search) {
       const s = search.toLowerCase();
@@ -126,14 +142,28 @@ export default function WebCustomers() {
           </div>
 
           <div>
+            <select
+              value={roleFilter}
+              onChange={e => setRoleFilter(e.target.value)}
+              className="px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm"
+            >
+              {teamRoles.map(role => (
+                <option key={role} value={role}>
+                  {role === "All" ? "All Roles" : role}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="input-field" placeholder="From Date" />
           </div>
           <div>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="input-field" placeholder="To Date" />
           </div>
 
-          {(search || dateFrom || dateTo) && (
-            <button onClick={() => { setSearch(""); setDateFrom(""); setDateTo(""); }} className="px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+          {(search || dateFrom || dateTo || roleFilter !== "All") && (
+            <button onClick={() => { setSearch(""); setDateFrom(""); setDateTo(""); setRoleFilter("All"); }} className="px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors">
               Clear Filters
             </button>
           )}
