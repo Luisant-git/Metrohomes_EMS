@@ -5,7 +5,7 @@ import { useData } from "../../context/DataContext.jsx";
 import DataTable from "../../components/DataTable.jsx";
 import Modal from "../../components/Modal.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
-import { Eye, SquarePen, Trash2, UserCheck, Phone, UserPlus, AlertTriangle, Search, X } from "lucide-react";
+import { Eye, SquarePen, Trash2, UserCheck, Phone, UserPlus, AlertTriangle, Search, X, Clock, Users, IndianRupee, CheckCircle } from "lucide-react";
 import { toast } from "react-toastify";
 
 const STATUSES = ["Interested", "Visit Scheduled", "Visit Completed", "Booked", "Payment Done"];
@@ -13,10 +13,11 @@ const STATUSES = ["Interested", "Visit Scheduled", "Visit Completed", "Booked", 
 export default function WebCustomers() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { customers, updateCustomer, deleteCustomer, sites, users } = useData();
-  const [modal, setModal] = useState(null); // null | "view" | "edit" | "delete"
+  const { customers = [], updateCustomer, deleteCustomer, sites = [], users = [] } = useData();
+  const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [historyCustomer, setHistoryCustomer] = useState(null);
   const [filterStatus, setFilterStatus] = useState("All");
   const [roleFilter, setRoleFilter] = useState("All");
   const [search, setSearch] = useState("");
@@ -47,11 +48,8 @@ export default function WebCustomers() {
   };
 
   const filtered = customers.filter(c => {
-    // Status filter
     if (filterStatus !== "All" && c.status !== filterStatus) return false;
-    // Role filter
     if (roleFilter !== "All" && getCreatorRole(c) !== roleFilter) return false;
-    // Search filter
     if (search) {
       const s = search.toLowerCase();
       const match = c.name?.toLowerCase().includes(s) ||
@@ -61,7 +59,6 @@ export default function WebCustomers() {
         c.status?.toLowerCase().includes(s);
       if (!match) return false;
     }
-    // Date range filter
     if (dateFrom) {
       const fromDate = new Date(dateFrom);
       const regDate = new Date(c.registeredDate);
@@ -99,9 +96,9 @@ export default function WebCustomers() {
         <div className="text-xs text-gray-400 flex items-center gap-1"><Phone size={10} />{row.mobile}</div>
       </div>
     )},
-    { key: "siteName", label: "Project", render: v => v || "—" },
+    { key: "siteName", label: "Last Site", render: v => v || "—" },
     { key: "salesManagerName", label: "Created By", render: v => v || "—" },
-    { key: "visitDate", label: "Visit Date", render: (v) => formatDate(v) },
+    { key: "visitDate", label: "Last Visit", render: (v) => formatDate(v) },
     { key: "status", label: "Status", render: v => <StatusBadge status={v} /> },
     { key: "registeredDate", label: "Registered", render: (v) => formatDate(v) },
   ];
@@ -123,7 +120,7 @@ export default function WebCustomers() {
         ))}
       </div>
 
-      {/* Filters - User Management style */}
+      {/* Filters */}
       <div className="card p-4">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[200px]">
@@ -183,6 +180,7 @@ export default function WebCustomers() {
           <>
             <button onClick={() => openView(row)} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="View"><Eye size={15} /></button>
             <button onClick={() => openEdit(row)} className="p-1.5 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors" title="Edit"><SquarePen size={15} /></button>
+            <button onClick={() => setHistoryCustomer(row)} className="p-1.5 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors" title="Visit History"><Clock size={15} /></button>
             <button onClick={() => setDeleteTarget(row)} className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Delete"><Trash2 size={15} /></button>
           </>
         )}
@@ -237,8 +235,8 @@ export default function WebCustomers() {
               {[
                 ["Email", selected.email],
                 ["Project", selected.siteName],
-                ["Created By", (() => { const creator = users.find(u => u.name === selected.salesManagerName); return creator ? `${creator.name} (${creator.employeeCode})` : (selected.salesManagerName || "—"); })()],
-                [(() => { const creator = users.find(u => u.name === selected.salesManagerName); return creator ? `${creator.role} Mobile` : "Mobile"; })(), (() => { const creator = users.find(u => u.name === selected.salesManagerName); return creator ? creator.mobile : "—"; })()],
+                ["Created By", (() => { const creator = users.find(u => u.id === selected.createdById); return creator ? `${creator.name} (${creator.employeeCode})` : (selected.salesManagerName || "—"); })()],
+                [(() => { const creator = users.find(u => u.id === selected.createdById); return creator ? `${creator.role} Mobile` : "Mobile"; })(), (() => { const creator = users.find(u => u.id === selected.createdById); return creator ? creator.mobile : "—"; })()],
                 ["Visit Date", formatDate(selected.visitDate)],
                 ["Visit Time", selected.visitTime ? (() => { const [h, m] = selected.visitTime.split(':'); const hour = parseInt(h, 10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })() : '—'],
                 ["Persons", selected.persons],
@@ -286,6 +284,93 @@ export default function WebCustomers() {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* Visit History Modal */}
+      <Modal open={!!historyCustomer} onClose={() => setHistoryCustomer(null)} title="Visit History" size="lg">
+        {historyCustomer && (
+          <div className="space-y-0">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-purple-600 flex items-center justify-center text-white text-base font-bold flex-shrink-0">
+                {historyCustomer.name?.charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold text-gray-900 truncate">{historyCustomer.name}</h3>
+                <p className="text-[11px] text-gray-500">{historyCustomer.mobile}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold text-purple-700 bg-purple-100 border border-purple-200 px-3 py-1.5 rounded-full">
+                  {historyCustomer.visitCount || historyCustomer.visits?.length || 0} visits
+                </span>
+                <StatusBadge status={historyCustomer.status} />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-100">
+              {historyCustomer.visits && historyCustomer.visits.length > 0 ? (
+                historyCustomer.visits.map((visit, idx) => {
+                  const statusColors = {
+                    'Interested': 'bg-blue-100 text-blue-700',
+                    'Visit Scheduled': 'bg-yellow-100 text-yellow-700',
+                    'Visit Completed': 'bg-green-100 text-green-700',
+                    'Booked': 'bg-emerald-100 text-emerald-700',
+                    'Payment Done': 'bg-green-100 text-green-700',
+                    'Follow-up': 'bg-orange-100 text-orange-700',
+                  };
+                  const iconColors = ['bg-green-100 text-green-700', 'bg-yellow-100 text-yellow-700', 'bg-blue-100 text-blue-700'];
+                  const iconColor = iconColors[idx % iconColors.length];
+                  const visitDate = formatDate(visit.visitDate);
+                  const displayDate = visitDate === '—' ? '—' : visitDate;
+
+                  return (
+                    <div key={visit.id} className="px-4 py-4">
+                      <div className="flex gap-3">
+                        <div className="flex flex-col items-center">
+                          <div className="text-[10px] text-gray-400 font-medium leading-tight">
+                            {displayDate !== '—' ? (() => { const d = new Date(visit.visitDate); return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`; })() : '—'}
+                          </div>
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center mt-1 ${iconColor}`}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+                          </div>
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <h4 className="text-sm font-bold text-gray-900">{visit.siteName || `Visit #${historyCustomer.visitCount - idx}`}</h4>
+                            <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${statusColors[visit.status] || 'bg-gray-100 text-gray-700'}`}>{visit.status}</span>
+                          </div>
+
+                          <div className="text-[11px] text-gray-400 mb-2">
+                            {visit.visitDate && !visit.visitDate.includes('T') ? visit.visitDate : ''} {visit.visitTime ? (() => { const [h,m] = visit.visitTime.split(':'); const hour = parseInt(h,10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })() : ''}
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-600 mb-2">
+                            <span className="flex items-center gap-1"><Users size={12} /> {visit.persons} Persons</span>
+                            <span className="flex items-center gap-1"><IndianRupee size={12} /> {visit.purchaseMode}</span>
+                          </div>
+
+                          {visit.registeredBy && (
+                            <div className="text-[10px] text-gray-500 mb-2">
+                              Assigned To <span className="font-semibold text-gray-700">{visit.registeredBy}</span> <span className="text-gray-400">{visit.registeredByRole ? `(${visit.registeredByRole})` : ''}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="px-4 py-6 text-center text-gray-400 text-sm">No visit history available</div>
+              )}
+            </div>
+
+            {historyCustomer.visits && historyCustomer.visits.length > 1 && (
+              <div className="text-center py-2">
+                <p className="text-[10px] text-gray-400">Showing all {historyCustomer.visits.length} visits · Latest visit at the top</p>
               </div>
             )}
           </div>

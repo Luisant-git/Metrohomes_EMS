@@ -9,9 +9,10 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { UploadModule } from './upload/upload.module';
 import { CustomerModule } from './customer/customer.module';
 import { SiteModule } from './site/site.module';
+import { SiteVisitModule } from './site-visit/site-visit.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, UserModule, WhatsappModule, DashboardModule, UploadModule, SiteModule, CustomerModule],
+  imports: [PrismaModule, AuthModule, UserModule, WhatsappModule, DashboardModule, UploadModule, SiteModule, CustomerModule, SiteVisitModule],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -17,14 +17,12 @@ export function DataProvider({ children }) {
 
   const { user } = useAuth();
 
-  // Fetch customers from API when user changes or on mount (if user exists)
   const refreshCustomers = useCallback(async () => {
     try {
       setCustomersLoading(true);
       const data = await customerApi.getAll();
       const list = Array.isArray(data) ? data : (data.customers || data.data || []);
       
-      // Normalize fields to match frontend expectations
       const normalized = list.map((c) => {
         const row = {
           ...c,
@@ -34,7 +32,6 @@ export function DataProvider({ children }) {
           registeredDate: c.registeredDate || (c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : ''),
         };
         
-        // Normalize dates from ISO to YYYY-MM-DD
         if (row.visitDate && row.visitDate.includes('T')) {
           row.visitDate = row.visitDate.split('T')[0];
         }
@@ -59,7 +56,6 @@ export function DataProvider({ children }) {
     }
   }, [user, refreshCustomers]);
 
-  // Fetch users from API when user changes or on mount
   const refreshUsers = useCallback(async () => {
     try {
       setUsersLoading(true);
@@ -78,11 +74,11 @@ export function DataProvider({ children }) {
     }
   }, [user, refreshUsers]);
 
-  // Fetch sites from API when user changes or on mount
   const refreshSites = useCallback(async () => {
     try {
       const data = await siteApi.getAll();
-      setSites(Array.isArray(data) ? data : (data.sites || data.data || []));
+      const list = Array.isArray(data) ? data : (data.sites || data.data || []);
+      setSites(list);
     } catch (err) {
       console.error("Failed to fetch sites:", err);
     }
@@ -94,7 +90,6 @@ export function DataProvider({ children }) {
     }
   }, [user, refreshSites]);
 
-  // Sites — API-backed
   const addSite = async (siteData) => {
     try {
       const created = await siteApi.create(siteData);
@@ -137,7 +132,6 @@ export function DataProvider({ children }) {
     }
   };
 
-  // Customers — API-backed
   const addCustomer = async (customer) => {
     try {
       await customerApi.registerCustomer(customer);
@@ -152,8 +146,6 @@ export function DataProvider({ children }) {
     try {
       await customerApi.update(id, updates);
       await refreshCustomers();
-      // Also refresh users if driver details were updated (to keep any related data fresh)
-      await refreshUsers();
     } catch (err) {
       console.error("Failed to update customer:", err);
       throw err;
@@ -170,26 +162,23 @@ export function DataProvider({ children }) {
     }
   };
 
-  // Bookings
   const addBooking = (booking) => setBookings(prev => {
     const year = new Date().getFullYear();
     const count = prev.filter(b => b.invoiceNo?.startsWith(`INV-${year}`)).length + 1;
     const invoiceNo = `INV-${year}-${String(count).padStart(3, '0')}`;
     return [...prev, { ...booking, id: Date.now(), bookingDate: new Date().toISOString().split("T")[0], invoiceNo }];
   });
+
   const updateBooking = (id, updates) => setBookings(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
 
-  // Visits
   const updateVisit = (id, updates) => setVisits(prev => prev.map(v => v.id === id ? { ...v, ...updates } : v));
 
-  // Users — API-backed
   const addUser = async (userData, loggedInUserId) => {
     try {
       const created = await userApi.create({
         ...userData,
         parentUserId: userData.parentUserId ?? loggedInUserId,
       });
-      // Re-fetch to get the server-generated data (id, employeeCode, joinDate, etc.)
       await refreshUsers();
       return created;
     } catch (err) {
@@ -211,7 +200,6 @@ export function DataProvider({ children }) {
   const deleteUser = async (id) => {
     try {
       await userApi.delete(id);
-      // Optimistic update + refresh
       setUsers(prev => prev.filter(u => u.id !== id));
       await refreshUsers();
     } catch (err) {
@@ -220,7 +208,6 @@ export function DataProvider({ children }) {
     }
   };
 
-  // Commission rates
   const commissionRates = { Admin: 0, Director: 1.5, "Regional Manager": 1.0, "Branch Manager": 0.75, BDM: 0.5, "Sales Manager": 0.25 };
 
   return (

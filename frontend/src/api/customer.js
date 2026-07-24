@@ -7,14 +7,16 @@ const handleResponse = async (response) => {
   try {
     data = await response.json();
   } catch (e) {
-    if (!response.ok) throw new Error('Request failed');
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'Request failed');
+    }
     return null;
   }
   if (!response.ok) {
-    const error = new Error(
-      Array.isArray(data?.message) ? data.message[0] : (data?.message || "Something went wrong")
-    );
-    error.validationErrors = Array.isArray(data?.message) ? data.message : [data?.message || "Something went wrong"];
+    const message = data?.message || (Array.isArray(data?.message) ? data.message[0] : "Something went wrong");
+    const error = new Error(message);
+    error.validationErrors = Array.isArray(data?.message) ? data.message : [message];
     throw error;
   }
   return data;
@@ -73,4 +75,11 @@ export const customer = {
     });
     return handleResponse(response);
   },
+  async findByMobile(mobile) {
+    const response = await fetch(`${VITE_API_URL}/customers/find-by-mobile?mobile=${encodeURIComponent(mobile)}`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  }
 };

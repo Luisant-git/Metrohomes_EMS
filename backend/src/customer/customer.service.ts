@@ -11,144 +11,245 @@ export class CustomerService {
       throw new BadRequestException('Mobile number is required');
     }
 
-    const existingMobile = await this.prisma.customer.findFirst({
+    let customer = await this.prisma.customer.findFirst({
       where: { phone: dto.mobile },
     });
-    if (existingMobile) {
-      throw new BadRequestException('A customer with this mobile number is already registered');
-    }
 
-    if (dto.email) {
-      const existingEmail = await this.prisma.customer.findFirst({
-        where: { email: dto.email },
-      });
-      if (existingEmail) {
-        throw new BadRequestException('A customer with this email address is already registered');
-      }
-    }
+    const isNewCustomer = !customer;
 
-    const data: any = {
-      name: dto.name,
-      phone: dto.mobile,
-      email: dto.email || null,
-      address: dto.address,
-      location: dto.location,
-      status: dto.status || 'Interested',
-      siteId: dto.siteId,
-      visitDate: dto.visitDate ? new Date(dto.visitDate) : undefined,
-      visitTime: dto.visitTime,
-      persons: dto.persons,
-      driverName: dto.driverName,
-      driverMobile: dto.driverMobile,
-      cabNumber: dto.cabNumber,
-      notes: dto.notes,
-      occupation: dto.occupation,
-      purchaseMode: dto.purchaseMode,
-      pinCode: dto.pinCode,
-      createdBy: dto.createdBy,
-    };
-
-    try {
-      const created = await this.prisma.customer.create({ 
-        data,
-        include: {
-          site: { select: { name: true } },
-          user: { select: { name: true } },
-        }
-      });
-      
-      // Return sanitized response with null -> empty string conversions
-      return {
-        id: created.id,
-        name: created.name,
-        mobile: created.phone,
-        email: created.email || '',
-        address: created.address || '',
-        location: created.location || '',
-        status: created.status || 'Interested',
-        siteId: created.siteId,
-        siteName: created.site?.name || '',
-        createdById: created.createdBy,
-        salesManagerName: created.user?.name || '',
-        visitDate: created.visitDate ? new Date(created.visitDate).toISOString().split('T')[0] : '',
-        visitTime: created.visitTime || '',
-        persons: created.persons,
-        driverName: created.driverName || '',
-        driverMobile: created.driverMobile || '',
-        cabNumber: created.cabNumber || '',
-        notes: created.notes || '',
-        occupation: created.occupation || '',
-        purchaseMode: created.purchaseMode || '',
-        pinCode: created.pinCode || '',
-        registeredDate: created.createdAt ? new Date(created.createdAt).toISOString().split('T')[0] : '',
-        createdAt: created.createdAt,
-        updatedAt: created.updatedAt,
-      };
-    } catch (error: any) {
-      if (error?.code === 'P2002') {
-        const target = error?.meta?.target || [];
-        if (target.includes('phone')) {
-          throw new BadRequestException('A customer with this mobile number is already registered');
-        }
-        if (target.includes('email')) {
+    if (!customer) {
+      if (dto.email) {
+        const existingEmail = await this.prisma.customer.findFirst({
+          where: { email: dto.email },
+        });
+        if (existingEmail) {
           throw new BadRequestException('A customer with this email address is already registered');
         }
-        throw new BadRequestException('Duplicate entry detected');
       }
-      throw error;
+
+      customer = await this.prisma.customer.create({
+        data: {
+          name: dto.name,
+          phone: dto.mobile,
+          email: dto.email || null,
+          address: dto.address,
+          pinCode: dto.pinCode,
+          occupation: dto.occupation,
+          createdBy: dto.createdBy,
+        },
+      });
+    } else {
+      if (dto.name) {
+        await this.prisma.customer.update({
+          where: { id: customer.id },
+          data: { name: dto.name },
+        });
+      }
     }
+
+    if (dto.siteId) {
+      const visit = await this.prisma.siteVisit.create({
+        data: {
+          customerId: customer.id,
+          siteId: dto.siteId,
+          visitDate: dto.visitDate ? new Date(dto.visitDate) : new Date(),
+          visitTime: dto.visitTime || '09:00',
+          persons: dto.persons,
+          pickupLocation: dto.location,
+          purchaseMode: dto.purchaseMode,
+          notes: dto.notes,
+          status: dto.status || 'Interested',
+          assignedTo: dto.createdBy || customer.createdBy,
+          driverName: dto.driverName,
+          driverMobile: dto.driverMobile,
+          cabNumber: dto.cabNumber,
+        },
+        include: {
+          site: { select: { name: true } },
+          assignedToUser: { select: { name: true } },
+        },
+      });
+
+      return {
+        id: customer.id,
+        visitId: visit.id,
+        name: customer.name,
+        mobile: customer.phone,
+        email: customer.email || '',
+        address: customer.address || '',
+        pinCode: customer.pinCode || '',
+        occupation: customer.occupation || '',
+        status: visit.status || 'Interested',
+        siteId: visit.siteId,
+        siteName: visit.site?.name || '',
+        createdById: customer.createdBy,
+        salesManagerName: visit.assignedToUser?.name || '',
+        visitDate: visit.visitDate ? new Date(visit.visitDate).toISOString().split('T')[0] : '',
+        visitTime: visit.visitTime || '',
+        persons: visit.persons,
+        location: visit.pickupLocation || '',
+        purchaseMode: visit.purchaseMode || '',
+        notes: visit.notes || '',
+        driverName: visit.driverName || '',
+        driverMobile: visit.driverMobile || '',
+        cabNumber: visit.cabNumber || '',
+        registeredDate: customer.createdAt ? new Date(customer.createdAt).toISOString().split('T')[0] : '',
+        createdAt: customer.createdAt,
+        updatedAt: customer.updatedAt,
+        isNewCustomer,
+      };
+    }
+
+    return {
+      id: customer.id,
+      name: customer.name,
+      mobile: customer.phone,
+      email: customer.email || '',
+      address: customer.address || '',
+      pinCode: customer.pinCode || '',
+      occupation: customer.occupation || '',
+      status: 'Interested',
+      siteId: null,
+      siteName: '',
+      createdById: customer.createdBy,
+      salesManagerName: '',
+      visitDate: '',
+      visitTime: '',
+      persons: null,
+      location: '',
+      purchaseMode: '',
+      notes: '',
+      driverName: '',
+      driverMobile: '',
+      cabNumber: '',
+      registeredDate: customer.createdAt ? new Date(customer.createdAt).toISOString().split('T')[0] : '',
+      createdAt: customer.createdAt,
+      updatedAt: customer.updatedAt,
+      isNewCustomer,
+    };
   }
 
   async findAll() {
+    const users = await this.prisma.user.findMany({
+      select: { id: true, name: true, employeeCode: true, role: true, mobile: true },
+    });
+
     const customers = await this.prisma.customer.findMany({
-      include: {
-        site: { select: { name: true } },
-        user: { select: { name: true } },
-      },
       orderBy: { createdAt: 'desc' },
     });
-    return customers.map((c) => ({
-      id: c.id,
-      name: c.name,
-      mobile: c.phone,
-      email: c.email,
-      address: c.address,
-      location: c.location,
-      status: c.status || 'Interested',
-      siteId: c.siteId,
-      siteName: c.site?.name || '',
-      createdById: c.createdBy,
-      salesManagerName: c.user?.name || '',
-      visitDate: c.visitDate ? new Date(c.visitDate).toISOString().split('T')[0] : '',
-      visitTime: c.visitTime,
-      persons: c.persons,
-      driverName: c.driverName,
-      driverMobile: c.driverMobile,
-      cabNumber: c.cabNumber,
-      notes: c.notes,
-      occupation: c.occupation,
-      purchaseMode: c.purchaseMode,
-      pinCode: c.pinCode,
-      registeredDate: c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : '',
-      createdAt: c.createdAt,
-      updatedAt: c.updatedAt,
-    }));
+
+    const customerIds = customers.map(c => c.id);
+    const visits = customerIds.length > 0 ? await this.prisma.siteVisit.findMany({
+      where: { customerId: { in: customerIds } },
+      include: {
+        site: { select: { name: true } },
+        assignedToUser: { select: { name: true, employeeCode: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    }) : [];
+
+    const visitsByCustomer = {};
+    visits.forEach(v => {
+      if (!visitsByCustomer[v.customerId]) visitsByCustomer[v.customerId] = [];
+      visitsByCustomer[v.customerId].push(v);
+    });
+
+    return customers.map((c) => {
+      const customerVisits = visitsByCustomer[c.id] || [];
+      const latestVisit = customerVisits[0];
+      const creator = users.find(u => u.id === c.createdBy);
+      return {
+        id: c.id,
+        name: c.name,
+        mobile: c.phone,
+        email: c.email,
+        address: c.address,
+        pinCode: c.pinCode,
+        occupation: c.occupation,
+        status: latestVisit?.status || 'Interested',
+        siteId: latestVisit?.siteId || null,
+        siteName: latestVisit?.site?.name || '',
+        createdById: c.createdBy,
+        salesManagerName: creator ? `${creator.name} (${creator.employeeCode})` : (latestVisit?.assignedToUser?.name || ''),
+        visitDate: latestVisit?.visitDate ? new Date(latestVisit.visitDate).toISOString().split('T')[0] : '',
+        visitTime: latestVisit?.visitTime || '',
+        persons: latestVisit?.persons || null,
+        location: latestVisit?.pickupLocation || '',
+        purchaseMode: latestVisit?.purchaseMode || '',
+        notes: latestVisit?.notes || '',
+        driverName: latestVisit?.driverName || '',
+        driverMobile: latestVisit?.driverMobile || '',
+        cabNumber: latestVisit?.cabNumber || '',
+        visitCount: customerVisits.length,
+        visits: customerVisits.map(v => ({
+          id: v.id,
+          siteName: v.site?.name,
+          visitDate: v.visitDate ? new Date(v.visitDate).toISOString().split('T')[0] : '',
+          visitTime: v.visitTime || '',
+          persons: v.persons,
+          purchaseMode: v.purchaseMode || '',
+          status: v.status || '',
+          registeredBy: v.assignedToUser?.name || '',
+          registeredByRole: v.assignedToUser?.employeeCode || '',
+        })),
+        registeredDate: c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : '',
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+      };
+    });
   }
 
   async findOne(id: number) {
     const c = await this.prisma.customer.findUnique({
       where: { id },
       include: {
-        site: { select: { name: true } },
         user: { select: { name: true } },
+        visits: {
+          include: {
+            site: { select: { name: true } },
+            assignedToUser: { select: { name: true, employeeCode: true, mobile: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
     if (!c) return null;
+
+    const latestVisit = c.visits[0];
     return {
       ...c,
       mobile: c.phone,
-      siteName: c.site?.name || '',
-      salesManagerName: c.user?.name || '',
+      visits: c.visits.map(v => ({
+        id: v.id,
+        siteId: v.siteId,
+        siteName: v.site?.name,
+        visitDate: v.visitDate,
+        visitTime: v.visitTime,
+        persons: v.persons,
+        pickupLocation: v.pickupLocation,
+        purchaseMode: v.purchaseMode,
+        notes: v.notes,
+        status: v.status,
+        driverName: v.driverName,
+        driverMobile: v.driverMobile,
+        cabNumber: v.cabNumber,
+        assignedToName: v.assignedToUser?.name,
+        assignedToRole: v.assignedToUser?.employeeCode,
+        assignedToMobile: v.assignedToUser?.mobile,
+        createdAt: v.createdAt,
+      })),
+      siteName: latestVisit?.site?.name || '',
+      salesManagerName: latestVisit?.assignedToUser?.name || c.user?.name || '',
+      visitDate: latestVisit?.visitDate,
+      visitTime: latestVisit?.visitTime,
+      persons: latestVisit?.persons,
+      location: latestVisit?.pickupLocation,
+      purchaseMode: latestVisit?.purchaseMode,
+      notes: latestVisit?.notes,
+      driverName: latestVisit?.driverName,
+      driverMobile: latestVisit?.driverMobile,
+      cabNumber: latestVisit?.cabNumber,
+      visitCount: c.visits.length,
     };
   }
 
@@ -157,37 +258,94 @@ export class CustomerService {
     if (data.mobile !== undefined) updateData.phone = data.mobile;
     if (data.email !== undefined) updateData.email = data.email;
     if (data.address !== undefined) updateData.address = data.address;
-    if (data.location !== undefined) updateData.location = data.location;
-    if (data.status !== undefined) updateData.status = data.status;
-    if (data.siteId !== undefined) updateData.siteId = data.siteId;
-    if (data.driverName !== undefined) updateData.driverName = data.driverName;
-    if (data.driverMobile !== undefined) updateData.driverMobile = data.driverMobile;
-    if (data.cabNumber !== undefined) updateData.cabNumber = data.cabNumber;
-    if (data.notes !== undefined) updateData.notes = data.notes;
-    return this.prisma.customer.update({ where: { id }, data: updateData });
+    if (data.pinCode !== undefined) updateData.pinCode = data.pinCode;
+    if (data.occupation !== undefined) updateData.occupation = data.occupation;
+    if (data.name !== undefined) updateData.name = data.name;
+
+    if (Object.keys(updateData).length > 0) {
+      await this.prisma.customer.update({ where: { id }, data: updateData });
+    }
+
+    const visitFields = ['status', 'driverName', 'driverMobile', 'cabNumber', 'notes', 'siteId', 'visitDate', 'visitTime', 'persons', 'purchaseMode', 'location'];
+    const hasVisitUpdate = visitFields.some(f => data[f] !== undefined);
+
+    if (hasVisitUpdate) {
+      const latestVisit = await this.prisma.siteVisit.findFirst({
+        where: { customerId: id },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (latestVisit) {
+        const visitUpdate: any = {};
+        if (data.status !== undefined) visitUpdate.status = data.status;
+        if (data.driverName !== undefined) visitUpdate.driverName = data.driverName;
+        if (data.driverMobile !== undefined) visitUpdate.driverMobile = data.driverMobile;
+        if (data.cabNumber !== undefined) visitUpdate.cabNumber = data.cabNumber;
+        if (data.notes !== undefined) visitUpdate.notes = data.notes;
+        if (data.siteId !== undefined) visitUpdate.siteId = data.siteId;
+        if (data.visitDate !== undefined) visitUpdate.visitDate = new Date(data.visitDate);
+        if (data.visitTime !== undefined) visitUpdate.visitTime = data.visitTime;
+        if (data.persons !== undefined) visitUpdate.persons = data.persons;
+        if (data.purchaseMode !== undefined) visitUpdate.purchaseMode = data.purchaseMode;
+        if (data.location !== undefined) visitUpdate.pickupLocation = data.location;
+
+        if (Object.keys(visitUpdate).length > 0) {
+          await this.prisma.siteVisit.update({
+            where: { id: latestVisit.id },
+            data: visitUpdate,
+          });
+        }
+      }
+    }
+
+    return this.findOne(id);
   }
 
   async remove(id: number) {
+    await this.prisma.siteVisit.deleteMany({ where: { customerId: id } });
     return this.prisma.customer.delete({ where: { id } });
   }
 
   async checkDuplicate(mobile?: string, email?: string) {
+    const result = { exists: false, customer: null };
+
     if (mobile) {
       const existingMobile = await this.prisma.customer.findFirst({
         where: { phone: mobile },
       });
       if (existingMobile) {
-        return `A customer with mobile number ${mobile} is already registered`;
+        result.exists = true;
+        result.customer = existingMobile;
+        return result;
       }
     }
+
     if (email) {
       const existingEmail = await this.prisma.customer.findFirst({
         where: { email },
       });
       if (existingEmail) {
-        return `A customer with email address ${email} is already registered`;
+        result.exists = true;
+        result.customer = existingEmail;
+        return result;
       }
     }
-    return null;
+    return result;
+  }
+
+  async findByMobile(mobile: string) {
+    const customer = await this.prisma.customer.findFirst({
+      where: { phone: mobile },
+      include: {
+        visits: {
+          include: {
+            site: { select: { name: true } },
+            assignedToUser: { select: { name: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+    return customer;
   }
 }

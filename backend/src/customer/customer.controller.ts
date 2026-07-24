@@ -27,6 +27,15 @@ export class CustomerController {
     return { success: true, duplicate: false };
   }
 
+  @Get('find-by-mobile')
+  async findByMobile(@Query('mobile') mobile: string) {
+    const customer = await this.customerService.findByMobile(mobile);
+    if (!customer) {
+      return { success: false, message: 'Customer not found' };
+    }
+    return { success: true, data: customer };
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: number) {
     const customer = await this.customerService.findOne(id);

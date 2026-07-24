@@ -1,41 +1,16 @@
 import { Transform, Type } from 'class-transformer';
-import { IsString, IsNotEmpty, IsOptional, IsInt, IsDateString, Allow } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsInt, IsDateString } from 'class-validator';
 
-export class CreateCustomerDto {
-  @IsString()
+export class CreateSiteVisitDto {
+  @IsInt()
+  @Type(() => Number)
   @IsNotEmpty()
-  name: string;
-
-  @IsString()
-  @IsNotEmpty()
-  mobile: string;
-
-  @IsString()
-  @IsOptional()
-  email?: string;
-
-  @IsString()
-  @IsOptional()
-  address?: string;
-
-  @IsString()
-  @IsOptional()
-  pinCode?: string;
-
-  @IsString()
-  @IsOptional()
-  occupation?: string;
+  customerId: number;
 
   @IsInt()
   @Type(() => Number)
-  @IsOptional()
-  createdBy?: number;
-
-  // Visit details moved to SiteVisit
-  @IsInt()
-  @Type(() => Number)
-  @IsOptional()
-  siteId?: number;
+  @IsNotEmpty()
+  siteId: number;
 
   @IsDateString()
   @IsOptional()
@@ -52,7 +27,7 @@ export class CreateCustomerDto {
 
   @IsString()
   @IsOptional()
-  location?: string;
+  pickupLocation?: string;
 
   @IsString()
   @IsOptional()
@@ -65,6 +40,11 @@ export class CreateCustomerDto {
   @IsString()
   @IsOptional()
   status?: string;
+
+  @IsInt()
+  @Type(() => Number)
+  @IsOptional()
+  assignedTo?: number;
 
   @IsString()
   @IsOptional()

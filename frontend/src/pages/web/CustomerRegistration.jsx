@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { customer } from "../../api/customer.js";
-import { useRef } from "react";
+import { siteVisit } from "../../api/siteVisit.js";
 import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Users, Briefcase, DollarSign, ArrowLeft, ArrowRight, Clock } from "lucide-react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -82,10 +82,10 @@ export default function CustomerRegistration() {
   const selectedSite = approvedSites.find(s => s.id === +form.siteId);
 
   const salesManager = {
-    name: user?.name || "Sales Manager",
-    role: user?.role || "Sales Manager",
-    mobile: user?.mobile || "9876543210",
-    id: user?.id || 6,
+    name: user?.name ,
+    role: user?.role ,
+    mobile: user?.mobile,
+    id: user?.id,
   };
 
   const sendOtp = async () => {
@@ -96,31 +96,34 @@ export default function CustomerRegistration() {
 
     try {
       const duplicateCheck = await customer.checkDuplicate(form.mobile, form.email || null);
-      if (duplicateCheck && !duplicateCheck.success && duplicateCheck.duplicate) {
-        // Reset OTP state so user can edit mobile number
-        setOtpSent(false);
-        setOtpVerified(false);
-        setOtp("");
-        
-        toast.error(duplicateCheck.message || "Customer with this mobile/email already exists");
-        if (duplicateCheck.message?.toLowerCase().includes('mobile')) {
-          setErrors((prev) => ({ ...prev, mobile: duplicateCheck.message }));
-        } else if (duplicateCheck.message?.toLowerCase().includes('email')) {
-          setErrors((prev) => ({ ...prev, email: duplicateCheck.message }));
+      if (duplicateCheck && duplicateCheck.duplicate && duplicateCheck.message && duplicateCheck.message.exists) {
+        const existing = duplicateCheck.message.customer;
+        if (existing) {
+          setForm(p => ({
+            ...p,
+            name: existing.name || p.name,
+            email: existing.email || p.email,
+            address: existing.address || p.address,
+            pinCode: existing.pinCode || p.pinCode,
+            occupation: existing.occupation || p.occupation,
+          }));
+          toast.info("Customer found. Details loaded. Select a project to schedule another visit.");
+          setOtpSent(true);
+          setErrors({});
+          return;
         }
-        return;
       }
     } catch (err) {
       console.warn("Duplicate check failed, proceeding anyway:", err);
     }
 
-    // Reset OTP state before sending new OTP
     setOtpSent(false);
     setOtpVerified(false);
     setOtp("");
     
     toast.success(`Demo OTP: 1234`);
     setOtpSent(true);
+    setErrors({});
   };
 
   const verifyOtp = () => {
@@ -239,24 +242,37 @@ export default function CustomerRegistration() {
     }
 
     try {
-      const payload = {
+      // Step 1: Create or find customer
+      const customerPayload = {
         name: form.name,
         email: form.email || undefined,
         mobile: form.mobile,
         address: form.address,
         pinCode: form.pinCode,
+        occupation: form.occupation,
+        createdBy: user?.id,
+      };
+      const customerRes = await customer.registerCustomer(customerPayload);
+      const createdCustomer = customerRes.data;
+
+      // Step 2: Create site visit for this customer
+      const visitPayload = {
+        customerId: createdCustomer.id,
+        siteId: Number(form.siteId),
         visitDate: form.visitDate,
         visitTime: form.visitTime,
         persons: Number(form.persons),
-        location: form.location,
-        notes: form.notes,
-        occupation: form.occupation,
-        siteId: Number(form.siteId),
+        pickupLocation: form.location,
         purchaseMode: form.purchaseMode,
-        createdBy: user?.id,
+        notes: form.notes,
+        status: form.status,
+        assignedTo: user?.id,
+        driverName: form.driverName,
+        driverMobile: form.driverMobile,
+        cabNumber: form.cabNumber,
       };
-      await customer.registerCustomer(payload);
-      // Refresh customers list to show the newly created customer
+      
+      await siteVisit.create(visitPayload);
       await refreshCustomers();
       setSuccessModalOpen(true);
     } catch (err) {
@@ -274,16 +290,11 @@ export default function CustomerRegistration() {
         } else {
           toast.error("Please fix the errors below");
         }
-      } else if (err.response?.data?.message) {
-        toast.error(err.response.data.message);
-      } else if (err.message) {
-        toast.error(err.message);
       } else {
-        toast.error("Registration failed. Please try again.");
+        toast.error(err.message || "Registration failed. Please try again.");
       }
     }
   };
-
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -474,42 +485,42 @@ export default function CustomerRegistration() {
         )}
 
         {/* Step 3: Review */}
-{step === 3 && (
-  <div className="space-y-5 animate-fadeIn">
-    <div className="bg-purple-50 rounded-xl p-4 text-sm text-purple-700 font-medium">
-      Review all details before submitting
-    </div>
+        {step === 3 && (
+          <div className="space-y-5 animate-fadeIn">
+            <div className="bg-purple-50 rounded-xl p-4 text-sm text-purple-700 font-medium">
+              Review all details before submitting
+            </div>
 
-    <div className="bg-gray-50 rounded-xl border border-gray-200 divide-y divide-gray-200">
-      {[
-        ["Applicant Name", form.name],
-        ["Mobile Number", form.mobile],
-        ["Email", form.email || "—"],
-        ["Address", form.address],
-        ["Pin Code", form.pinCode],
-        ["Occupation", form.occupation],
-        ["Project Interested", selectedSite?.name || "—"],
-        ["Purchase Mode", form.purchaseMode],
-        ["Visit Date", form.visitDate],
-        ["Visit Time", form.visitTime ? (() => { const [h,m] = form.visitTime.split(':'); const hour = parseInt(h,10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })() : '—'],
-        ["Number of Persons", form.persons],
-        ["Pickup Location", form.location || "—"],
-        ["Created By", salesManager.role], // Changed from salesManager.name to salesManager.role
-        ["Sales Manager", salesManager.name], // Added new field for Sales Manager name
-        ["Sales Manager Mobile", salesManager.mobile], // Added mobile number
-      ].map(([k, v]) => (
-        <div key={k} className="flex items-start justify-between px-5 py-3">
-          <span className="text-sm text-gray-500 font-medium">{k}</span>
-          <span className="text-sm font-medium text-gray-800 text-right max-w-[60%]">{v}</span>
-        </div>
-      ))}
-    </div>
+            <div className="bg-gray-50 rounded-xl border border-gray-200 divide-y divide-gray-200">
+              {[
+                ["Applicant Name", form.name],
+                ["Mobile Number", form.mobile],
+                ["Email", form.email || "—"],
+                ["Address", form.address],
+                ["Pin Code", form.pinCode],
+                ["Occupation", form.occupation],
+                ["Project Interested", selectedSite?.name || "—"],
+                ["Purchase Mode", form.purchaseMode],
+                ["Visit Date", form.visitDate],
+                ["Visit Time", form.visitTime ? (() => { const [h,m] = form.visitTime.split(':'); const hour = parseInt(h,10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })() : '—'],
+                ["Number of Persons", form.persons],
+                ["Pickup Location", form.location || "—"],
+                ["Created By", salesManager.role],
+                ["Sales Manager", salesManager.name],
+                ["Sales Manager Mobile", salesManager.mobile],
+              ].map(([k, v]) => (
+                <div key={k} className="flex items-start justify-between px-5 py-3">
+                  <span className="text-sm text-gray-500 font-medium">{k}</span>
+                  <span className="text-sm font-medium text-gray-800 text-right max-w-[60%]">{v}</span>
+                </div>
+              ))}
+            </div>
 
-    <div className="bg-blue-50 rounded-xl p-4 text-xs text-blue-700">
-      <strong>Note:</strong> Customer will be registered with status <strong>"Interested"</strong> and visit will be scheduled.
-    </div>
-  </div>
-)}
+            <div className="bg-blue-50 rounded-xl p-4 text-xs text-blue-700">
+              <strong>Note:</strong> Customer will be registered with status <strong>"Interested"</strong> and visit will be scheduled.
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Navigation Buttons */}

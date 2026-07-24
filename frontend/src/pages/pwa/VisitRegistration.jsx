@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { customer } from "../../api/customer.js";
+import { siteVisit } from "../../api/siteVisit.js";
 import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Users, Briefcase, IndianRupee, Clock } from "lucide-react";
 import { toast } from "react-toastify";
 
@@ -44,7 +46,7 @@ function FormField({ label, icon: Icon, children, required, className }) {
 }
 
 export default function PWAVisitRegistration() {
-  const { sites, addCustomer } = useData();
+  const { sites, refreshCustomers } = useData();
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -105,35 +107,33 @@ export default function PWAVisitRegistration() {
       return;
     }
 
-    // Check for duplicate mobile or email before sending OTP
     try {
-      const { customer: customerApi } = await import("../../api/customer.js");
-      const duplicateCheck = await customerApi.checkDuplicate(form.mobile, form.email || null);
-      
-      if (duplicateCheck && !duplicateCheck.success && duplicateCheck.duplicate) {
-        // Reset OTP state so user can edit mobile number
-        setOtpSent(false);
-        setOtpVerified(false);
-        setOtp("");
-        
-        toast.error(duplicateCheck.message || "Customer with this mobile/email already exists");
-        if (duplicateCheck.message?.toLowerCase().includes('mobile')) {
-          setErrors({ mobile: duplicateCheck.message });
-        } else if (duplicateCheck.message?.toLowerCase().includes('email')) {
-          setErrors({ email: duplicateCheck.message });
+      const duplicateCheck = await customer.checkDuplicate(form.mobile, form.email || null);
+      if (duplicateCheck && duplicateCheck.duplicate && duplicateCheck.message && duplicateCheck.message.exists) {
+        const existing = duplicateCheck.message.customer;
+        if (existing) {
+          setForm(p => ({
+            ...p,
+            name: existing.name || p.name,
+            email: existing.email || p.email,
+            address: existing.address || p.address,
+            pinCode: existing.pinCode || p.pinCode,
+            occupation: existing.occupation || p.occupation,
+          }));
+          toast.info("Customer found. Details loaded. Select a project to schedule another visit.");
+          setOtpSent(true);
+          setErrors({});
+          return;
         }
-        return;
       }
     } catch (err) {
       console.warn("Duplicate check failed, proceeding anyway:", err);
     }
 
-    // Reset OTP state before sending new OTP
     setOtpSent(false);
     setOtpVerified(false);
     setOtp("");
     
-    // Demo OTP
     toast.success(`Demo OTP: 1234`);
     setOtpSent(true);
     setErrors({});
@@ -255,23 +255,38 @@ export default function PWAVisitRegistration() {
     }
 
     try {
-      await addCustomer({
+      // Step 1: Create or find customer
+      const customerPayload = {
         name: form.name,
-        mobile: form.mobile,
         email: form.email || undefined,
+        mobile: form.mobile,
         address: form.address,
         pinCode: form.pinCode,
         occupation: form.occupation,
-        location: form.location,
-        siteId: +form.siteId,
+        createdBy: user?.id,
+      };
+      const customerRes = await customer.registerCustomer(customerPayload);
+      const createdCustomer = customerRes.data;
+
+      // Step 2: Create site visit
+      const visitPayload = {
+        customerId: createdCustomer.id,
+        siteId: Number(form.siteId),
         visitDate: form.visitDate,
         visitTime: form.visitTime,
         persons: Number(form.persons),
+        pickupLocation: form.location,
         purchaseMode: form.purchaseMode,
         notes: form.notes,
-        status: "Interested",
-        createdBy: user?.id,
-      });
+        status: form.status,
+        assignedTo: user?.id,
+        driverName: "",
+        driverMobile: "",
+        cabNumber: "",
+      };
+      
+      await siteVisit.create(visitPayload);
+      await refreshCustomers();
       setSuccessModalOpen(true);
     } catch (err) {
       if (err.response?.data?.errors) {

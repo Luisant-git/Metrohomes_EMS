@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { UserX, Eye, Search, ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
+import { UserX, Eye, Search, ChevronLeft, ChevronRight, CheckCircle, Clock, Users, IndianRupee } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import Modal from "../../components/Modal.jsx";
 import { toast } from "react-toastify";
@@ -11,30 +11,28 @@ const ITEMS_PER_PAGE = 10;
 
 export default function PWACustomers() {
   const { user, hierarchy } = useAuth();
-  const { customers, users, updateCustomer } = useData();
+  const { customers = [], users = [], updateCustomer } = useData();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "All");
   const [roleFilter, setRoleFilter] = useState("All");
   const [viewCustomer, setViewCustomer] = useState(null);
   const [pendingUpdate, setPendingUpdate] = useState(null);
+  const [historyCustomer, setHistoryCustomer] = useState(null);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Get all user IDs in this team's full hierarchy (self + all downline)
   const teamUserIds = useMemo(() => {
-    if (!users.length || !user?.id) return [];
+    if (!users.length || !user?.id) return [user?.id].filter(Boolean);
     const downline = hierarchy.getDownline(users);
     const allTeam = [user, ...downline].filter(Boolean);
     return allTeam.map(u => u.id);
   }, [users, user, hierarchy]);
 
-  // Filter customers by createdById matching team members
   const myCustomers = useMemo(() => {
     return customers.filter(c => teamUserIds.includes(c.createdById));
   }, [customers, teamUserIds]);
 
-  // Unique roles in the team for role filter
   const teamRoles = useMemo(() => {
     const roleSet = new Set();
     teamUserIds.forEach(id => {
@@ -44,19 +42,16 @@ export default function PWACustomers() {
     return ["All", ...Array.from(roleSet)];
   }, [users, teamUserIds]);
 
-  // Helper: get role of the user who created a customer
   const getCreatorRole = (customer) => {
     const creator = users.find(u => u.id === (customer.createdById || customer.createdBy));
     return creator?.role || "";
   };
 
-  // Helper: get name of the user who created a customer
   const getCreatorName = (customer) => {
     const creator = users.find(u => u.id === (customer.createdById || customer.createdBy));
     return creator ? creator.name : (customer.salesManagerName || "—");
   };
 
-  // Search filter
   const searchedCustomers = useMemo(() => {
     if (!search.trim()) return myCustomers;
     const s = search.toLowerCase().trim();
@@ -69,7 +64,6 @@ export default function PWACustomers() {
     );
   }, [myCustomers, search]);
 
-  // Status filter + Role filter
   const filteredCustomers = useMemo(() => {
     let result = searchedCustomers;
     if (statusFilter !== "All") {
@@ -81,20 +75,18 @@ export default function PWACustomers() {
     return result;
   }, [searchedCustomers, statusFilter, roleFilter, users]);
 
-  // Pagination
   const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE);
   const paginatedCustomers = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     return filteredCustomers.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredCustomers, currentPage]);
 
-  // Status counts
   const statusCounts = useMemo(() => {
     const counts = {
       All: myCustomers.length,
       Interested: 0,
       "Visit Scheduled": 0,
-      "Visit Completed": 0,
+      "Visit Completed": 0, 
       "Ready for Booking": 0,
       Booked: 0,
       "Payment Done": 0,
@@ -156,7 +148,6 @@ export default function PWACustomers() {
       </div>
 
       <div className="px-4 space-y-3">
-        {/* Summary Cards */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <h3 className="font-bold text-gray-800 text-sm mb-3">Summary</h3>
           <div className="grid grid-cols-2 gap-3">
@@ -172,13 +163,11 @@ export default function PWACustomers() {
           </div>
         </div>
 
-        {/* Customer Table */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-4 pb-2">
             <h3 className="font-bold text-gray-800 text-sm">My Customers</h3>
           </div>
 
-          {/* Search Bar */}
           <div className="px-4 pb-2">
             <div className="relative">
               <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -191,7 +180,6 @@ export default function PWACustomers() {
             </div>
           </div>
 
-          {/* Role Filter Dropdown */}
           <div className="px-4 pb-2">
             <select
               value={roleFilter}
@@ -206,7 +194,6 @@ export default function PWACustomers() {
             </select>
           </div>
 
-          {/* Status Filter Dropdown */}
           <div className="px-4 pb-3">
             <select
               value={statusFilter}
@@ -221,12 +208,10 @@ export default function PWACustomers() {
             </select>
           </div>
 
-          {/* Result count */}
           <div className="px-4 pb-2 text-xs text-gray-400">
             Showing {paginatedCustomers.length} of {filteredCustomers.length} customers
           </div>
 
-          {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -284,6 +269,13 @@ export default function PWACustomers() {
                         >
                           <Eye size={15} />
                         </button>
+                        <button
+                          onClick={() => setHistoryCustomer(c)}
+                          className="p-1.5 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
+                          title="Visit History"
+                        >
+                          <Clock size={15} />
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -292,7 +284,6 @@ export default function PWACustomers() {
             </table>
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
               <button
@@ -341,7 +332,6 @@ export default function PWACustomers() {
         </div>
       </div>
 
-      {/* View Details Modal */}
       <Modal open={!!viewCustomer} onClose={() => setViewCustomer(null)} title="Customer Details" size="lg">
         {selected && (
           <div className="space-y-3">
@@ -415,7 +405,92 @@ export default function PWACustomers() {
         )}
       </Modal>
 
-      {/* Status Update Confirmation Modal - Only updates when Confirm is clicked */}
+      <Modal open={!!historyCustomer} onClose={() => setHistoryCustomer(null)} title="Visit History" size="lg">
+        {historyCustomer && (
+          <div className="space-y-0">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-purple-600 flex items-center justify-center text-white text-base font-bold flex-shrink-0">
+                {historyCustomer.name?.charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold text-gray-900 truncate">{historyCustomer.name}</h3>
+                <p className="text-[11px] text-gray-500">{historyCustomer.mobile}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold text-purple-700 bg-purple-100 border border-purple-200 px-3 py-1.5 rounded-full">
+                  {historyCustomer.visitCount || historyCustomer.visits?.length || 0} visits
+                </span>
+                <StatusBadge status={historyCustomer.status} />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-100">
+              {historyCustomer.visits && historyCustomer.visits.length > 0 ? (
+                historyCustomer.visits.map((visit, idx) => {
+                  const statusColors = {
+                    'Interested': 'bg-blue-100 text-blue-700',
+                    'Visit Scheduled': 'bg-yellow-100 text-yellow-700',
+                    'Visit Completed': 'bg-green-100 text-green-700',
+                    'Booked': 'bg-emerald-100 text-emerald-700',
+                    'Payment Done': 'bg-green-100 text-green-700',
+                    'Follow-up': 'bg-orange-100 text-orange-700',
+                  };
+                  const iconColors = ['bg-green-100 text-green-700', 'bg-yellow-100 text-yellow-700', 'bg-blue-100 text-blue-700'];
+                  const iconColor = iconColors[idx % iconColors.length];
+                  const visitDate = formatDate(visit.visitDate);
+                  const displayDate = visitDate === '—' ? '—' : visitDate;
+
+                  return (
+                    <div key={visit.id} className="px-4 py-4">
+                      <div className="flex gap-3">
+                        <div className="flex flex-col items-center">
+                          <div className="text-[10px] text-gray-400 font-medium leading-tight">
+                            {displayDate !== '—' ? (() => { const d = new Date(visit.visitDate); return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`; })() : '—'}
+                          </div>
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center mt-1 ${iconColor}`}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+                          </div>
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <h4 className="text-sm font-bold text-gray-900">{visit.siteName || `Visit #${historyCustomer.visitCount - idx}`}</h4>
+                            <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${statusColors[visit.status] || 'bg-gray-100 text-gray-700'}`}>{visit.status}</span>
+                          </div>
+
+                          <div className="text-[11px] text-gray-400 mb-2">
+                            {visit.visitDate && !visit.visitDate.includes('T') ? visit.visitDate : ''} {visit.visitTime ? (() => { const [h,m] = visit.visitTime.split(':'); const hour = parseInt(h,10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })() : ''}
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-600 mb-2">
+                            <span className="flex items-center gap-1"><Users size={12} /> {visit.persons} Persons</span>
+                            <span className="flex items-center gap-1"><IndianRupee size={12} /> {visit.purchaseMode}</span>
+                          </div>
+
+                          {visit.registeredBy && (
+                            <div className="text-[10px] text-gray-500">
+                              Assigned To <span className="font-semibold text-gray-700">{visit.registeredBy}</span> <span className="text-gray-400">{visit.registeredByRole ? `(${visit.registeredByRole})` : ''}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="px-4 py-6 text-center text-gray-400 text-sm">No visit history available</div>
+              )}
+            </div>
+
+            {historyCustomer.visits && historyCustomer.visits.length > 1 && (
+              <div className="text-center py-2">
+                <p className="text-[10px] text-gray-400">Showing all {historyCustomer.visits.length} visits · Latest visit at the top</p>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
       {pendingUpdate && (
         <Modal open={!!pendingUpdate} onClose={() => setPendingUpdate(null)} title="Confirm Status Update">
           <div className="text-center py-4 space-y-3">
