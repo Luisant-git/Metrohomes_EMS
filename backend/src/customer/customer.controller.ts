@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { CustomerService } from './customer.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 
+@ApiTags('Customers')
 @Controller('customers')
 export class CustomerController {
   constructor(private readonly customerService: CustomerService) {}
@@ -52,5 +54,22 @@ export class CustomerController {
   async remove(@Param('id') id: number) {
     await this.customerService.remove(id);
     return { success: true };
+  }
+
+  // ---------------------------------------------------
+  // Customer Mobile Verification OTP endpoints
+  // ---------------------------------------------------
+  @Post('request-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request OTP for customer mobile verification' })
+  async requestOtp(@Body('mobile') mobile: string) {
+    return this.customerService.requestCustomerOtp(mobile);
+  }
+
+  @Post('verify-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify OTP for customer mobile verification' })
+  async verifyOtp(@Body('mobile') mobile: string, @Body('otp') otp: string) {
+    return this.customerService.verifyCustomerOtp(mobile, otp);
   }
 }

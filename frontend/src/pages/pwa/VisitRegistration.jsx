@@ -68,6 +68,9 @@ export default function PWAVisitRegistration() {
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
+  const [otpExpiry, setOtpExpiry] = useState(null);
+  const [otpTimer, setOtpTimer] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(0);
   const [locLoading, setLocLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -101,12 +104,40 @@ export default function PWAVisitRegistration() {
     }
   };
 
+  const startOtpTimer = () => {
+    // Clear any existing timer
+    if (otpTimer) clearInterval(otpTimer);
+    
+    // Set 5 minutes (300 seconds)
+    const expiresAt = Date.now() + 300000;
+    setOtpExpiry(expiresAt);
+    setTimeLeft(300);
+
+    const timer = setInterval(() => {
+      const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      
+      if (remaining <= 0) {
+        clearInterval(timer);
+        setOtpTimer(null);
+        setOtpExpiry(null);
+        // Auto-expire: reset OTP sent state so user can request again
+        setOtpSent(false);
+        setOtp("");
+        toast.info("OTP expired. Please request a new one.");
+      }
+    }, 1000);
+    
+    setOtpTimer(timer);
+  };
+
   const sendOtp = async () => {
     if (!form.mobile || form.mobile.length !== 10) {
       setErrors({ mobile: "Enter valid 10-digit mobile number" });
       return;
     }
 
+    // Load existing customer details if available (but still send OTP for verification)
     try {
       const duplicateCheck = await customer.checkDuplicate(form.mobile, form.email || null);
       if (duplicateCheck && duplicateCheck.duplicate && duplicateCheck.message && duplicateCheck.message.exists) {
@@ -120,10 +151,7 @@ export default function PWAVisitRegistration() {
             pinCode: existing.pinCode || p.pinCode,
             occupation: existing.occupation || p.occupation,
           }));
-          toast.info("Customer found. Details loaded. Select a project to schedule another visit.");
-          setOtpSent(true);
-          setErrors({});
-          return;
+          toast.info("Customer found. Details loaded. Sending OTP for verification...");
         }
       }
     } catch (err) {
@@ -133,19 +161,28 @@ export default function PWAVisitRegistration() {
     setOtpSent(false);
     setOtpVerified(false);
     setOtp("");
-    
-    toast.success(`Demo OTP: 1234`);
-    setOtpSent(true);
-    setErrors({});
+
+    try {
+      await customer.requestOtp(form.mobile);
+      toast.success("OTP sent to your mobile via WhatsApp!");
+      setOtpSent(true);
+      setErrors({});
+      startOtpTimer();
+    } catch (err) {
+      toast.error(err.message || "Failed to send OTP");
+    }
   };
 
-  const verifyOtp = () => {
-    if (otp === "1234") {
+  const verifyOtp = async () => {
+    try {
+      await customer.verifyOtp(form.mobile, otp);
       setOtpVerified(true);
       toast.success("Mobile verified!");
       setErrors({});
-    } else {
-      setErrors({ otp: "Invalid OTP" });
+      // Clear timer on successful verification
+      if (otpTimer) clearInterval(otpTimer);
+    } catch (err) {
+      toast.error(err.message || "Invalid OTP");
     }
   };
 
@@ -376,6 +413,16 @@ export default function PWAVisitRegistration() {
                       Verify
                     </button>
                   </div>
+                  {timeLeft > 0 && (
+                    <div className="mt-1.5 flex items-center gap-1.5 text-xs">
+                      <span className={`font-medium ${timeLeft <= 30 ? "text-red-500" : "text-gray-500"}`}>
+                        OTP expires in {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+                      </span>
+                      {timeLeft <= 30 && (
+                        <span className="text-red-500 font-semibold animate-pulse">Expiring soon!</span>
+                      )}
+                    </div>
+                  )}
                 </F>
               )}
 

@@ -1,10 +1,26 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
+
+interface OtpData {
+  hashedOtp: string;
+  expiresAt: Date;
+  attempts: number;
+}
 
 @Injectable()
 export class CustomerService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(CustomerService.name);
+  // In-memory OTP store for customer mobile verification
+  // Key: mobile number, Value: OTP data (hashed OTP, expiry, attempts)
+  private readonly otpStore = new Map<string, OtpData>();
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly whatsappService: WhatsappService,
+  ) {}
 
   async register(dto: CreateCustomerDto) {
     if (!dto.mobile) {
@@ -39,12 +55,26 @@ export class CustomerService {
         },
       });
     } else {
-      if (dto.name) {
+      // Update all provided fields for existing customer
+      const updateData: any = {};
+      if (dto.name) updateData.name = dto.name;
+      if (dto.address !== undefined) updateData.address = dto.address;
+      if (dto.pinCode !== undefined) updateData.pinCode = dto.pinCode;
+      if (dto.occupation !== undefined) updateData.occupation = dto.occupation;
+      if (dto.email !== undefined) updateData.email = dto.email;
+      if (dto.createdBy !== undefined) updateData.createdBy = dto.createdBy;
+      
+      if (Object.keys(updateData).length > 0) {
         await this.prisma.customer.update({
           where: { id: customer.id },
-          data: { name: dto.name },
+          data: updateData,
         });
       }
+      
+      // Re-fetch customer to get updated data
+      customer = await this.prisma.customer.findUnique({
+        where: { id: customer.id },
+      });
     }
 
     if (dto.siteId) {
@@ -134,9 +164,7 @@ export class CustomerService {
       select: { id: true, name: true, employeeCode: true, role: true, mobile: true },
     });
 
-    const customers = await this.prisma.customer.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
+    const customers = await this.prisma.customer.findMany();
 
     const customerIds = customers.map(c => c.id);
     const visits = customerIds.length > 0 ? await this.prisma.siteVisit.findMany({
@@ -154,7 +182,7 @@ export class CustomerService {
       visitsByCustomer[v.customerId].push(v);
     });
 
-    return customers.map((c) => {
+    const result = customers.map((c) => {
       const customerVisits = visitsByCustomer[c.id] || [];
       const latestVisit = customerVisits[0];
       const creator = users.find(u => u.id === c.createdBy);
@@ -195,8 +223,18 @@ export class CustomerService {
         registeredDate: c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : '',
         createdAt: c.createdAt,
         updatedAt: c.updatedAt,
+        _latestVisitCreatedAt: latestVisit?.createdAt || c.createdAt,
       };
     });
+
+    // Sort by latest visit creation date (newest first), so returning customers with new visits appear on top
+    result.sort((a, b) => {
+      const dateA = new Date(a._latestVisitCreatedAt).getTime();
+      const dateB = new Date(b._latestVisitCreatedAt).getTime();
+      return dateB - dateA;
+    });
+
+    return result;
   }
 
   async findOne(id: number) {
@@ -266,11 +304,12 @@ export class CustomerService {
       await this.prisma.customer.update({ where: { id }, data: updateData });
     }
 
+    let latestVisit: any = null;
     const visitFields = ['status', 'driverName', 'driverMobile', 'cabNumber', 'notes', 'siteId', 'visitDate', 'visitTime', 'persons', 'purchaseMode', 'location'];
     const hasVisitUpdate = visitFields.some(f => data[f] !== undefined);
 
     if (hasVisitUpdate) {
-      const latestVisit = await this.prisma.siteVisit.findFirst({
+      latestVisit = await this.prisma.siteVisit.findFirst({
         where: { customerId: id },
         orderBy: { createdAt: 'desc' },
       });
@@ -298,7 +337,63 @@ export class CustomerService {
       }
     }
 
-    return this.findOne(id);
+    // Only send WhatsApp templates when status is being changed TO "Visit Scheduled"
+    // This prevents duplicate messages when driver details are updated separately
+    // after the status has already been set to "Visit Scheduled"
+    const statusChangedToScheduled = data.status === 'Visit Scheduled' && latestVisit?.status !== 'Visit Scheduled';
+
+    // Re-fetch customer to get the latest state after all updates
+    const updatedCustomer = await this.findOne(id);
+
+    if (statusChangedToScheduled && updatedCustomer && updatedCustomer.visits && updatedCustomer.visits.length > 0) {
+      const visit = updatedCustomer.visits[0];
+      // 1. Send site_visit_scheduled template to the customer
+      try {
+        await this.whatsappService.sendSiteVisitScheduled(
+          updatedCustomer.phone,
+          updatedCustomer.name,
+          visit.siteName || '',
+          visit.driverName || 'Not assigned',
+          visit.driverMobile || 'N/A',
+          visit.cabNumber || 'N/A',
+        );
+        this.logger.log(`Site visit scheduled template sent to customer ${updatedCustomer.phone}`);
+      } catch (whatsappError: any) {
+        this.logger.error(`Failed to send site visit template to customer: ${whatsappError.message}`);
+      }
+
+      // 2. Send customer_site_visit_confirmation template to the employee who created the customer
+      try {
+        const creator = await this.prisma.user.findUnique({
+          where: { id: updatedCustomer.createdBy },
+        });
+        if (creator && creator.mobile) {
+          const timeStr = visit.visitTime
+            ? (() => { const [h, m] = visit.visitTime.split(':'); const hour = parseInt(h, 10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })()
+            : 'N/A';
+          const dateStr = visit.visitDate
+            ? new Date(visit.visitDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+            : 'N/A';
+          await this.whatsappService.sendCustomerSiteVisitConfirmation(
+            creator.mobile,
+            creator.name || 'Sales Manager',
+            updatedCustomer.name,
+            updatedCustomer.phone,
+            visit.siteName || '',
+            dateStr,
+            timeStr,
+            visit.driverName || 'Not assigned',
+            visit.driverMobile || 'N/A',
+            visit.cabNumber || 'N/A',
+          );
+          this.logger.log(`Customer site visit confirmation template sent to employee ${creator.mobile}`);
+        }
+      } catch (whatsappError: any) {
+        this.logger.error(`Failed to send customer site visit confirmation to employee: ${whatsappError.message}`);
+      }
+    }
+
+    return updatedCustomer;
   }
 
   async remove(id: number) {
@@ -313,7 +408,8 @@ export class CustomerService {
       const existingMobile = await this.prisma.customer.findFirst({
         where: { phone: mobile },
       });
-      if (existingMobile) {
+      // Ignore temporary OTP placeholder records
+      if (existingMobile && !existingMobile.name.startsWith('TEMP_OTP_')) {
         result.exists = true;
         result.customer = existingMobile;
         return result;
@@ -347,5 +443,51 @@ export class CustomerService {
       },
     });
     return customer;
+  }
+
+  // ---------------------------------------------------
+  // Customer Mobile Verification OTP flow
+  // Uses in-memory store - no database records created for OTP
+  // ---------------------------------------------------
+  async requestCustomerOtp(mobile: string) {
+    // Generate 4-digit OTP preserving leading zeros
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+
+    // Store OTP in memory (not in database)
+    this.otpStore.set(mobile, {
+      hashedOtp,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      attempts: 0,
+    });
+
+    // Reuse existing sendOtp method from WhatsappService (metrohomes_verification_code_v1 template)
+    await this.whatsappService.sendOtp(mobile, otp);
+
+    this.logger.log(`Customer OTP sent to ${mobile}`);
+    return { message: 'OTP sent to mobile number' };
+  }
+
+  async verifyCustomerOtp(mobile: string, otp: string) {
+    const otpData = this.otpStore.get(mobile);
+    if (!otpData) {
+      throw new BadRequestException('No OTP requested for this mobile number');
+    }
+
+    if (new Date() > otpData.expiresAt) {
+      this.otpStore.delete(mobile);
+      throw new BadRequestException('OTP has expired. Please request a new OTP.');
+    }
+
+    const isMatch = await bcrypt.compare(otp, otpData.hashedOtp);
+    if (!isMatch) {
+      otpData.attempts++;
+      throw new BadRequestException('Invalid OTP');
+    }
+
+    // Successful verification – clear OTP from memory
+    this.otpStore.delete(mobile);
+
+    return { message: 'Mobile number verified successfully', verified: true };
   }
 }

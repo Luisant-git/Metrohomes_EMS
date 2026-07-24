@@ -73,11 +73,6 @@ export default function WebCustomers() {
     return true;
   });
 
-  const handleStatusChange = (id, status) => {
-    updateCustomer(id, { status });
-    toast.success("Status updated!");
-  };
-
   const openView = (c) => { setSelected(c); setModal("view"); };
   const openEdit = (c) => { setSelected(c); setModal("edit"); };
 
@@ -96,11 +91,11 @@ export default function WebCustomers() {
         <div className="text-xs text-gray-400 flex items-center gap-1"><Phone size={10} />{row.mobile}</div>
       </div>
     )},
-    { key: "siteName", label: "Last Site", render: v => v || "—" },
+    { key: "siteName", label: "Interested Project", render: v => v || "—" },
     { key: "salesManagerName", label: "Created By", render: v => v || "—" },
-    { key: "visitDate", label: "Last Visit", render: (v) => formatDate(v) },
-    { key: "status", label: "Status", render: v => <StatusBadge status={v} /> },
-    { key: "registeredDate", label: "Registered", render: (v) => formatDate(v) },
+    { key: "visitDate", label: "Scheduled Visit", render: (v) => formatDate(v) },
+    { key: "status", label: "Current Status", render: v => <StatusBadge status={v} /> },
+    { key: "registeredDate", label: "Registered on", render: (v) => formatDate(v) },
   ];
 
   return (
@@ -391,7 +386,7 @@ export default function WebCustomers() {
               <label className="label">Update Status</label>
               <select 
                 value={selected.status} 
-                onChange={e => { handleStatusChange(selected.id, e.target.value); setSelected(p => ({ ...p, status: e.target.value })); }}
+                onChange={e => setSelected(p => ({ ...p, status: e.target.value }))}
                 className="input-field mt-2"
               >
                 {STATUSES.filter(s => !["Dropped", "Payment Done", "Booked"].includes(s)).map(s => (
@@ -433,17 +428,39 @@ export default function WebCustomers() {
                   />
                 </div>
                 <button 
-                  onClick={() => { 
-                    updateCustomer(selected.id, { 
-                      driverName: selected.driverName, 
-                      driverMobile: selected.driverMobile, 
-                      cabNumber: selected.cabNumber 
-                    }); 
-                    toast.success("Driver details updated!"); 
+                  onClick={async () => { 
+                    // Batch status + driver details into single API call
+                    // so WhatsApp template has all driver info
+                    const updates = { ...selected };
+                    delete updates.id;
+                    delete updates.name;
+                    delete updates.mobile;
+                    delete updates.email;
+                    delete updates.address;
+                    delete updates.pinCode;
+                    delete updates.occupation;
+                    delete updates.siteName;
+                    delete updates.salesManagerName;
+                    delete updates.visitDate;
+                    delete updates.visitTime;
+                    delete updates.persons;
+                    delete updates.location;
+                    delete updates.purchaseMode;
+                    delete updates.notes;
+                    delete updates.visitCount;
+                    delete updates.visits;
+                    delete updates.registeredDate;
+                    delete updates.createdAt;
+                    delete updates.updatedAt;
+                    delete updates.createdById;
+                    delete updates.siteId;
+                    delete updates._latestVisitCreatedAt;
+                    await updateCustomer(selected.id, updates); 
+                    toast.success("Customer updated successfully!"); 
                     setModal(null);
                   }}
                   className="btn-primary w-full justify-center py-2.5">
-                  Save Driver Details
+                  Save Changes
                 </button>
               </div>
             </div>

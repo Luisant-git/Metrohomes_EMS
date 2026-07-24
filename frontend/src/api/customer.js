@@ -81,5 +81,21 @@ export const customer = {
       headers: getAuthHeaders(),
     });
     return handleResponse(response);
+  },
+  async requestOtp(mobile) {
+    const response = await fetch(`${VITE_API_URL}/customers/request-otp`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ mobile }),
+    });
+    return handleResponse(response);
+  },
+  async verifyOtp(mobile, otp) {
+    const response = await fetch(`${VITE_API_URL}/customers/verify-otp`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ mobile, otp }),
+    });
+    return handleResponse(response);
   }
 };

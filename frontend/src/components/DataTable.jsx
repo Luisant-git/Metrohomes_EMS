@@ -44,11 +44,11 @@ export default function DataTable({ columns, data, actions, searchKey, title, on
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100">
               {columns.map(col => (
-                <th key={col.key} className="text-left px-5 py-3.5 text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                <th key={col.key} className="text-left px-5 py-3.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                   {col.label}
                 </th>
               ))}
-              {actions && <th className="text-right px-5 py-3.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Actions</th>}
+              {actions && <th className="text-right px-5 py-3.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">

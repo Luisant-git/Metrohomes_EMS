@@ -76,6 +76,8 @@ export default function CustomerRegistration() {
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [otpTimer, setOtpTimer] = useState(null);
   const [errors, setErrors] = useState({});
 
   const approvedSites = sites.filter(s => s.status === "Active");
@@ -88,12 +90,32 @@ export default function CustomerRegistration() {
     id: user?.id,
   };
 
+  const startOtpTimer = () => {
+    if (otpTimer) clearInterval(otpTimer);
+    const expiresAt = Date.now() + 300000;
+    setTimeLeft(300);
+
+    const timer = setInterval(() => {
+      const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        clearInterval(timer);
+        setOtpTimer(null);
+        setOtpSent(false);
+        setOtp("");
+        toast.info("OTP expired. Please request a new one.");
+      }
+    }, 1000);
+    setOtpTimer(timer);
+  };
+
   const sendOtp = async () => {
     if (!form.mobile || form.mobile.length !== 10) {
       toast.error("Enter valid 10-digit mobile number");
       return;
     }
 
+    // Load existing customer details if available (but still send OTP for verification)
     try {
       const duplicateCheck = await customer.checkDuplicate(form.mobile, form.email || null);
       if (duplicateCheck && duplicateCheck.duplicate && duplicateCheck.message && duplicateCheck.message.exists) {
@@ -107,10 +129,7 @@ export default function CustomerRegistration() {
             pinCode: existing.pinCode || p.pinCode,
             occupation: existing.occupation || p.occupation,
           }));
-          toast.info("Customer found. Details loaded. Select a project to schedule another visit.");
-          setOtpSent(true);
-          setErrors({});
-          return;
+          toast.info("Customer found. Details loaded. Sending OTP for verification...");
         }
       }
     } catch (err) {
@@ -120,18 +139,26 @@ export default function CustomerRegistration() {
     setOtpSent(false);
     setOtpVerified(false);
     setOtp("");
-    
-    toast.success(`Demo OTP: 1234`);
-    setOtpSent(true);
-    setErrors({});
+
+    try {
+      await customer.requestOtp(form.mobile);
+      toast.success("OTP sent to mobile via WhatsApp!");
+      setOtpSent(true);
+      setErrors({});
+      startOtpTimer();
+    } catch (err) {
+      toast.error(err.message || "Failed to send OTP");
+    }
   };
 
-  const verifyOtp = () => {
-    if (otp === "1234") {
+  const verifyOtp = async () => {
+    try {
+      await customer.verifyOtp(form.mobile, otp);
       setOtpVerified(true);
       toast.success("Mobile verified!");
-    } else {
-      toast.error("Invalid OTP");
+      if (otpTimer) clearInterval(otpTimer);
+    } catch (err) {
+      toast.error(err.message || "Invalid OTP");
     }
   };
 
@@ -365,6 +392,16 @@ export default function CustomerRegistration() {
                       Verify
                     </button>
                   </div>
+                  {timeLeft > 0 && (
+                    <div className="mt-1.5 flex items-center gap-1.5 text-xs">
+                      <span className={`font-medium ${timeLeft <= 30 ? "text-red-500" : "text-gray-500"}`}>
+                        OTP expires in {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+                      </span>
+                      {timeLeft <= 30 && (
+                        <span className="text-red-500 font-semibold animate-pulse ml-1">Expiring soon!</span>
+                      )}
+                    </div>
+                  )}
                 </F>
               )}
 
