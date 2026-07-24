@@ -259,7 +259,7 @@ export default function LoginPage() {
               <form onSubmit={handleCheckUser} className="space-y-3.5">
                 <div>
                   <label className="block text-[11px] font-medium text-slate-600 mb-1.5">
-                    User ID / Employee Code
+                    User ID 
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2">
@@ -320,7 +320,7 @@ export default function LoginPage() {
               <form onSubmit={handleAdminLogin} className="space-y-3.5">
                 <div>
                   <label className="block text-[11px] font-medium text-slate-600 mb-1.5">
-                    Admin PIN / Password
+                    PIN 
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2">
