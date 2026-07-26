@@ -48,6 +48,8 @@ model User {
   updatedAt             DateTime @updatedAt
   customers             Customer[]
   assignedVisits        SiteVisit[] @relation("AssignedUser")
+  createdBookings       Booking[] @relation("CreatedBookings")
+  assignedBookings      Booking[] @relation("AssignedBookings")
 
   @@map("users")
 }
@@ -74,6 +76,7 @@ model Site {
   status          String @default("Active")
 
   visits          SiteVisit[]
+  bookings        Booking[]
 
   @@map("sites")
 }
@@ -92,6 +95,7 @@ model Customer {
   user        User? @relation(fields: [createdBy], references: [id], onDelete: SetNull)
 
   visits      SiteVisit[]
+  bookings    Booking[]
 
   // OTP fields for mobile verification
   otp                   String?
@@ -105,36 +109,104 @@ model Customer {
 }
 
 model SiteVisit {
-  id Int @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
+  customerId   Int
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
-  customerId Int
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  siteId       Int
+  site         Site     @relation(fields: [siteId], references: [id], onDelete: Restrict)
 
-  siteId Int
-  site Site @relation(fields: [siteId], references: [id], onDelete: Restrict)
-
-  visitDate DateTime?
-  visitTime String?
-
-  persons Int?
-
+  visitDate    DateTime?
+  visitTime    String?
+  persons      Int?
   pickupLocation String?
-
   purchaseMode String?
+  notes        String?
 
-  notes String?
+  status       String   @default("Interested")
 
-  status String @default("Interested")
+  assignedTo   Int?
+  assignedToUser User?  @relation("AssignedUser", fields: [assignedTo], references: [id], onDelete: SetNull)
 
-  assignedTo Int?
-  assignedToUser User? @relation("AssignedUser", fields: [assignedTo], references: [id], onDelete: SetNull)
-
-  driverName String?
+  driverName   String?
   driverMobile String?
-  cabNumber String?
+  cabNumber    String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  bookings     Booking[]
 
   @@map("site_visits")
 }
+
+model Booking {
+  id             Int      @id @default(autoincrement())
+  bookingDate    String   @default("")
+
+  customerId     Int
+  customer       Customer @relation(fields: [customerId], references: [id])
+
+  guardianName   String?
+
+  siteId         Int
+  site           Site     @relation(fields: [siteId], references: [id])
+
+  plotArea       Float
+  pricePerSqft   Float
+  plotPrice      Float
+  paidAmount     Float    @default(0)
+  remainingAmount Float
+  paymentMode    String   
+  bankName       String?
+  chequeNo       String?
+  chequeDate     String?
+  transferId     String?
+  loanOrOwn      String   
+
+  status         String   @default("Booked")
+
+  createdBy      Int?
+  creator        User?    @relation("CreatedBookings", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  assignedTo     Int?
+  assignedToUser User?    @relation("AssignedBookings", fields: [assignedTo], references: [id], onDelete: SetNull)
+
+  officeIdNo     String?
+  notes          String?
+  projectName    String?
+  projectNo      String?
+  siteVisitId    Int?
+  siteVisit      SiteVisit? @relation(fields: [siteVisitId], references: [id], onDelete: SetNull)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  receipts       PaymentReceipt[]
+
+  @@map("bookings")
+}
+
+model PaymentReceipt {
+  id              Int      @id @default(autoincrement())
+  receiptNo       String   @unique
+  bookingId       Int
+  booking         Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  previousPaid    Float
+  currentPayment  Float
+  totalPaid       Float
+  balance         Float
+
+  paymentMode     String
+  bankName        String?
+  chequeNo        String?
+  chequeDate      String?
+  transferId      String?
+
+  paymentDate     String
+  createdAt       DateTime @default(now())
+
+  @@map("payment_receipts")
+}
+

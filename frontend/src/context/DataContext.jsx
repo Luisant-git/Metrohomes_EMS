@@ -3,17 +3,19 @@ import { useAuth } from "./AuthContext.jsx";
 import { user as userApi } from "../api/user.js";
 import { site as siteApi } from "../api/site.js";
 import { customer as customerApi } from "../api/customer.js";
+import { booking as bookingApi } from "../api/booking.js";
 
 const DataContext = createContext(null);
 
 export function DataProvider({ children }) {
   const [sites, setSites] = useState([]);
   const [customers, setCustomers] = useState([]);
-  const [bookings, setBookings] = useState([]);
   const [visits, setVisits] = useState([]);
   const [customersLoading, setCustomersLoading] = useState(true);
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(true);
+  const [bookings, setBookings] = useState([]);
+  const [bookingsLoading, setBookingsLoading] = useState(true);
 
   const { user } = useAuth();
 
@@ -155,6 +157,7 @@ export function DataProvider({ children }) {
   const deleteCustomer = async (id) => {
     try {
       await customerApi.remove(id);
+      setCustomers(prev => prev.filter(c => c.id !== id));
       await refreshCustomers();
     } catch (err) {
       console.error("Failed to delete customer:", err);
@@ -162,14 +165,38 @@ export function DataProvider({ children }) {
     }
   };
 
-  const addBooking = (booking) => setBookings(prev => {
-    const year = new Date().getFullYear();
-    const count = prev.filter(b => b.invoiceNo?.startsWith(`INV-${year}`)).length + 1;
-    const invoiceNo = `INV-${year}-${String(count).padStart(3, '0')}`;
-    return [...prev, { ...booking, id: Date.now(), bookingDate: new Date().toISOString().split("T")[0], invoiceNo }];
-  });
+  const refreshBookings = useCallback(async () => {
+    try {
+      setBookingsLoading(true);
+      const data = await bookingApi.getAll();
+      const list = Array.isArray(data) ? data : (data.bookings || data.data || []);
+      const normalized = list.map((b) => ({
+        ...b,
+        siteName: b.siteName || b.site?.name || "",
+        customerName: b.customerName || b.customer?.name || "",
+        salesManagerName: b.salesManagerName || b.assignedToUser?.name || b.creator?.name || "",
+      }));
+      setBookings(normalized);
+    } catch (err) {
+      console.error("Failed to fetch bookings:", err);
+    } finally {
+      setBookingsLoading(false);
+    }
+  }, []);
 
-  const updateBooking = (id, updates) => setBookings(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
+  useEffect(() => {
+    refreshBookings();
+  }, [refreshBookings]);
+
+  const addBooking = async (booking) => {
+    await bookingApi.create(booking);
+    await refreshBookings();
+  };
+
+  const updateBooking = async (id, updates) => {
+    await bookingApi.update(id, updates);
+    setBookings(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
+  };
 
   const updateVisit = (id, updates) => setVisits(prev => prev.map(v => v.id === id ? { ...v, ...updates } : v));
 
@@ -214,7 +241,7 @@ export function DataProvider({ children }) {
     <DataContext.Provider value={{
       sites, addSite, updateSite, deleteSite, approveSite,
       customers, addCustomer, updateCustomer, deleteCustomer, refreshCustomers,
-      bookings, addBooking, updateBooking,
+      bookings, addBooking, updateBooking, refreshBookings, bookingsLoading,
       visits, updateVisit,
       users, addUser, updateUser, deleteUser, refreshUsers, usersLoading,
       commissionRates,
