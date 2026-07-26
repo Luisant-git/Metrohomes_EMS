@@ -176,6 +176,11 @@ export class CustomerService {
       orderBy: { createdAt: 'desc' },
     }) : [];
 
+    const bookings = await this.prisma.booking.findMany({
+      select: { customerId: true }
+    });
+    const bookedCustomerIds = new Set(bookings.map(b => b.customerId));
+
     const visitsByCustomer = {};
     visits.forEach(v => {
       if (!visitsByCustomer[v.customerId]) visitsByCustomer[v.customerId] = [];
@@ -186,6 +191,15 @@ export class CustomerService {
       const customerVisits = visitsByCustomer[c.id] || [];
       const latestVisit = customerVisits[0];
       const creator = users.find(u => u.id === c.createdBy);
+
+      let computedStatus = latestVisit?.status || 'Interested';
+      const hasBooking = bookedCustomerIds.has(c.id);
+      if (hasBooking) {
+        computedStatus = 'Booked';
+      } else if (computedStatus === 'Booked' || computedStatus === 'Payment Done') {
+        computedStatus = 'Visit Completed';
+      }
+
       return {
         id: c.id,
         name: c.name,
@@ -194,7 +208,7 @@ export class CustomerService {
         address: c.address,
         pinCode: c.pinCode,
         occupation: c.occupation,
-        status: latestVisit?.status || 'Interested',
+        status: computedStatus,
         siteId: latestVisit?.siteId || null,
         siteName: latestVisit?.site?.name || '',
         createdById: c.createdBy,
@@ -254,9 +268,22 @@ export class CustomerService {
     if (!c) return null;
 
     const latestVisit = c.visits[0];
+
+    const booking = await this.prisma.booking.findFirst({
+      where: { customerId: id }
+    });
+
+    let computedStatus = latestVisit?.status || 'Interested';
+    if (booking) {
+      computedStatus = 'Booked';
+    } else if (computedStatus === 'Booked' || computedStatus === 'Payment Done') {
+      computedStatus = 'Visit Completed';
+    }
+
     return {
       ...c,
       mobile: c.phone,
+      status: computedStatus,
       visits: c.visits.map(v => ({
         id: v.id,
         siteId: v.siteId,

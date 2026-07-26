@@ -28,6 +28,7 @@ export default function BookingManagement() {
   const [customerVisits, setCustomerVisits] = useState([]);
   const [saving, setSaving] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [successData, setSuccessData] = useState(null);
 
   const readyCustomers = customers.filter(c => c.status === "Ready for Booking");
   const totalRevenue = bookings.reduce((a, b) => a + (b.paidAmount || 0), 0);
@@ -43,6 +44,7 @@ export default function BookingManagement() {
             customerName: booking.customerName || booking.customer?.name || '',
             siteName: booking.siteName || booking.site?.name || '',
             projectNo: booking.projectNo,
+            status: booking.status,
           });
         });
       }
@@ -65,6 +67,7 @@ export default function BookingManagement() {
     const c = customers.find(x => x.id === +cid);
     if (c) {
       await fetchCustomerVisits(c.id);
+      const existingBooking = bookings.find(b => b.customerId === c.id && b.remainingAmount > 0);
       const pricePerSqft = 5000;
       setForm(p => ({
         ...p,
@@ -80,7 +83,7 @@ export default function BookingManagement() {
         pricePerSqft,
         plotPrice: p.plotArea ? p.plotArea * pricePerSqft : ""
       }));
-      setFoundCustomer(c);
+      setFoundCustomer({ ...c, existingBooking: existingBooking || null });
       setMobileSearch(c.mobile || "");
     }
   };
@@ -91,7 +94,7 @@ export default function BookingManagement() {
       const c = customers.find(x => x.mobile === mobile);
       if (c) {
         await fetchCustomerVisits(c.id);
-        const existingBooking = bookings.find(b => b.customerId === c.id);
+        const existingBooking = bookings.find(b => b.customerId === c.id && b.remainingAmount > 0);
         setFoundCustomer({ ...c, existingBooking: existingBooking || null });
         const pricePerSqft = 5000;
         setForm(p => ({
@@ -160,11 +163,38 @@ export default function BookingManagement() {
         projectNo: form.projectNo,
         location: form.location,
       };
-      await bookingApi.create(payload);
+      const res = await bookingApi.create(payload);
       await updateCustomer(+form.customerId, { status: "Booked" });
       await refreshBookings();
       toast.success("Booking registered! WhatsApp notification sent 📱");
-      setModal(null);
+      
+      const newReceipt = (res && res.receipts && res.receipts[0]) || {
+        receiptNo: res?.receiptNo || `REC-${Date.now()}`,
+        currentPayment: Number(form.paidAmount),
+        totalPaid: Number(form.paidAmount),
+        balance: Number(remaining),
+        paymentDate: form.bookingDate,
+        paymentMode: form.paymentMode,
+        bankName: form.bankName,
+        chequeNo: form.chequeNo,
+        chequeDate: form.chequeDate,
+        transferId: form.transferId,
+      };
+
+      setSuccessData({
+        type: 'booking',
+        customerName: form.applicantName,
+        siteName: form.projectName,
+        receipt: {
+          ...newReceipt,
+          customerName: form.applicantName,
+          siteName: form.projectName,
+          projectNo: form.projectNo,
+          status: form.status,
+        }
+      });
+
+      setModal("success");
       setForm(empty);
       setFoundCustomer(null);
       setMobileSearch("");
@@ -180,7 +210,7 @@ export default function BookingManagement() {
     try {
       setSaving(true);
       const amt = +form.paidAmount;
-      await bookingApi.createReceipt({
+      const res = await bookingApi.createReceipt({
         bookingId: foundCustomer.existingBooking.id,
         amount: amt,
         paymentMode: form.paymentMode,
@@ -192,7 +222,21 @@ export default function BookingManagement() {
       await updateCustomer(foundCustomer.existingBooking.customerId, { status: "Booked" });
       await refreshBookings();
       toast.success(`Payment of ₹${amt.toLocaleString("en-IN")} recorded! Receipt generated 📄`);
-      setModal(null);
+
+      setSuccessData({
+        type: 'payment',
+        customerName: foundCustomer.name,
+        siteName: foundCustomer.existingBooking.projectName || foundCustomer.existingBooking.siteName,
+        receipt: {
+          ...res,
+          customerName: foundCustomer.name,
+          siteName: foundCustomer.existingBooking.projectName || foundCustomer.existingBooking.siteName,
+          projectNo: foundCustomer.existingBooking.projectNo,
+          status: form.status,
+        }
+      });
+
+      setModal("success");
       setForm(empty);
       setFoundCustomer(null);
       setMobileSearch("");
@@ -227,52 +271,364 @@ export default function BookingManagement() {
       const paymentDate = row.paymentDate || new Date().toISOString().split('T')[0];
       const paymentMode = row.paymentMode || 'Cash';
       const rupeesInWords = numberToWords(currentPayment);
-      const checkedCash = paymentMode === 'Cash' ? '✓' : '';
-      const checkedDD = paymentMode === 'DD' ? '✓' : '';
-      const checkedCheque = paymentMode === 'Cheque' ? '✓' : '';
-      const checkedFundTransfer = paymentMode === 'Online Transfer' ? '✓' : '';
+
+      const isInitial = row.status === 'Initial Payment' || (!row.previousPaid && !row.balance);
+      const isPart = row.status === 'Part Payment' || (row.previousPaid > 0 && row.balance > 0);
+      const isFull = row.status === 'Full Payment' || (row.balance === 0);
+
+      const drawnOnBankVal = paymentMode === 'Cash' 
+        ? '' 
+        : paymentMode === 'Online Transfer' || paymentMode === 'Fund Transfer'
+          ? `${row.bankName || 'Online'} ${row.transferId ? '(TXN ID: ' + row.transferId + ')' : ''}`
+          : `${row.bankName || ''} ${row.chequeNo ? '(Chq No: ' + row.chequeNo + ')' : ''} ${row.chequeDate ? '(Date: ' + row.chequeDate + ')' : ''}`;
+
       printWindow.document.write(`
-        <html><head><title>Receipt ${receiptNo}</title>
-        <style>
-          @page { size: A5; margin: 10mm; }
-          body { font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; color: #1e3a8a; }
-          .header { text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 15px; }
-          .logo { font-size: 28px; font-weight: bold; color: #1e3a8a; letter-spacing: 2px; margin-bottom: 5px; }
-          .address { font-size: 11px; color: #333; line-height: 1.4; }
-          .title { text-align: center; font-weight: bold; color: #dc2626; font-size: 14px; margin: 10px 0; letter-spacing: 1px; }
-          .field { margin: 8px 0; font-size: 12px; }
-          .field-label { font-weight: bold; color: #1e3a8a; }
-          .dotted-line { border-bottom: 1px dotted #999; display: inline-block; width: 200px; margin-left: 5px; vertical-align: middle; }
-          .checkbox-group { margin: 10px 0; }
-          .checkbox-item { display: inline-block; margin-right: 15px; font-size: 12px; }
-          .checkbox-box { display: inline-block; width: 14px; height: 14px; border: 2px solid #1e3a8a; margin-right: 4px; vertical-align: middle; text-align: center; line-height: 12px; font-size: 11px; font-weight: bold; }
-          .amount-box { border: 2px solid #1e3a8a; border-radius: 8px; padding: 10px; margin: 15px 0; text-align: center; }
-          .amount-symbol { font-size: 32px; font-weight: bold; color: #1e3a8a; }
-          .summary { margin: 15px 0; padding: 10px; background: #f9fafb; border-radius: 6px; }
-          .summary-row { display: flex; justify-content: space-between; margin: 5px 0; font-size: 12px; }
-          .footer { margin-top: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
-          .signature { text-align: center; font-size: 11px; color: #1e3a8a; margin-top: 30px; }
-          .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.05; font-size: 120px; color: #1e3a8a; font-weight: bold; pointer-events: none; }
-        </style></head><body>
-        <div class="watermark">MH</div>
-        <div class="header">
-          <div class="logo">METRO HOMES</div>
-          <div class="address">#557, 17th Cross, 2nd Floor, 2nd Stage, Indiranagar, Bengaluru-560 038</div>
-        </div>
-        <div class="title">PAYMENT RECEIPT</div>
-        <div class="field"><span class="field-label">Receipt No.</span><span class="dotted-line">${receiptNo}</span><span style="float: right;"><span class="field-label">Date:</span><span class="dotted-line" style="width: 120px;">${paymentDate}</span></span></div>
-        <div class="field"><span class="field-label">Received from</span><span class="dotted-line" style="width: 300px;">${customerName}</span></div>
-        <div class="field"><span class="field-label">Project</span><span class="dotted-line" style="width: 300px;">${siteName}</span></div>
-        <div class="field checkbox-group"><span class="field-label">By</span><span class="checkbox-item"><span class="checkbox-box">${checkedCash}</span>Cash</span><span class="checkbox-item"><span class="checkbox-box">${checkedDD}</span>DD</span><span class="checkbox-item"><span class="checkbox-box">${checkedCheque}</span>Cheque</span><span class="checkbox-item"><span class="checkbox-box">${checkedFundTransfer}</span>Fund Transfer</span></div>
-        <div class="summary">
-          <div class="summary-row"><span>Current Payment:</span><span class="font-bold text-blue-600">₹${currentPayment.toLocaleString("en-IN")}</span></div>
-          <div class="summary-row"><span>Total Paid:</span><span class="font-bold text-green-600">₹${totalPaid.toLocaleString("en-IN")}</span></div>
-          <div class="summary-row"><span>Balance:</span><span class="font-bold text-red-600">₹${balance.toLocaleString("en-IN")}</span></div>
-        </div>
-        <div class="amount-box"><div class="amount-symbol">₹</div><div style="font-size: 20px; font-weight: bold; color: #1e3a8a;">${currentPayment.toLocaleString("en-IN")}</div><div style="font-size: 11px; color: #666; margin-top: 5px;">${rupeesInWords} Only</div></div>
-        <div class="footer"><div style="flex: 1;"></div><div class="signature"><div style="border-top: 1px solid #1e3a8a; padding-top: 5px; min-width: 150px;">Authorised Signatory</div><div style="margin-top: 5px; font-weight: bold;">For Metro Homes</div></div></div>
-        <div style="margin-top: 15px; text-align: center;"><button onclick="window.print()" style="padding: 8px 20px; background: #2563eb; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">Download PDF</button></div>
-      </body></html>`);
+        <html>
+        <head>
+          <title>Receipt - ${receiptNo}</title>
+          <style>
+            @page {
+              size: A5 landscape;
+              margin: 5mm;
+            }
+            body {
+              font-family: Arial, sans-serif;
+              margin: 0;
+              padding: 10px;
+              background-color: #f1f5f9;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 95vh;
+            }
+            .receipt-container {
+              border: 2px solid #1e3a8a;
+              border-radius: 12px;
+              padding: 20px 25px;
+              width: 100%;
+              max-width: 720px;
+              box-sizing: border-box;
+              position: relative;
+              background: #fff;
+              box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+              overflow: hidden;
+            }
+            .watermark {
+              position: absolute;
+              top: 55%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              width: 260px;
+              height: 260px;
+              background-image: url('/metrohomes-icon.png');
+              background-size: contain;
+              background-repeat: no-repeat;
+              background-position: center;
+              opacity: 0.06;
+              pointer-events: none;
+              z-index: 0;
+            }
+            .content-wrapper {
+              position: relative;
+              z-index: 10;
+            }
+            .logo-header {
+              display: flex;
+              align-items: center;
+              margin-bottom: 8px;
+            }
+            .logo-img {
+              width: 90px;
+              height: 90px;
+              object-fit: contain;
+              margin-right: 15px;
+            }
+            .header-text {
+              flex-grow: 1;
+              text-align: center;
+              margin-right: 85px; /* offset the logo to center text */
+            }
+            .company-name {
+              font-family: 'Arial Black', Impact, sans-serif;
+              font-size: 28px;
+              font-weight: 900;
+              color: #1e3a8a;
+              letter-spacing: 1.5px;
+              line-height: 1.1;
+            }
+            .company-address {
+              font-size: 10px;
+              font-weight: bold;
+              color: #334155;
+              margin-top: 4px;
+            }
+            .title-ack {
+              text-align: center;
+              color: #dc2626;
+              font-weight: bold;
+              font-size: 13px;
+              text-decoration: underline;
+              margin-bottom: 12px;
+              letter-spacing: 1px;
+            }
+            .row-flex {
+              display: flex;
+              align-items: flex-end;
+              margin-bottom: 10px;
+              font-size: 12.5px;
+              font-weight: bold;
+              color: #1e293b;
+            }
+            .dotted-fill {
+              flex-grow: 1;
+              border-bottom: 1px dotted #475569;
+              margin-left: 8px;
+              padding-left: 6px;
+              font-family: 'Courier New', Courier, monospace;
+              font-size: 14px;
+              color: #000;
+              min-height: 18px;
+              line-height: 18px;
+            }
+            .checkbox-group {
+              display: flex;
+              align-items: center;
+              margin-bottom: 10px;
+              font-size: 12.5px;
+              font-weight: bold;
+              color: #1e293b;
+            }
+            .checkbox-item {
+              display: inline-flex;
+              align-items: center;
+              margin-right: 15px;
+            }
+            .checkbox-box {
+              width: 13px;
+              height: 13px;
+              border: 1.5px solid #1e3a8a;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              margin-right: 5px;
+              font-size: 9px;
+              background-color: transparent;
+              color: #fff;
+            }
+            .checkbox-box.checked {
+              background-color: #1e3a8a;
+            }
+            .bottom-layout {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-end;
+              margin-top: 15px;
+            }
+            .amount-container {
+              display: flex;
+              flex-direction: column;
+            }
+            .rupee-pill {
+              border: 2px solid #0f172a;
+              border-radius: 6px;
+              padding: 5px 12px;
+              display: inline-flex;
+              align-items: center;
+              min-width: 160px;
+              background-color: #f8fafc;
+            }
+            .rupee-symbol {
+              font-size: 20px;
+              font-weight: bold;
+              margin-right: 10px;
+              color: #1e3a8a;
+            }
+            .rupee-val {
+              font-family: 'Courier New', Courier, monospace;
+              font-size: 18px;
+              font-weight: bold;
+              color: #000;
+            }
+            .realisation-note {
+              font-size: 9.5px;
+              color: #64748b;
+              font-style: italic;
+              margin-top: 4px;
+            }
+            .sign-container {
+              text-align: center;
+              min-width: 180px;
+              margin-bottom: 5px;
+            }
+            .sign-for {
+              font-weight: bold;
+              font-size: 13px;
+              color: #1e293b;
+              margin-bottom: 35px;
+            }
+            .sign-label {
+              font-weight: bold;
+              font-size: 11.5px;
+              color: #1e293b;
+              border-top: 1px solid #94a3b8;
+              padding-top: 4px;
+            }
+            .terms-box {
+              border-top: 1px dashed #cbd5e1;
+              padding-top: 8px;
+              margin-top: 12px;
+              font-size: 9.5px;
+              color: #475569;
+              line-height: 1.35;
+            }
+            .terms-title {
+              font-weight: bold;
+              margin-bottom: 2px;
+              color: #1e293b;
+            }
+            .btn-print {
+              display: block;
+              margin: 15px auto 0 auto;
+              padding: 6px 20px;
+              background: #2563eb;
+              color: white;
+              border: none;
+              border-radius: 5px;
+              cursor: pointer;
+              font-size: 12px;
+              font-weight: bold;
+            }
+            @media print {
+              body {
+                background-color: transparent;
+                padding: 0;
+              }
+              .receipt-container {
+                box-shadow: none;
+                border: 2px solid #1e3a8a;
+              }
+              .no-print {
+                display: none !important;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="receipt-container">
+            <div class="watermark"></div>
+            <div class="content-wrapper">
+              
+              <!-- Header -->
+              <div class="logo-header">
+                <img src="/metrohomes-icon.png" class="logo-img" alt="MH Logo" />
+                <div class="header-text">
+                  <div class="company-name">METRO HOMES</div>
+                  <div class="company-address">#557, 17th Cross, 2nd Floor, 2nd Stage, Indiranagar, Bengaluru-560 038</div>
+                </div>
+              </div>
+
+              <!-- Title -->
+              <div class="title-ack">ACKNOWLEDGEMENT</div>
+
+              <!-- No & Date -->
+              <div class="row-flex" style="justify-content: space-between; margin-bottom: 8px;">
+                <div>
+                  No. <span style="color: #dc2626; font-size: 16px; margin-left: 5px; font-family: 'Courier New', Courier, monospace;">${receiptNo}</span>
+                </div>
+                <div style="display: flex; align-items: flex-end;">
+                  Date: <span style="border-bottom: 1px dotted #475569; min-width: 110px; display: inline-block; padding-left: 5px; font-family: 'Courier New', Courier, monospace; font-size: 13px;">${paymentDate}</span>
+                </div>
+              </div>
+
+              <!-- Received From -->
+              <div class="row-flex">
+                <span style="white-space: nowrap;">Received from Smt / Sri</span>
+                <span class="dotted-fill">${customerName}</span>
+              </div>
+
+              <!-- Drawn on Bank -->
+              <div class="row-flex">
+                <span style="white-space: nowrap;">Drawn on Bank</span>
+                <span class="dotted-fill">${drawnOnBankVal || '...................................................................................................'}</span>
+              </div>
+
+              <!-- Payment Mode -->
+              <div class="checkbox-group">
+                <span style="margin-right: 12px;">By</span>
+                <span class="checkbox-item">
+                  <span class="checkbox-box ${paymentMode === 'Cash' ? 'checked' : ''}">${paymentMode === 'Cash' ? '✓' : ''}</span> Cash
+                </span>
+                <span class="checkbox-item">
+                  <span class="checkbox-box ${paymentMode === 'DD' ? 'checked' : ''}">${paymentMode === 'DD' ? '✓' : ''}</span> DD
+                </span>
+                <span class="checkbox-item">
+                  <span class="checkbox-box ${paymentMode === 'Cheque' ? 'checked' : ''}">${paymentMode === 'Cheque' ? '✓' : ''}</span> Cheque
+                </span>
+                <span class="checkbox-item">
+                  <span class="checkbox-box ${paymentMode === 'Online Transfer' || paymentMode === 'Fund Transfer' ? 'checked' : ''}">${paymentMode === 'Online Transfer' || paymentMode === 'Fund Transfer' ? '✓' : ''}</span> Fund Transfer
+                </span>
+                <span style="flex-grow: 1; border-bottom: 1px dotted #475569; height: 12px; margin-left: 5px;"></span>
+              </div>
+
+              <!-- Towards -->
+              <div class="checkbox-group">
+                <span style="margin-right: 12px;">Towards</span>
+                <span class="checkbox-item">
+                  <span class="checkbox-box ${isInitial ? 'checked' : ''}">${isInitial ? '✓' : ''}</span> Initial Payment
+                </span>
+                <span class="checkbox-item">
+                  <span class="checkbox-box ${isPart ? 'checked' : ''}">${isPart ? '✓' : ''}</span> Part Payment
+                </span>
+                <span class="checkbox-item">
+                  <span class="checkbox-box ${isFull ? 'checked' : ''}">${isFull ? '✓' : ''}</span> Full Payment
+                </span>
+                <span style="flex-grow: 1; border-bottom: 1px dotted #475569; height: 12px; margin-left: 5px;"></span>
+              </div>
+
+              <!-- Project Name & Plot # -->
+              <div class="row-flex">
+                <span style="white-space: nowrap;">Project Name:</span>
+                <span class="dotted-fill" style="flex-grow: 0; width: 350px;">${siteName}</span>
+               
+              </div>
+
+              <!-- Rupees in Words -->
+              <div class="row-flex">
+                <span style="white-space: nowrap;">Rupees in Words</span>
+                <span class="dotted-fill">${rupeesInWords} Only</span>
+              </div>
+
+              <!-- Bottom Layout -->
+              <div class="bottom-layout">
+                <div class="amount-container">
+                  <div class="rupee-pill">
+                    <span class="rupee-symbol">₹</span>
+                    <span class="rupee-val">${currentPayment.toLocaleString("en-IN")}/-</span>
+                  </div>
+                  <div class="realisation-note">*Cheques subject to realisation</div>
+                </div>
+                
+                <div class="sign-container">
+                  <div class="sign-for">For Metro Homes</div>
+                  <div class="sign-label">Authorised Signatory</div>
+                </div>
+              </div>
+
+              <!-- Terms & Conditions -->
+              <div class="terms-box">
+                <div class="terms-title">Terms & Conditions :</div>
+                <div>1. Customer should complete with 25% of plot cost within 10th Day from the Booking date</div>
+                <div>2. Regn should be completed within 30 days from the Booking date</div>
+                <div>3. Cancellation at any stage will attract a debit of Rs.20,000/- (Twenty Thousand Only) Per plot</div>
+              </div>
+
+            </div>
+            
+           
+          </div>
+        </body>
+        </html>
+      `);
       printWindow.document.close();
     }
   };
@@ -284,6 +640,7 @@ export default function BookingManagement() {
 
   const columns = [
     { key: "receiptNo", label: "Receipt No." },
+    { key: "bookingId", label: "Booking ID", render: (v) => <span className="font-mono text-xs text-gray-500">{v}</span> },
     { key: "customerName", label: "Customer", render: (v, row) => (<div><div className="font-medium">{v}</div><div className="text-xs text-gray-400">{row.siteName}</div></div>) },
     { key: "projectNo", label: "Project No." },
     { key: "currentPayment", label: "Payment", render: v => <span className="text-blue-600 font-medium">{formatCurrency(v)}</span> },
@@ -587,6 +944,36 @@ export default function BookingManagement() {
               Rupees {numberToWords(Number(selected.currentPayment))} Only
             </p>
 
+          </div>
+        )}
+      </Modal>
+
+      {/* Success Confirmation Modal */}
+      <Modal open={modal === "success"} onClose={() => { setModal(null); setSuccessData(null); }} title="Payment Successful" size="sm">
+        {successData && (
+          <div className="text-center space-y-4 py-2">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600 animate-bounce">
+              <CheckCircle size={36} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">
+                {successData.type === "booking" ? "Booking Registered!" : "Payment Recorded!"}
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">
+                {successData.type === "booking"
+                  ? `Booking for ${successData.customerName} at ${successData.siteName} has been successfully completed.`
+                  : `Payment of ₹${successData.receipt?.currentPayment?.toLocaleString("en-IN")} from ${successData.customerName} has been successfully recorded.`}
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 rounded-xl p-4 text-left text-sm space-y-1.5 border border-gray-100">
+              <div className="flex justify-between"><span className="text-gray-500">Receipt No:</span><span className="font-medium text-gray-800">{successData.receipt?.receiptNo}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Date:</span><span className="font-medium text-gray-800">{successData.receipt?.paymentDate}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Amount Paid:</span><span className="font-bold text-green-600">₹{Number(successData.receipt?.currentPayment || 0).toLocaleString("en-IN")}</span></div>
+              <div className="flex justify-between border-t border-gray-200 pt-1.5"><span className="text-gray-500">Remaining Balance:</span><span className="font-bold text-red-500">₹{Number(successData.receipt?.balance || 0).toLocaleString("en-IN")}</span></div>
+            </div>
+
+           
           </div>
         )}
       </Modal>
