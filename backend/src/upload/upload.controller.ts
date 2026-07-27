@@ -1,16 +1,21 @@
 import {
   Controller,
   Post,
+  Get,
+  Param,
   UseInterceptors,
   UploadedFile,
   UploadedFiles,
   BadRequestException,
+  NotFoundException,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { existsSync, mkdirSync } from 'fs';
-import { ApiTags, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { extname, join } from 'path';
+import { existsSync, mkdirSync, readdirSync, createReadStream } from 'fs';
+import { ApiTags, ApiConsumes, ApiBody, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Upload')
 @Controller('upload')
@@ -197,5 +202,34 @@ export class UploadController {
       url: `${baseUrl}/${file.filename}`,
       sizeMB: Number((file.size / (1024 * 1024)).toFixed(2)),
     }));
+  }
+
+  @Get(':filename')
+  @ApiOperation({ summary: 'Serve uploaded file by filename or receipt number' })
+  async getFile(@Param('filename') filename: string, @Res() res) {
+    // If the filename doesn't have an extension, treat it as a receipt number
+    if (!filename.includes('.')) {
+      // Receipt numbers like RCPT0004
+      const prefix = filename.toLowerCase().startsWith('rcpt') ? 'payment_receipt_' : 'booking_receipt_';
+      const exactName = `${prefix}${filename}.pdf`;
+      return this.streamFile(exactName, res);
+    }
+
+    return this.streamFile(filename, res);
+  }
+
+  private streamFile(filename: string, @Res() res) {
+    const filePath = join(process.cwd(), 'uploads', filename);
+
+    if (!existsSync(filePath)) {
+      throw new NotFoundException(`File ${filename} not found`);
+    }
+
+    const stream = createReadStream(filePath);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="${filename}"`,
+    });
+    return new StreamableFile(stream);
   }
 }

@@ -27,8 +27,11 @@ export default function BookingManagement() {
   const [foundCustomer, setFoundCustomer] = useState(null);
   const [customerVisits, setCustomerVisits] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [successData, setSuccessData] = useState(null);
+  const [whatsappRow, setWhatsappRow] = useState(null);
+  const [whatsappModalOpen, setWhatsappModalOpen] = useState(false);
 
   const readyCustomers = customers.filter(c => c.status === "Ready for Booking");
   const totalRevenue = bookings.reduce((a, b) => a + (b.paidAmount || 0), 0);
@@ -43,11 +46,19 @@ export default function BookingManagement() {
             ...receipt,
             customerName: booking.customerName || booking.customer?.name || '',
             siteName: booking.siteName || booking.site?.name || '',
+            customerPhone: booking.customer?.phone || receipt.customerPhone || '',
+            mobile: booking.customer?.phone || receipt.mobile || '',
             projectNo: booking.projectNo,
             status: booking.status,
           });
         });
       }
+    });
+    allReceipts.sort((a, b) => {
+      const da = new Date(a.paymentDate || 0);
+      const db = new Date(b.paymentDate || 0);
+      if (db - da) return db - da;
+      return (b.id || 0) - (a.id || 0);
     });
     setReceipts(allReceipts);
   }, [bookings]);
@@ -163,11 +174,12 @@ export default function BookingManagement() {
         projectNo: form.projectNo,
         location: form.location,
       };
-      const res = await bookingApi.create(payload);
+      const rawRes = await bookingApi.create(payload);
+      const res = rawRes && rawRes.data ? rawRes.data : rawRes;
       await updateCustomer(+form.customerId, { status: "Booked" });
       await refreshBookings();
       toast.success("Booking registered! WhatsApp notification sent 📱");
-      
+
       const newReceipt = (res && res.receipts && res.receipts[0]) || {
         receiptNo: res?.receiptNo || `REC-${Date.now()}`,
         currentPayment: Number(form.paidAmount),
@@ -181,7 +193,7 @@ export default function BookingManagement() {
         transferId: form.transferId,
       };
 
-      setSuccessData({
+      return {
         type: 'booking',
         customerName: form.applicantName,
         siteName: form.projectName,
@@ -192,14 +204,10 @@ export default function BookingManagement() {
           projectNo: form.projectNo,
           status: form.status,
         }
-      });
-
-      setModal("success");
-      setForm(empty);
-      setFoundCustomer(null);
-      setMobileSearch("");
+      };
     } catch (err) {
       toast.error(err.message || "Failed to create booking");
+      throw err;
     } finally {
       setSaving(false);
     }
@@ -210,7 +218,7 @@ export default function BookingManagement() {
     try {
       setSaving(true);
       const amt = +form.paidAmount;
-      const res = await bookingApi.createReceipt({
+      const rawRes = await bookingApi.createReceipt({
         bookingId: foundCustomer.existingBooking.id,
         amount: amt,
         paymentMode: form.paymentMode,
@@ -219,29 +227,26 @@ export default function BookingManagement() {
         chequeDate: form.chequeDate,
         transferId: form.transferId,
       });
+      const res = rawRes && rawRes.data ? rawRes.data : rawRes;
       await updateCustomer(foundCustomer.existingBooking.customerId, { status: "Booked" });
       await refreshBookings();
       toast.success(`Payment of ₹${amt.toLocaleString("en-IN")} recorded! Receipt generated 📄`);
 
-      setSuccessData({
+      return {
         type: 'payment',
-        customerName: foundCustomer.name,
+        customerName: foundCustomer.name || foundCustomer.customerName,
         siteName: foundCustomer.existingBooking.projectName || foundCustomer.existingBooking.siteName,
         receipt: {
           ...res,
-          customerName: foundCustomer.name,
+          customerName: foundCustomer.name || foundCustomer.customerName,
           siteName: foundCustomer.existingBooking.projectName || foundCustomer.existingBooking.siteName,
           projectNo: foundCustomer.existingBooking.projectNo,
           status: form.status,
         }
-      });
-
-      setModal("success");
-      setForm(empty);
-      setFoundCustomer(null);
-      setMobileSearch("");
+      };
     } catch (err) {
       toast.error(err.message || "Failed to record payment");
+      throw err;
     } finally {
       setSaving(false);
     }
@@ -692,12 +697,11 @@ export default function BookingManagement() {
       )}
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <DataTable title="All Payment Receipts" columns={columns} data={[...receipts].reverse()} searchKey={["customerName", "siteName", "receiptNo"]}
+        <DataTable title="All Payment Receipts" columns={columns} data={[...receipts].sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate))} searchKey={["customerName", "siteName", "receiptNo"]}
           actions={(row) => (
             <>
               <button onClick={() => { setSelected(row); setModal("view"); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="View"><Eye size={15} /></button>
-              <button onClick={() => printInvoice(row)} className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg" title="Print"><Printer size={15} /></button>
-              <button onClick={() => toast.success("WhatsApp notification sent! 📱")} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="WhatsApp"><MessageSquare size={15} /></button>
+              <button onClick={() => { setWhatsappRow(row); setWhatsappModalOpen(true); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="WhatsApp"><MessageSquare size={15} /></button>
             </>
           )}
         />
@@ -876,8 +880,40 @@ export default function BookingManagement() {
               </div>
             )}
             <div className="flex gap-3 pt-2">
-              <button onClick={async () => { setConfirmOpen(false); if (foundCustomer?.existingBooking) { await handlePayment(); } else { await handleBook(); } }} className="btn-primary flex-1 justify-center py-2.5">{foundCustomer?.existingBooking ? "Confirm Payment" : "Yes, Confirm"}</button>
-              <button onClick={() => setConfirmOpen(false)} className="btn-secondary flex-1 justify-center py-2.5">Cancel</button>
+              <button onClick={async () => {
+                setConfirming(true);
+                let successPayload = null;
+                try {
+                  if (foundCustomer?.existingBooking) {
+                    successPayload = await handlePayment();
+                  } else {
+                    successPayload = await handleBook();
+                  }
+                  if (successPayload) {
+                    setForm(empty);
+                    setFoundCustomer(null);
+                    setMobileSearch("");
+                    setSuccessData(successPayload);
+                    setConfirmOpen(false);
+                    setModal("success");
+                  }
+                } finally {
+                  setConfirming(false);
+                }
+              }} disabled={confirming || saving} className="btn-primary flex-1 justify-center py-2.5">
+                {confirming || saving ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    {foundCustomer?.existingBooking ? "Processing Payment..." : "Processing Booking..."}
+                  </>
+                ) : (
+                  foundCustomer?.existingBooking ? "Confirm Payment" : "Yes, Confirm"
+                )}
+              </button>
+              <button onClick={() => setConfirmOpen(false)} disabled={confirming || saving} className="btn-secondary flex-1 justify-center py-2.5">Cancel</button>
             </div>
           </div>
         </Modal>
@@ -948,6 +984,36 @@ export default function BookingManagement() {
         )}
       </Modal>
 
+      {/* WhatsApp Send Confirmation Modal */}
+      <Modal open={whatsappModalOpen} onClose={() => { setWhatsappModalOpen(false); setWhatsappRow(null); }} title="Send WhatsApp Receipt" size="sm">
+        {whatsappRow && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">Send receipt <span className="font-semibold">{whatsappRow.receiptNo}</span> to customer via WhatsApp?</p>
+            <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm border border-gray-100">
+              <div className="flex justify-between"><span className="text-gray-500">Customer</span><span className="font-medium text-gray-800">{whatsappRow.customerName}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Project</span><span className="font-medium text-gray-800">{whatsappRow.siteName}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Payment</span><span className="font-medium text-gray-800">₹{Number(whatsappRow.currentPayment || 0).toLocaleString("en-IN")}</span></div>
+              <div className="flex justify-between border-t border-gray-200 pt-2"><span className="text-gray-500">WhatsApp Number</span><span className="font-mono font-medium text-gray-900">{whatsappRow.customerPhone || whatsappRow.customer?.phone || whatsappRow.phone || whatsappRow.mobile || 'N/A'}</span></div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button onClick={async () => {
+                try {
+                  const res = await bookingApi.sendReceiptWhatsApp(whatsappRow.id);
+                  const providerStatus = res?.data?.messages?.[0]?.status || 'sent';
+                  toast.success(`WhatsApp receipt sent to ${whatsappRow.customerPhone || whatsappRow.mobile} (status: ${providerStatus})`);
+                } catch (err) {
+                  toast.error(err.message || "Failed to send WhatsApp");
+                } finally {
+                  setWhatsappModalOpen(false);
+                  setWhatsappRow(null);
+                }
+              }} className="btn-primary flex-1 justify-center py-2.5">Send</button>
+              <button onClick={() => { setWhatsappModalOpen(false); setWhatsappRow(null); }} className="btn-secondary flex-1 justify-center py-2.5">Cancel</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       {/* Success Confirmation Modal */}
       <Modal open={modal === "success"} onClose={() => { setModal(null); setSuccessData(null); }} title="Payment Successful" size="sm">
         {successData && (
@@ -967,9 +1033,9 @@ export default function BookingManagement() {
             </div>
             
             <div className="bg-gray-50 rounded-xl p-4 text-left text-sm space-y-1.5 border border-gray-100">
-              <div className="flex justify-between"><span className="text-gray-500">Receipt No:</span><span className="font-medium text-gray-800">{successData.receipt?.receiptNo}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Date:</span><span className="font-medium text-gray-800">{successData.receipt?.paymentDate}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Amount Paid:</span><span className="font-bold text-green-600">₹{Number(successData.receipt?.currentPayment || 0).toLocaleString("en-IN")}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Receipt No:</span><span className="font-medium text-gray-800">{successData.receipt?.receiptNo || '—'}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Date:</span><span className="font-medium text-gray-800">{successData.receipt?.paymentDate || '—'}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Amount Paid:</span><span className="font-bold text-green-600">₹{Number(successData.receipt?.currentPayment || successData.receipt?.amount || 0).toLocaleString("en-IN")}</span></div>
               <div className="flex justify-between border-t border-gray-200 pt-1.5"><span className="text-gray-500">Remaining Balance:</span><span className="font-bold text-red-500">₹{Number(successData.receipt?.balance || 0).toLocaleString("en-IN")}</span></div>
             </div>
 

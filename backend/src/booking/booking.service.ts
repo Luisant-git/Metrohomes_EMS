@@ -1,7 +1,8 @@
- import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
+import { PdfService } from '../pdf/pdf.service';
 
 @Injectable()
 export class BookingService {
@@ -10,13 +11,14 @@ export class BookingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly whatsappService: WhatsappService,
+    private readonly pdfService: PdfService,
   ) {}
 
   async create(dto: CreateBookingDto, createdBy?: number) {
     // Generate unique receipt number
     const year = new Date().getFullYear();
     const count = await this.prisma.booking.count();
-    const receiptNo = `RCPT-${year}-${String(count + 1).padStart(3, '0')}`;
+    const receiptNo = `RCPT${String(count + 1).padStart(4, '0')}`;
 
     // Fetch customer and site details
     const customer = await this.prisma.customer.findUnique({
@@ -91,6 +93,51 @@ export class BookingService {
     });
 
     this.logger.log(`Booking created: ${receiptNo} for customer ${customer.name}`);
+
+    // Generate Booking Receipt PDF and send WhatsApp notification (First Payment)
+    try {
+      const isInitial = true;
+      const isPart = false;
+      const isFull = dto.remainingAmount <= 0;
+
+      const pdfFilename = await this.pdfService.generateBookingReceipt({
+        receiptNo,
+        bookingDate: dto.bookingDate || new Date().toISOString().split('T')[0],
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        siteName: site.name,
+        projectName: dto.projectName || site.name,
+        plotArea: dto.plotArea,
+        pricePerSqft: dto.pricePerSqft,
+        plotPrice: dto.plotPrice,
+        paidAmount: dto.paidAmount,
+        remainingAmount: dto.remainingAmount,
+        paymentMode: dto.paymentMode || 'Cash',
+        bankName: dto.bankName,
+        chequeNo: dto.chequeNo,
+        chequeDate: dto.chequeDate,
+        transferId: dto.transferId,
+        isInitial,
+        isPart,
+        isFull,
+      });
+
+      const pdfUrl = this.pdfService.getPdfUrl(pdfFilename);
+
+      // Send WhatsApp with PDF attachment
+      await this.whatsappService.sendPlotBookingReceipt(
+        customer.phone,
+        customer.name,
+        pdfUrl,
+      );
+
+      this.logger.log(`Booking receipt WhatsApp sent to ${customer.phone}`);
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to send WhatsApp for booking ${receiptNo}: ${error.message}`,
+      );
+      // Don't throw - booking was already created successfully
+    }
 
     return {
       ...booking,
@@ -214,9 +261,9 @@ export class BookingService {
     const totalPaid = previousPaid + amount;
     const balance = booking.plotPrice - totalPaid;
 
-    // Generate receipt number
-    const year = new Date().getFullYear();
-    const receiptNo = `RCPT-${year}-${String(booking.id).padStart(3, '0')}-${String(Math.floor(Math.random() * 99) + 1).padStart(2, '0')}`;
+    // Generate sequential receipt number: RCPT0001, RCPT0002, ...
+    const receiptCount = await this.prisma.paymentReceipt.count();
+    const receiptNo = `RCPT${String(receiptCount + 1).padStart(4, '0')}`;
 
     // Determine status based on payment stage
     let status = booking.status;
@@ -260,6 +307,62 @@ export class BookingService {
       },
     });
 
+    // Fetch booking with customer and site details for PDF generation
+    const bookingWithDetails = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        customer: { select: { name: true, phone: true } },
+        site: { select: { name: true } },
+      },
+    });
+
+    if (bookingWithDetails) {
+      try {
+        const isFirstPayment = previousPaid === 0;
+        const isInitial = status === 'Initial Payment' || (isFirstPayment && amount > 0);
+        const isPart = status === 'Part Payment' || (previousPaid > 0 && balance > 0);
+        const isFull = status === 'Full Payment' || balance <= 0;
+
+        // Generate Payment Receipt PDF
+        const pdfFilename = await this.pdfService.generatePaymentReceipt({
+          receiptNo,
+          paymentDate: updatedBooking.bookingDate || new Date().toISOString().split('T')[0],
+          customerName: bookingWithDetails.customer.name,
+          customerPhone: bookingWithDetails.customer.phone,
+          siteName: bookingWithDetails.site.name,
+          projectName: updatedBooking.projectName || bookingWithDetails.site.name,
+          previousPaid,
+          currentPayment: amount,
+          totalPaid,
+          balance,
+          paymentMode,
+          bankName,
+          chequeNo,
+          chequeDate,
+          transferId,
+          isInitial,
+          isPart,
+          isFull,
+        });
+
+        const pdfUrl = this.pdfService.getPdfUrl(pdfFilename);
+
+        // Send WhatsApp with PDF attachment
+        await this.whatsappService.sendPaymentReceipt(
+          bookingWithDetails.customer.phone,
+          bookingWithDetails.customer.name,
+          pdfUrl,
+        );
+
+        this.logger.log(`Payment receipt WhatsApp sent to ${bookingWithDetails.customer.phone}`);
+      } catch (error: any) {
+        this.logger.error(
+          `Failed to send WhatsApp for payment receipt ${receiptNo}: ${error.message}`,
+        );
+        // Don't throw - receipt was already created successfully
+      }
+    }
+
     return receipt;
   }
 
@@ -300,6 +403,102 @@ export class BookingService {
       pendingAmount: pendingAmount._sum.remainingAmount || 0,
       statusCounts,
     };
+  }
+
+  async sendReceiptWhatsApp(receiptId: number) {
+    const receipt = await this.prisma.paymentReceipt.findUnique({
+      where: { id: receiptId },
+      include: {
+        booking: {
+          include: {
+            customer: { select: { name: true, phone: true } },
+            site: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    if (!receipt) {
+      throw new NotFoundException('Receipt not found');
+    }
+
+    const booking = receipt.booking;
+    const customer = booking.customer;
+    const site = booking.site;
+
+    const isFirstPayment = receipt.previousPaid === 0;
+    const isInitial = receipt.paymentMode === 'Initial Payment' || isFirstPayment;
+    const isPart = receipt.paymentMode === 'Part Payment' || (receipt.previousPaid > 0 && receipt.balance > 0);
+    const isFull = receipt.paymentMode === 'Full Payment' || receipt.balance <= 0;
+
+    try {
+      let pdfFilename: string;
+      let pdfUrl: string;
+
+      if (isFirstPayment) {
+        pdfFilename = await this.pdfService.generateBookingReceipt({
+          receiptNo: receipt.receiptNo,
+          bookingDate: receipt.paymentDate,
+          customerName: customer.name,
+          customerPhone: customer.phone,
+          siteName: site.name,
+          projectName: booking.projectName || site.name,
+          plotArea: booking.plotArea,
+          pricePerSqft: booking.pricePerSqft,
+          plotPrice: booking.plotPrice,
+          paidAmount: receipt.totalPaid,
+          remainingAmount: receipt.balance,
+          paymentMode: receipt.paymentMode,
+          bankName: receipt.bankName || undefined,
+          chequeNo: receipt.chequeNo || undefined,
+          chequeDate: receipt.chequeDate || undefined,
+          transferId: receipt.transferId || undefined,
+          isInitial,
+          isPart,
+          isFull,
+        });
+
+        pdfUrl = this.pdfService.getPdfUrl(pdfFilename);
+        await this.whatsappService.sendPlotBookingReceipt(customer.phone, customer.name, pdfUrl);
+      } else {
+        pdfFilename = await this.pdfService.generatePaymentReceipt({
+          receiptNo: receipt.receiptNo,
+          paymentDate: receipt.paymentDate,
+          customerName: customer.name,
+          customerPhone: customer.phone,
+          siteName: site.name,
+          projectName: booking.projectName || site.name,
+          previousPaid: receipt.previousPaid,
+          currentPayment: receipt.currentPayment,
+          totalPaid: receipt.totalPaid,
+          balance: receipt.balance,
+          paymentMode: receipt.paymentMode,
+          bankName: receipt.bankName || undefined,
+          chequeNo: receipt.chequeNo || undefined,
+          chequeDate: receipt.chequeDate || undefined,
+          transferId: receipt.transferId || undefined,
+          isInitial,
+          isPart,
+          isFull,
+        });
+
+        pdfUrl = this.pdfService.getPdfUrl(pdfFilename);
+        await this.whatsappService.sendPaymentReceipt(customer.phone, customer.name, pdfUrl);
+      }
+
+      this.logger.log(`WhatsApp resent for receipt ${receipt.receiptNo} to ${customer.phone}`);
+      return { phone: customer.phone, receiptNo: receipt.receiptNo, pdfUrl };
+    } catch (error: any) {
+      this.logger.error(`Failed to resend WhatsApp for receipt ${receipt.receiptNo}: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async debugWhatsApp(to: string, templateName: 'plot_booking_receipt_v1' | 'payment_receipt') {
+    if (templateName === 'plot_booking_receipt_v1') {
+      return this.whatsappService.sendPlotBookingReceipt(to, 'Test User', 'http://localhost:3000/uploads/test.pdf');
+    }
+    return this.whatsappService.sendPaymentReceipt(to, 'Test User', 'http://localhost:3000/uploads/test.pdf');
   }
 
   async findByMobile(mobile: string) {

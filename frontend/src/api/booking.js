@@ -101,4 +101,11 @@ export const booking = {
     });
     return handleResponse(response);
   },
+  async sendReceiptWhatsApp(receiptId) {
+    const response = await fetch(`${VITE_API_URL}/bookings/receipts/${receiptId}/send-whatsapp`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
 };

@@ -74,4 +74,25 @@ export class BookingController {
     const result = await this.bookingService.findByMobile(mobile);
     return { success: true, data: result };
   }
+
+  @Post('receipts/:id/send-whatsapp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resend WhatsApp notification for a receipt' })
+  async sendReceiptWhatsApp(@Param('id') id: number) {
+    const result = await this.bookingService.sendReceiptWhatsApp(id);
+    return { success: true, data: result };
+  }
+
+  @Post('debug-whatsapp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Debug: send a test WhatsApp template to verify config/templates' })
+  async debugWhatsApp(@Body() body: { to?: string; templateName?: 'plot_booking_receipt_v1' | 'payment_receipt' }) {
+    const to = body?.to || process.env.WHATSAPP_TEST_NUMBER || '';
+    const templateName = body?.templateName || 'plot_booking_receipt_v1';
+    if (!to) {
+      return { success: false, message: 'Missing recipient number. Pass "to" in body or set WHATSAPP_TEST_NUMBER in backend/.env' };
+    }
+    const result = await this.bookingService.debugWhatsApp(to, templateName);
+    return { success: true, data: result };
+  }
 }
