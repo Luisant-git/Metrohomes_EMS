@@ -374,12 +374,21 @@ export class CustomerService {
 
     if (statusChangedToScheduled && updatedCustomer && updatedCustomer.visits && updatedCustomer.visits.length > 0) {
       const visit = updatedCustomer.visits[0];
+      const timeStr = visit.visitTime
+        ? (() => { const [h, m] = visit.visitTime.split(':'); const hour = parseInt(h, 10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })()
+        : 'N/A';
+      const dateStr = visit.visitDate
+        ? new Date(visit.visitDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+        : 'N/A';
+
       // 1. Send site_visit_scheduled template to the customer
       try {
         await this.whatsappService.sendSiteVisitScheduled(
           updatedCustomer.phone,
           updatedCustomer.name,
           visit.siteName || '',
+          dateStr,
+          timeStr,
           visit.driverName || 'Not assigned',
           visit.driverMobile || 'N/A',
           visit.cabNumber || 'N/A',
@@ -395,12 +404,6 @@ export class CustomerService {
           where: { id: updatedCustomer.createdBy },
         });
         if (creator && creator.mobile) {
-          const timeStr = visit.visitTime
-            ? (() => { const [h, m] = visit.visitTime.split(':'); const hour = parseInt(h, 10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })()
-            : 'N/A';
-          const dateStr = visit.visitDate
-            ? new Date(visit.visitDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-            : 'N/A';
           await this.whatsappService.sendCustomerSiteVisitConfirmation(
             creator.mobile,
             creator.name || 'Sales Manager',

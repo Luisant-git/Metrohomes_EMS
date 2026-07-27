@@ -103,6 +103,8 @@ export class WhatsappService {
     toPhoneNumber: string,
     customerName: string,
     siteName: string,
+    visitDate: string,
+    visitTime: string,
     driverName: string,
     driverMobile: string,
     vehicleNo: string,
@@ -120,7 +122,7 @@ export class WhatsappService {
           to: formattedNumber,
           type: 'template',
           template: {
-            name: 'site_visit_scheduled',
+            name: 'site_visit_scheduled_v2',
             language: { code: 'en' },
             components: [
               {
@@ -128,9 +130,11 @@ export class WhatsappService {
                 parameters: [
                   { type: 'text', text: customerName }, // {{1}} - Customer Name
                   { type: 'text', text: siteName },      // {{2}} - Site Name
-                  { type: 'text', text: driverName },    // {{3}} - Driver Name
-                  { type: 'text', text: driverMobile },  // {{4}} - Driver Mobile
-                  { type: 'text', text: vehicleNo },     // {{5}} - Vehicle No
+                  { type: 'text', text: visitDate },    // {{3}} - Visit Date
+                  { type: 'text', text: visitTime },    // {{4}} - Visit Time
+                  { type: 'text', text: driverName },    // {{5}} - Driver Name
+                  { type: 'text', text: driverMobile },  // {{6}} - Driver Mobile
+                  { type: 'text', text: vehicleNo },     // {{7}} - Vehicle No
                 ],
               },
             ],
