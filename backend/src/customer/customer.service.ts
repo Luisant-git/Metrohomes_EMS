@@ -78,9 +78,13 @@ export class CustomerService {
     }
 
     if (dto.siteId) {
+      const site = await this.prisma.site.findUnique({ where: { id: dto.siteId } });
+      if (!site) throw new BadRequestException('Invalid siteId');
+
       const visit = await this.prisma.siteVisit.create({
         data: {
           customerId: customer.id,
+          projectId: site.projectId,
           siteId: dto.siteId,
           visitDate: dto.visitDate ? new Date(dto.visitDate) : new Date(),
           visitTime: dto.visitTime || '09:00',
@@ -95,7 +99,8 @@ export class CustomerService {
           cabNumber: dto.cabNumber,
         },
         include: {
-          site: { select: { name: true } },
+          project: { select: { name: true } },
+          site: { select: { siteNo: true } },
           assignedToUser: { select: { name: true } },
         },
       });
@@ -111,7 +116,7 @@ export class CustomerService {
         occupation: customer.occupation || '',
         status: visit.status || 'Interested',
         siteId: visit.siteId,
-        siteName: visit.site?.name || '',
+        siteName: visit.project?.name ? `${visit.project.name} - Site ${visit.site?.siteNo}` : '',
         createdById: customer.createdBy,
         salesManagerName: visit.assignedToUser?.name || '',
         visitDate: visit.visitDate ? new Date(visit.visitDate).toISOString().split('T')[0] : '',
@@ -170,7 +175,8 @@ export class CustomerService {
     const visits = customerIds.length > 0 ? await this.prisma.siteVisit.findMany({
       where: { customerId: { in: customerIds } },
       include: {
-        site: { select: { name: true } },
+        project: { select: { name: true } },
+        site: { select: { siteNo: true } },
         assignedToUser: { select: { name: true, employeeCode: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -210,7 +216,7 @@ export class CustomerService {
         occupation: c.occupation,
         status: computedStatus,
         siteId: latestVisit?.siteId || null,
-        siteName: latestVisit?.site?.name || '',
+        siteName: latestVisit?.project?.name ? `${latestVisit.project.name} - Site ${latestVisit.site?.siteNo}` : '',
         createdById: c.createdBy,
         salesManagerName: creator ? `${creator.name} (${creator.employeeCode})` : (latestVisit?.assignedToUser?.name || ''),
         visitDate: latestVisit?.visitDate ? new Date(latestVisit.visitDate).toISOString().split('T')[0] : '',
@@ -225,7 +231,7 @@ export class CustomerService {
         visitCount: customerVisits.length,
         visits: customerVisits.map(v => ({
           id: v.id,
-          siteName: v.site?.name,
+          siteName: v.project?.name ? `${v.project.name} - Site ${v.site?.siteNo}` : '',
           visitDate: v.visitDate ? new Date(v.visitDate).toISOString().split('T')[0] : '',
           visitTime: v.visitTime || '',
           persons: v.persons,
@@ -258,7 +264,8 @@ export class CustomerService {
         user: { select: { name: true } },
         visits: {
           include: {
-            site: { select: { name: true } },
+            project: { select: { name: true } },
+            site: { select: { siteNo: true } },
             assignedToUser: { select: { name: true, employeeCode: true, mobile: true } },
           },
           orderBy: { createdAt: 'desc' },
@@ -287,7 +294,7 @@ export class CustomerService {
       visits: c.visits.map(v => ({
         id: v.id,
         siteId: v.siteId,
-        siteName: v.site?.name,
+        siteName: v.project?.name ? `${v.project.name} - Site ${v.site?.siteNo}` : '',
         visitDate: v.visitDate,
         visitTime: v.visitTime,
         persons: v.persons,
@@ -303,7 +310,7 @@ export class CustomerService {
         assignedToMobile: v.assignedToUser?.mobile,
         createdAt: v.createdAt,
       })),
-      siteName: latestVisit?.site?.name || '',
+      siteName: latestVisit?.project?.name ? `${latestVisit.project.name} - Site ${latestVisit.site?.siteNo}` : '',
       salesManagerName: latestVisit?.assignedToUser?.name || c.user?.name || '',
       visitDate: latestVisit?.visitDate,
       visitTime: latestVisit?.visitTime,
@@ -465,7 +472,8 @@ export class CustomerService {
       include: {
         visits: {
           include: {
-            site: { select: { name: true } },
+            project: { select: { name: true } },
+            site: { select: { siteNo: true } },
             assignedToUser: { select: { name: true } },
           },
           orderBy: { createdAt: 'desc' },

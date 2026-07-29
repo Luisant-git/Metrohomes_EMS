@@ -11,7 +11,7 @@ import PWALayout from "./layouts/PWALayout.jsx";
 // Web pages
 import WebDashboard from "./pages/web/Dashboard.jsx";
 import UserManagement from "./pages/web/UserManagement.jsx";
-import SiteManagement from "./pages/web/SiteManagement.jsx";
+import ProjectManagement from "./pages/web/ProjectManagement.jsx";
 import BookingManagement from "./pages/web/BookingManagement.jsx";
 import BookingReport from "./pages/web/BookingReport.jsx";
 import CommissionManagement from "./pages/web/CommissionManagement.jsx";
@@ -48,7 +48,7 @@ function AppRoutes() {
         <Routes>
           <Route path="/" element={<WebDashboard />} />
           <Route path="/users" element={<UserManagement />} />
-          <Route path="/sites" element={<SiteManagement />} />
+          <Route path="/projects" element={<ProjectManagement />} />
           <Route path="/bookings" element={<BookingManagement />} />
           <Route path="/customers" element={<WebCustomers />} />
           <Route path="/sales-report" element={<BookingReport />} />

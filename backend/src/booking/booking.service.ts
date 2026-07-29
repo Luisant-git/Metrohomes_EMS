@@ -1,3 +1,4 @@
+// src/booking/booking.service.ts
 import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -16,11 +17,10 @@ export class BookingService {
 
   async create(dto: CreateBookingDto, createdBy?: number) {
     // Generate unique receipt number
-    const year = new Date().getFullYear();
     const count = await this.prisma.booking.count();
     const receiptNo = `RCPT${String(count + 1).padStart(4, '0')}`;
 
-    // Fetch customer and site details
+    // Fetch customer
     const customer = await this.prisma.customer.findUnique({
       where: { id: dto.customerId },
     });
@@ -28,14 +28,23 @@ export class BookingService {
       throw new BadRequestException('Customer not found');
     }
 
-    const site = await this.prisma.site.findUnique({
-      where: { id: dto.siteId },
+    // Fetch project
+    const project = await this.prisma.project.findUnique({
+      where: { id: dto.projectId },
     });
-    if (!site) {
-      throw new BadRequestException('Site not found');
+    if (!project) {
+      throw new BadRequestException('Project not found');
     }
 
-    // Get assigned user name if assignedTo is provided
+    // Fetch site (plot) and verify it belongs to the project
+    const site = await this.prisma.site.findFirst({
+      where: { id: dto.siteId, projectId: dto.projectId },
+    });
+    if (!site) {
+      throw new BadRequestException('Site not found in this project');
+    }
+
+    // Get assigned user name if provided
     let assignedToUserName = dto.assignedToUserName;
     if (dto.assignedTo && !assignedToUserName) {
       const user = await this.prisma.user.findUnique({
@@ -48,7 +57,9 @@ export class BookingService {
       data: {
         bookingDate: dto.bookingDate,
         customerId: dto.customerId,
+        projectId: dto.projectId,
         siteId: dto.siteId,
+        guardianName: dto.guardianName,
         plotArea: dto.plotArea,
         pricePerSqft: dto.pricePerSqft,
         plotPrice: dto.plotPrice,
@@ -64,8 +75,7 @@ export class BookingService {
         assignedTo: dto.assignedTo,
         officeIdNo: dto.officeIdNo,
         notes: dto.notes,
-        projectName: dto.projectName || site.name,
-        projectNo: dto.projectNo || `PRJ-${String(dto.siteId).padStart(3, '0')}`,
+        siteVisitId: dto.siteVisitId,
         createdBy,
         receipts: {
           create: {
@@ -85,7 +95,8 @@ export class BookingService {
       },
       include: {
         customer: { select: { name: true, phone: true, email: true } },
-        site: { select: { name: true, location: true } },
+        project: { select: { name: true, location: true } },
+        site: { select: { siteNo: true, facing: true, totalSqft: true } },
         creator: { select: { name: true, employeeCode: true } },
         assignedToUser: { select: { name: true } },
         receipts: true,
@@ -94,10 +105,16 @@ export class BookingService {
 
     this.logger.log(`Booking created: ${receiptNo} for customer ${customer.name}`);
 
-    // Generate Booking Receipt PDF and send WhatsApp notification (First Payment)
+    // Update site status to Booked
+    await this.prisma.site.update({
+      where: { id: dto.siteId },
+      data: { status: 'Booked' },
+    }).catch(() => {
+      // Non-critical — don't fail the booking
+    });
+
+    // Generate PDF and send WhatsApp
     try {
-      const isInitial = true;
-      const isPart = false;
       const isFull = dto.remainingAmount <= 0;
 
       const pdfFilename = await this.pdfService.generateBookingReceipt({
@@ -105,8 +122,8 @@ export class BookingService {
         bookingDate: dto.bookingDate || new Date().toISOString().split('T')[0],
         customerName: customer.name,
         customerPhone: customer.phone,
-        siteName: site.name,
-        projectName: dto.projectName || site.name,
+        siteName: `${project.name} - Site ${site.siteNo}`,
+        projectName: project.name,
         plotArea: dto.plotArea,
         pricePerSqft: dto.pricePerSqft,
         plotPrice: dto.plotPrice,
@@ -117,40 +134,27 @@ export class BookingService {
         chequeNo: dto.chequeNo,
         chequeDate: dto.chequeDate,
         transferId: dto.transferId,
-        isInitial,
-        isPart,
+        isInitial: true,
+        isPart: false,
         isFull,
       });
 
       const pdfUrl = this.pdfService.getPdfUrl(pdfFilename);
-
-      // Send WhatsApp with PDF attachment
-      await this.whatsappService.sendPlotBookingReceipt(
-        customer.phone,
-        customer.name,
-        pdfUrl,
-      );
-
+      await this.whatsappService.sendPlotBookingReceipt(customer.phone, customer.name, pdfUrl);
       this.logger.log(`Booking receipt WhatsApp sent to ${customer.phone}`);
     } catch (error: any) {
-      this.logger.error(
-        `Failed to send WhatsApp for booking ${receiptNo}: ${error.message}`,
-      );
-      // Don't throw - booking was already created successfully
+      this.logger.error(`Failed to send WhatsApp for booking ${receiptNo}: ${error.message}`);
     }
 
-    return {
-      ...booking,
-      siteName: site.name,
-      customerName: customer.name,
-    };
+    return this.formatBooking(booking);
   }
 
   async findAll() {
     const bookings = await this.prisma.booking.findMany({
       include: {
         customer: { select: { name: true, phone: true, email: true } },
-        site: { select: { name: true, location: true } },
+        project: { select: { name: true, location: true } },
+        site: { select: { siteNo: true, facing: true, totalSqft: true } },
         creator: { select: { name: true, employeeCode: true } },
         assignedToUser: { select: { name: true, mobile: true } },
         receipts: { orderBy: { paymentDate: 'desc' } },
@@ -158,15 +162,7 @@ export class BookingService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return bookings.map(b => ({
-      ...b,
-      siteName: b.site?.name || '',
-      customerName: b.customer?.name || '',
-      creatorName: b.creator?.name || '',
-      assignedToUserName: b.assignedToUser?.name || '',
-      salesManagerName: b.assignedToUser?.name || b.creator?.name || '',
-      receipts: b.receipts || [],
-    }));
+    return bookings.map(b => this.formatBooking(b));
   }
 
   async findOne(id: number) {
@@ -174,9 +170,11 @@ export class BookingService {
       where: { id },
       include: {
         customer: { select: { name: true, phone: true, email: true, address: true, pinCode: true } },
-        site: { select: { name: true, location: true, pricePerSqft: true } },
+        project: { select: { name: true, location: true } },
+        site: { select: { siteNo: true, facing: true, totalSqft: true, pricePerSqft: true } },
         creator: { select: { name: true, employeeCode: true } },
         assignedToUser: { select: { name: true, mobile: true } },
+        receipts: { orderBy: { paymentDate: 'desc' } },
       },
     });
 
@@ -184,34 +182,22 @@ export class BookingService {
       throw new NotFoundException('Booking not found');
     }
 
-    return {
-      ...booking,
-      siteName: booking.site?.name || '',
-      customerName: booking.customer?.name || '',
-      creatorName: booking.creator?.name || '',
-      assignedToUserName: booking.assignedToUser?.name || '',
-      salesManagerName: booking.assignedToUser?.name || booking.creator?.name || '',
-    };
+    return this.formatBooking(booking);
   }
 
-
   async update(id: number, data: any) {
-    const booking = await this.prisma.booking.findUnique({
-      where: { id },
-    });
-
+    const booking = await this.prisma.booking.findUnique({ where: { id } });
     if (!booking) {
       throw new NotFoundException('Booking not found');
     }
 
     const updateData: any = {};
-    
-    // Update allowed fields
+
     const allowedFields = [
       'plotArea', 'pricePerSqft', 'plotPrice', 'paidAmount', 'remainingAmount',
       'paymentMode', 'bankName', 'chequeNo', 'chequeDate', 'transferId', 'loanOrOwn',
-      'status', 'assignedTo', 'officeIdNo', 'notes',
-      'projectName', 'projectNo', 'guardianName', 'siteVisitId',
+      'status', 'assignedTo', 'officeIdNo', 'notes', 'guardianName', 'siteVisitId',
+      'bookingDate',
     ];
 
     allowedFields.forEach(field => {
@@ -220,37 +206,29 @@ export class BookingService {
       }
     });
 
-    // If assignedTo is provided, keep it in update data
-    if (data.assignedTo) {
-      updateData.assignedTo = data.assignedTo;
-    }
-
     const updated = await this.prisma.booking.update({
       where: { id },
       data: updateData,
       include: {
         customer: { select: { name: true, phone: true, email: true } },
-        site: { select: { name: true, location: true } },
+        project: { select: { name: true, location: true } },
+        site: { select: { siteNo: true, facing: true, totalSqft: true } },
         creator: { select: { name: true, employeeCode: true } },
         assignedToUser: { select: { name: true, mobile: true } },
       },
     });
 
     this.logger.log(`Booking updated: ${updated.id}`);
-
-    return {
-      ...updated,
-      siteName: updated.site?.name || '',
-      customerName: updated.customer?.name || '',
-      creatorName: updated.creator?.name || '',
-      assignedToUserName: updated.assignedToUser?.name || '',
-      salesManagerName: updated.assignedToUser?.name || updated.creator?.name || '',
-    };
+    return this.formatBooking(updated);
   }
 
   async createReceipt(bookingId: number, amount: number, paymentMode: string, bankName?: string, chequeNo?: string, chequeDate?: string, transferId?: string) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
+      include: {
+        project: { select: { name: true } },
+        site: { select: { siteNo: true } },
+      },
     });
 
     if (!booking) {
@@ -261,11 +239,9 @@ export class BookingService {
     const totalPaid = previousPaid + amount;
     const balance = booking.plotPrice - totalPaid;
 
-    // Generate sequential receipt number: RCPT0001, RCPT0002, ...
     const receiptCount = await this.prisma.paymentReceipt.count();
     const receiptNo = `RCPT${String(receiptCount + 1).padStart(4, '0')}`;
 
-    // Determine status based on payment stage
     let status = booking.status;
     if (previousPaid === 0) {
       status = 'Initial Payment';
@@ -275,7 +251,6 @@ export class BookingService {
       status = 'Full Payment';
     }
 
-    // Update booking paidAmount and remainingAmount
     const updatedBooking = await this.prisma.booking.update({
       where: { id: bookingId },
       data: {
@@ -307,30 +282,32 @@ export class BookingService {
       },
     });
 
-    // Fetch booking with customer and site details for PDF generation
+    // Fetch full booking for PDF
     const bookingWithDetails = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
         customer: { select: { name: true, phone: true } },
-        site: { select: { name: true } },
+        project: { select: { name: true } },
+        site: { select: { siteNo: true } },
       },
     });
 
     if (bookingWithDetails) {
       try {
         const isFirstPayment = previousPaid === 0;
-        const isInitial = status === 'Initial Payment' || (isFirstPayment && amount > 0);
-        const isPart = status === 'Part Payment' || (previousPaid > 0 && balance > 0);
-        const isFull = status === 'Full Payment' || balance <= 0;
+        const isInitial = isFirstPayment && amount > 0;
+        const isPart = previousPaid > 0 && balance > 0;
+        const isFull = balance <= 0;
+        const projectName = bookingWithDetails.project?.name || '';
+        const siteName = `${projectName} - Site ${bookingWithDetails.site?.siteNo || ''}`;
 
-        // Generate Payment Receipt PDF
         const pdfFilename = await this.pdfService.generatePaymentReceipt({
           receiptNo,
           paymentDate: updatedBooking.bookingDate || new Date().toISOString().split('T')[0],
           customerName: bookingWithDetails.customer.name,
           customerPhone: bookingWithDetails.customer.phone,
-          siteName: bookingWithDetails.site.name,
-          projectName: updatedBooking.projectName || bookingWithDetails.site.name,
+          siteName,
+          projectName,
           previousPaid,
           currentPayment: amount,
           totalPaid,
@@ -346,8 +323,6 @@ export class BookingService {
         });
 
         const pdfUrl = this.pdfService.getPdfUrl(pdfFilename);
-
-        // Send WhatsApp with PDF attachment
         await this.whatsappService.sendPaymentReceipt(
           bookingWithDetails.customer.phone,
           bookingWithDetails.customer.name,
@@ -356,10 +331,7 @@ export class BookingService {
 
         this.logger.log(`Payment receipt WhatsApp sent to ${bookingWithDetails.customer.phone}`);
       } catch (error: any) {
-        this.logger.error(
-          `Failed to send WhatsApp for payment receipt ${receiptNo}: ${error.message}`,
-        );
-        // Don't throw - receipt was already created successfully
+        this.logger.error(`Failed to send WhatsApp for payment receipt ${receiptNo}: ${error.message}`);
       }
     }
 
@@ -367,18 +339,12 @@ export class BookingService {
   }
 
   async remove(id: number) {
-    const booking = await this.prisma.booking.findUnique({
-      where: { id },
-    });
-
+    const booking = await this.prisma.booking.findUnique({ where: { id } });
     if (!booking) {
       throw new NotFoundException('Booking not found');
     }
 
-    await this.prisma.booking.delete({
-      where: { id },
-    });
-
+    await this.prisma.booking.delete({ where: { id } });
     return { success: true, message: 'Booking deleted successfully' };
   }
 
@@ -412,7 +378,8 @@ export class BookingService {
         booking: {
           include: {
             customer: { select: { name: true, phone: true } },
-            site: { select: { name: true } },
+            project: { select: { name: true } },
+            site: { select: { siteNo: true } },
           },
         },
       },
@@ -424,12 +391,13 @@ export class BookingService {
 
     const booking = receipt.booking;
     const customer = booking.customer;
-    const site = booking.site;
+    const projectName = booking.project?.name || '';
+    const siteName = `${projectName} - Site ${booking.site?.siteNo || ''}`;
 
     const isFirstPayment = receipt.previousPaid === 0;
-    const isInitial = receipt.paymentMode === 'Initial Payment' || isFirstPayment;
-    const isPart = receipt.paymentMode === 'Part Payment' || (receipt.previousPaid > 0 && receipt.balance > 0);
-    const isFull = receipt.paymentMode === 'Full Payment' || receipt.balance <= 0;
+    const isInitial = isFirstPayment;
+    const isPart = receipt.previousPaid > 0 && receipt.balance > 0;
+    const isFull = receipt.balance <= 0;
 
     try {
       let pdfFilename: string;
@@ -441,8 +409,8 @@ export class BookingService {
           bookingDate: receipt.paymentDate,
           customerName: customer.name,
           customerPhone: customer.phone,
-          siteName: site.name,
-          projectName: booking.projectName || site.name,
+          siteName,
+          projectName,
           plotArea: booking.plotArea,
           pricePerSqft: booking.pricePerSqft,
           plotPrice: booking.plotPrice,
@@ -466,8 +434,8 @@ export class BookingService {
           paymentDate: receipt.paymentDate,
           customerName: customer.name,
           customerPhone: customer.phone,
-          siteName: site.name,
-          projectName: booking.projectName || site.name,
+          siteName,
+          projectName,
           previousPaid: receipt.previousPaid,
           currentPayment: receipt.currentPayment,
           totalPaid: receipt.totalPaid,
@@ -507,7 +475,8 @@ export class BookingService {
       include: {
         visits: {
           include: {
-            site: { select: { name: true, id: true } },
+            project: { select: { name: true, id: true } },
+            site: { select: { siteNo: true, id: true } },
             assignedToUser: { select: { name: true } },
           },
           orderBy: { createdAt: 'desc' },
@@ -522,10 +491,12 @@ export class BookingService {
     const booking = await this.prisma.booking.findFirst({
       where: { customerId: customer.id },
       include: {
-        site: { select: { name: true, location: true, pricePerSqft: true } },
+        project: { select: { name: true, location: true } },
+        site: { select: { siteNo: true, facing: true, totalSqft: true, pricePerSqft: true } },
         customer: { select: { name: true, phone: true, email: true, address: true, pinCode: true } },
         assignedToUser: { select: { name: true, mobile: true } },
         creator: { select: { name: true, employeeCode: true } },
+        receipts: { orderBy: { paymentDate: 'desc' } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -539,8 +510,10 @@ export class BookingService {
       pinCode: customer.pinCode,
       visits: customer.visits.map(v => ({
         id: v.id,
+        projectId: v.projectId,
         siteId: v.siteId,
-        siteName: v.site?.name || '',
+        projectName: (v as any).project?.name || '',
+        siteNo: (v as any).site?.siteNo || '',
         visitDate: v.visitDate,
         assignedToName: v.assignedToUser?.name || '',
       })),
@@ -550,15 +523,17 @@ export class BookingService {
       return { customer: customerData, booking: null, receipts: [] };
     }
 
+    const projectName = booking.project?.name || '';
     const bookingData = {
       id: booking.id,
       customerId: booking.customerId,
       customerName: booking.customer?.name || '',
+      projectId: booking.projectId,
+      projectName,
       siteId: booking.siteId,
-      siteName: booking.site?.name || '',
-      projectName: booking.projectName,
-      projectNo: booking.projectNo,
-      location: booking.site?.location || '',
+      siteNo: booking.site?.siteNo || '',
+      siteName: `${projectName} - Site ${booking.site?.siteNo || ''}`,
+      location: booking.project?.location || '',
       plotArea: booking.plotArea,
       pricePerSqft: booking.pricePerSqft,
       plotPrice: booking.plotPrice,
@@ -576,8 +551,26 @@ export class BookingService {
       chequeNo: booking.chequeNo,
       chequeDate: booking.chequeDate,
       transferId: booking.transferId,
+      receipts: booking.receipts || [],
     };
 
-    return { customer: customerData, booking: bookingData, receipts: [] };
+    return { customer: customerData, booking: bookingData, receipts: booking.receipts || [] };
+  }
+
+  // ─── HELPER ───────────────────────────────────────────────────────────
+  private formatBooking(b: any) {
+    const projectName = b.project?.name || '';
+    const siteNo = b.site?.siteNo || '';
+    return {
+      ...b,
+      projectName,
+      siteName: siteNo ? `${projectName} - Site ${siteNo}` : projectName,
+      siteNo,
+      customerName: b.customer?.name || '',
+      creatorName: b.creator?.name || '',
+      assignedToUserName: b.assignedToUser?.name || '',
+      salesManagerName: b.assignedToUser?.name || b.creator?.name || '',
+      receipts: b.receipts || [],
+    };
   }
 }

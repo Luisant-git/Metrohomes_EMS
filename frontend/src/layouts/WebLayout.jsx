@@ -11,7 +11,7 @@ import logo from "../assests/logo 1.png";
 const NAV_ITEMS = [
   { path: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["Admin", "Director"] },
   { path: "/users", icon: Users, label: "User Management", roles: ["Admin", "Director"] },
-  { path: "/sites", icon: Building2, label: "Project Master", roles: ["Admin", "Director"] },
+  { path: "/projects", icon: Building2, label: "Project Master", roles: ["Admin", "Director"] },
   { path: "/customers", icon: UserCheck, label: "Site Visit", roles: ["Admin", "Director"] },
   { path: "/customer-registration", icon: UserPlus, label: "Site Visit Registration", roles: ["Admin", "Director"] },
   { path: "/bookings", icon: BookOpen, label: "Booking Management", roles: ["Admin", "Director"] },

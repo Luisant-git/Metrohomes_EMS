@@ -37,7 +37,7 @@ const getAuthHeaders = () => ({
 export const site = {
     // Create Site (Admin/Director only)
     async create(siteData) {
-        const response = await fetch(`${VITE_API_URL}/sites`, {
+        const response = await fetch(`${VITE_API_URL}/projects`, {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(siteData),
@@ -48,7 +48,7 @@ export const site = {
     // Get All Sites (with filters)
     async getAll(params = {}) {
         const queryString = new URLSearchParams(params).toString();
-        const url = queryString ? `${VITE_API_URL}/sites?${queryString}` : `${VITE_API_URL}/sites`;
+        const url = queryString ? `${VITE_API_URL}/projects?${queryString}` : `${VITE_API_URL}/projects`;
 
         const response = await fetch(url, {
             method: "GET",
@@ -59,7 +59,7 @@ export const site = {
 
     // Get Site Statistics
     async getStats() {
-        const response = await fetch(`${VITE_API_URL}/sites/stats`, {
+        const response = await fetch(`${VITE_API_URL}/projects/stats`, {
             method: "GET",
             headers: getAuthHeaders(),
         });
@@ -68,7 +68,7 @@ export const site = {
 
     // Get Site by ID
     async getById(siteId) {
-        const response = await fetch(`${VITE_API_URL}/sites/${siteId}`, {
+        const response = await fetch(`${VITE_API_URL}/projects/${siteId}`, {
             method: "GET",
             headers: getAuthHeaders(),
         });
@@ -77,7 +77,7 @@ export const site = {
 
     // Update Site (Admin/Director only)
     async update(siteId, siteData) {
-        const response = await fetch(`${VITE_API_URL}/sites/${siteId}`, {
+        const response = await fetch(`${VITE_API_URL}/projects/${siteId}`, {
             method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify(siteData),
@@ -87,7 +87,7 @@ export const site = {
 
     // Delete Site (Admin/Director only)
     async delete(siteId) {
-        const response = await fetch(`${VITE_API_URL}/sites/${siteId}`, {
+        const response = await fetch(`${VITE_API_URL}/projects/${siteId}`, {
             method: "DELETE",
             headers: getAuthHeaders(),
         });

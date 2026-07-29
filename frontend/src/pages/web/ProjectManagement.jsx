@@ -4,13 +4,13 @@ import DataTable from "../../components/DataTable.jsx";
 import Modal from "../../components/Modal.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import StatCard from "../../components/StatCard.jsx";
-import { SquarePen, Trash2, Eye, Building2, MapPin, FileText, Image as ImageIcon, X, Plus, File, Download, Loader2, AlertTriangle, Globe, CheckCircle, XCircle, LayoutGrid, ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
+import { SquarePen, Trash2, Eye, Building2, MapPin, FileText, Image as ImageIcon, X, Plus, File, Download, Loader2, AlertTriangle, Globe, CheckCircle, XCircle, LayoutGrid, ChevronLeft, ChevronRight, GripVertical, CalendarCheck, DollarSign } from "lucide-react";
 import { toast } from "react-toastify";
 import { uploadAPI } from "../../api/upload.js";
 
 const empty = { name: "", location: "", totalPlots: "", availablePlots: "", pricePerSqft: "", description: "", status: "Active", images: [], brochure: null, documents: [], plots: [] };
 
-const emptyPlot = { siteNo: "", facing: "East", eastWest: "", northSouth: "", totalSqft: "", pricePerSqft: "", status: "Available" };
+const emptyPlot = { siteNo: "", facing: "East", eastWest: "", northSouth: "", totalSqft: "", pricePerSqft: "", status: "Active" };
 
 function FormField({ label, children, span, required }) {
   return (
@@ -24,7 +24,7 @@ function FormField({ label, children, span, required }) {
   );
 }
 
-export default function SiteManagement() {
+export default function ProjectManagement() {
   const { sites, addSite, updateSite, deleteSite } = useData();
   const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
@@ -146,11 +146,10 @@ export default function SiteManagement() {
         uploadedDocUrls = results.map(r => r.url);
       }
 
-      const { id, createdBy, createdAt, updatedAt, ...cleanForm } = form;
+      // Build clean payload - strip out fields the backend DTO rejects
+      const { id, createdBy, createdAt, updatedAt, sites, visits, bookings, totalPlots, availablePlots, ...cleanForm } = form;
       const payload = {
         ...cleanForm,
-        totalPlots: +form.totalPlots,
-        availablePlots: +form.availablePlots,
         pricePerSqft: +form.pricePerSqft,
         images: [...existingImageUrls, ...uploadedImageUrls],
         brochure: brochureUrl,
@@ -184,9 +183,9 @@ export default function SiteManagement() {
         </div>
       )
     },
-    { key: "totalPlots", label: "Total Plots" },
+    { key: "totalPlots", label: "Total Sites" },
     { key: "availablePlots", label: "Available" },
-    { key: "pricePerSqft", label: "Price/sqft", render: v => `₹${Number(v).toLocaleString("en-IN")}` },
+    // { key: "pricePerSqft", label: "Price/sqft", render: v => `₹${Number(v).toLocaleString("en-IN")}` },
     { key: "status", label: "Status", render: v => <StatusBadge status={v} /> },
   ];
 
@@ -221,11 +220,13 @@ export default function SiteManagement() {
         <p className="text-gray-400 text-sm mt-0.5">{sites.length} total projects</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <StatCard icon={Globe} label="Total Projects" value={sites.length} color="blue" />
-        <StatCard icon={CheckCircle} label="Active" value={sites.filter(s => s.status === "Active").length} color="green" />
-        <StatCard icon={XCircle} label="Inactive" value={sites.filter(s => s.status === "Inactive").length} color="orange" />
-        <StatCard icon={LayoutGrid} label="Total Plots" value={sites.reduce((a, s) => a + (s.totalPlots || 0), 0)} color="purple" />
+        <StatCard icon={CheckCircle} label="Available Projects" value={sites.filter(s => s.status === "Active").length} color="green" />
+        <StatCard icon={LayoutGrid} label="Total Sites" value={sites.filter(s => s.status === "Active").reduce((a, s) => a + (s.totalPlots || 0), 0)} color="purple" />
+        <StatCard icon={XCircle} label="Available Sites" value={sites.filter(s => s.status === "Active").reduce((a, s) => a + (s.availablePlots || 0), 0)} color="orange" />
+        <StatCard icon={CalendarCheck} label="Booked Sites" value={sites.filter(s => s.status === "Active").reduce((a, s) => a + (s.plots || []).filter(p => p.status === "Booked").length, 0)} color="blue" />
+        <StatCard icon={DollarSign} label="Sold Sites" value={sites.filter(s => s.status === "Active").reduce((a, s) => a + (s.plots || []).filter(p => p.status === "Sold").length, 0)} color="green" />
       </div>
 
       <DataTable title="All Projects" columns={columns} data={sites} searchKey={["name", "location"]} onAdd={openAdd} addLabel="+ Add Project"
@@ -360,10 +361,8 @@ export default function SiteManagement() {
                       onChange={e => setPlotForm(p => ({ ...p, status: e.target.value }))}
                       className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
                     >
-                      <option>Available</option>
-                      <option>Booked</option>
-                      <option>Sold</option>
-                      <option>On Hold</option>
+                      <option>Active</option>
+                      <option>Inactive</option>
                     </select>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0 pb-0.5">
@@ -422,7 +421,7 @@ export default function SiteManagement() {
                         <td className="px-3.5 py-2 text-gray-900 font-medium text-xs">
                           {pl.pricePerSqft ? `₹${Number(pl.pricePerSqft).toLocaleString("en-IN")}` : "-"}
                         </td>
-                        <td className="px-3.5 py-2 text-gray-700 text-xs">{pl.status}</td>
+                        <td className="px-3.5 py-2 text-gray-700 text-xs">{pl.status || "Active"}</td>
                         <td className="px-3.5 py-2 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <button type="button" onClick={() => handleEditPlot(idx)} className="p-1.5 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors border border-orange-100" title="Edit Plot">
@@ -641,14 +640,8 @@ export default function SiteManagement() {
                 <p className="text-xs font-medium text-green-600 uppercase tracking-wider">Available</p>
                 <p className="text-xl font-bold text-gray-900 mt-1">{selected.availablePlots || 0}</p>
               </div>
-              <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
-                <p className="text-xs font-medium text-purple-600 uppercase tracking-wider">Price/sqft</p>
-                <p className="text-xl font-bold text-gray-900 mt-1">₹{Number(selected.pricePerSqft || 0).toLocaleString("en-IN")}</p>
-              </div>
-              <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
-                <p className="text-xs font-medium text-amber-600 uppercase tracking-wider">Plots Added</p>
-                <p className="text-xl font-bold text-gray-900 mt-1">{(selected.plots || []).length}</p>
-              </div>
+            
+              
             </div>
 
             {/* Available Plots Table */}
@@ -689,6 +682,9 @@ export default function SiteManagement() {
                           <td className="px-4 py-2.5 text-gray-700">{pl.northSouth || "-"}</td>
                           <td className="px-4 py-2.5 text-gray-800 font-medium">{Number(pl.totalSqft).toLocaleString("en-IN")}</td>
                           <td className="px-4 py-2.5 text-gray-800">₹{Number(pl.pricePerSqft).toLocaleString("en-IN")}</td>
+                          <td className="px-4 py-2.5">
+                            <StatusBadge status={pl.status || "Active"} />
+                          </td>
                         </tr>
                       ))}
                     </tbody>

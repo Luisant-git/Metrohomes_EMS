@@ -9,7 +9,7 @@ import { siteVisit } from "../../api/siteVisit.js";
 import { booking as bookingApi } from "../../api/booking.js";
 
 const empty = {
-  customerId: "", customerName: "", siteId: "",
+  customerId: "", customerName: "", siteId: "", projectId: "",
   projectName: "", projectNo: "",
   applicantName: "", relation: "", address: "", pinCode: "", mobile: "", email: "",
   paymentMode: "Cash", bankName: "", chequeNo: "", chequeDate: "", transferId: "", loanOrOwn: "Own Fund",
@@ -146,6 +146,7 @@ export default function BookingManagement() {
       const remaining = plotPrice - +form.paidAmount;
       const payload = {
         customerId: Number(form.customerId),
+        projectId: Number(form.projectId),
         siteId: Number(form.siteId),
         bookingDate: form.bookingDate,
         applicantName: form.applicantName,
@@ -780,21 +781,33 @@ export default function BookingManagement() {
             ) : (
               <div className="space-y-4">
                 <div><label className="label">Project Name <span className="text-red-500 ml-1">*</span></label>
-                  <select value={form.siteId} onChange={e => {
-                    const selectedSite = sites.find(s => s.id === +e.target.value);
-                    setForm(p => ({ ...p, siteId: e.target.value, projectName: selectedSite?.name || "", projectNo: selectedSite ? `PRJ-${String(selectedSite.id).padStart(3, '0')}` : "", pricePerSqft: selectedSite?.pricePerSqft || "", location: selectedSite?.location || "" }));
+                  <select value={form.projectId} onChange={e => {
+                    const selectedProject = sites.find(s => s.id === +e.target.value);
+                    setForm(p => ({ ...p, projectId: e.target.value, siteId: "", projectName: selectedProject?.name || "", projectNo: selectedProject ? `PRJ-${String(selectedProject.id).padStart(3, '0')}` : "", pricePerSqft: selectedProject?.pricePerSqft || "", location: selectedProject?.location || "" }));
                   }} className="input-field">
                     <option value="">Select project…</option>
-                    {form.customerId && customerVisits.length > 0 ? sites.filter(s => customerVisits.some(v => v.siteId === s.id)).map(s => <option key={s.id} value={s.id}>{s.name}</option>) : sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+                <div><label className="label">Plot No. <span className="text-red-500 ml-1">*</span></label>
+                  <select value={form.siteId} onChange={e => {
+                    const selectedProject = sites.find(s => s.id === +form.projectId);
+                    const selectedPlot = selectedProject?.plots?.find(p => p.id === +e.target.value);
+                    const pricePerSqft = selectedPlot?.pricePerSqft || selectedProject?.pricePerSqft || 5000;
+                    const area = selectedPlot?.totalSqft || "";
+                    setForm(p => ({ ...p, siteId: e.target.value, pricePerSqft, plotArea: area, plotPrice: area ? area * pricePerSqft : "" }));
+                  }} className="input-field" disabled={!form.projectId}>
+                    <option value="">Select plot…</option>
+                    {sites.find(s => s.id === +form.projectId)?.plots?.filter(p => p.status === 'Available').map(p => <option key={p.id} value={p.id}>{p.siteNo} {p.totalSqft ? `(${p.totalSqft} sqft)` : ''}</option>)}
                   </select>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div><label className="label">Project No.</label><input value={form.projectNo} readOnly className="input-field bg-white border-amber-200" placeholder="Auto-generated" /></div>
-                  <div><label className="label">Price per sq.ft (₹)</label><input value={form.pricePerSqft} readOnly className="input-field bg-white border-amber-200" placeholder="Fetched from project" /></div>
+                  <div><label className="label">Price per sq.ft (₹)</label><input value={form.pricePerSqft} readOnly className="input-field bg-white border-amber-200" placeholder="Fetched from project/plot" /></div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div><label className="label">Project Area (sq.yd.) *</label><input type="number" value={form.plotArea} onChange={e => { const area = e.target.value; setForm(p => ({ ...p, plotArea: area, plotPrice: area ? area * (+p.pricePerSqft || 5000) : "" })); }} className="input-field" placeholder="200" /></div>
-                  <div><label className="label">Project Price (₹) *</label><input type="number" value={form.plotPrice} readOnly className="input-field bg-white border-amber-200 font-medium text-amber-700" placeholder="Auto-calculated" /></div>
+                  <div><label className="label">Plot Area (sqft) *</label><input type="number" value={form.plotArea} onChange={e => { const area = e.target.value; setForm(p => ({ ...p, plotArea: area, plotPrice: area ? area * (+p.pricePerSqft || 5000) : "" })); }} className="input-field" placeholder="1200" /></div>
+                  <div><label className="label">Plot Price (₹) *</label><input type="number" value={form.plotPrice} readOnly className="input-field bg-white border-amber-200 font-medium text-amber-700" placeholder="Auto-calculated" /></div>
                 </div>
               </div>
             )}

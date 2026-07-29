@@ -1,3 +1,4 @@
+// src/site-visit/site-visit.service.ts
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSiteVisitDto } from './dto/create-site-visit.dto';
@@ -15,17 +16,26 @@ export class SiteVisitService {
       throw new NotFoundException('Customer not found');
     }
 
-    // Verify site exists
-    const site = await this.prisma.site.findUnique({
-      where: { id: dto.siteId },
+    // Verify project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: dto.projectId },
+    });
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    // Verify site exists and belongs to the project
+    const site = await this.prisma.site.findFirst({
+      where: { id: dto.siteId, projectId: dto.projectId },
     });
     if (!site) {
-      throw new NotFoundException('Site not found');
+      throw new NotFoundException('Site not found in this project');
     }
 
     const visit = await this.prisma.siteVisit.create({
       data: {
         customerId: dto.customerId,
+        projectId: dto.projectId,
         siteId: dto.siteId,
         visitDate: dto.visitDate ? new Date(dto.visitDate) : new Date(),
         visitTime: dto.visitTime || '09:00',
@@ -40,34 +50,41 @@ export class SiteVisitService {
         cabNumber: dto.cabNumber,
       },
       include: {
-        site: { select: { name: true, location: true } },
+        project: { select: { name: true, location: true } },
+        site: { select: { siteNo: true, facing: true, totalSqft: true } },
         assignedToUser: { select: { name: true, employeeCode: true } },
       },
     });
 
-    return visit;
+    return this.formatVisit(visit);
   }
 
   async findAll() {
-    return this.prisma.siteVisit.findMany({
+    const visits = await this.prisma.siteVisit.findMany({
       include: {
         customer: { select: { id: true, name: true, phone: true, email: true } },
-        site: { select: { name: true, location: true } },
+        project: { select: { name: true, location: true } },
+        site: { select: { siteNo: true, facing: true, totalSqft: true } },
         assignedToUser: { select: { name: true, employeeCode: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return visits.map(v => this.formatVisit(v));
   }
 
   async findByCustomer(customerId: number) {
-    return this.prisma.siteVisit.findMany({
+    const visits = await this.prisma.siteVisit.findMany({
       where: { customerId },
       include: {
-        site: { select: { name: true, location: true } },
+        project: { select: { name: true, location: true } },
+        site: { select: { siteNo: true, facing: true, totalSqft: true } },
         assignedToUser: { select: { name: true, employeeCode: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return visits.map(v => this.formatVisit(v));
   }
 
   async findOne(id: number) {
@@ -75,12 +92,13 @@ export class SiteVisitService {
       where: { id },
       include: {
         customer: { select: { id: true, name: true, phone: true, email: true } },
-        site: { select: { name: true, location: true } },
+        project: { select: { name: true, location: true } },
+        site: { select: { siteNo: true, facing: true, totalSqft: true, pricePerSqft: true } },
         assignedToUser: { select: { name: true, employeeCode: true, mobile: true } },
       },
     });
     if (!visit) throw new NotFoundException('Site visit not found');
-    return visit;
+    return this.formatVisit(visit);
   }
 
   async update(id: number, data: any) {
@@ -88,7 +106,8 @@ export class SiteVisitService {
     if (!visit) throw new NotFoundException('Site visit not found');
 
     const updateData: any = {};
-    if (data.siteId !== undefined) updateData.siteId = data.siteId;
+    if (data.projectId !== undefined) updateData.projectId = Number(data.projectId);
+    if (data.siteId !== undefined) updateData.siteId = Number(data.siteId);
     if (data.visitDate !== undefined) updateData.visitDate = new Date(data.visitDate);
     if (data.visitTime !== undefined) updateData.visitTime = data.visitTime;
     if (data.persons !== undefined) updateData.persons = data.persons;
@@ -101,20 +120,33 @@ export class SiteVisitService {
     if (data.driverMobile !== undefined) updateData.driverMobile = data.driverMobile;
     if (data.cabNumber !== undefined) updateData.cabNumber = data.cabNumber;
 
-    return this.prisma.siteVisit.update({
+    const updated = await this.prisma.siteVisit.update({
       where: { id },
       data: updateData,
       include: {
         customer: { select: { id: true, name: true, phone: true } },
-        site: { select: { name: true, location: true } },
+        project: { select: { name: true, location: true } },
+        site: { select: { siteNo: true, facing: true, totalSqft: true } },
         assignedToUser: { select: { name: true, employeeCode: true } },
       },
     });
+
+    return this.formatVisit(updated);
   }
 
   async remove(id: number) {
     const visit = await this.prisma.siteVisit.findUnique({ where: { id } });
     if (!visit) throw new NotFoundException('Site visit not found');
     return this.prisma.siteVisit.delete({ where: { id } });
+  }
+
+  private formatVisit(visit: any) {
+    return {
+      ...visit,
+      projectName: visit.project?.name || '',
+      projectLocation: visit.project?.location || '',
+      siteName: visit.site ? `${visit.project?.name || ''} - Site ${visit.site.siteNo}` : '',
+      siteNo: visit.site?.siteNo || '',
+    };
   }
 }

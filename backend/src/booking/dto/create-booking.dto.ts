@@ -1,6 +1,6 @@
-import { Transform, Type } from 'class-transformer';
-import { IsString, IsNotEmpty, IsOptional, IsInt, IsNumber, IsDateString, IsEnum } from 'class-validator';
-
+// src/booking/dto/create-booking.dto.ts
+import { Type } from 'class-transformer';
+import { IsString, IsNotEmpty, IsOptional, IsInt, IsNumber } from 'class-validator';
 
 export enum PaymentMode {
   CASH = 'Cash',
@@ -11,9 +11,15 @@ export enum PaymentMode {
 
 export class CreateBookingDto {
   @IsInt()
+  @Type(() => Number)
   customerId: number;
 
   @IsInt()
+  @Type(() => Number)
+  projectId: number;
+
+  @IsInt()
+  @Type(() => Number)
   siteId: number;
 
   @IsString()
@@ -21,28 +27,8 @@ export class CreateBookingDto {
   bookingDate: string;
 
   @IsString()
-  @IsNotEmpty()
-  applicantName: string;
-
-  @IsString()
   @IsOptional()
-  relation?: string;
-
-  @IsString()
-  @IsOptional()
-  address?: string;
-
-  @IsString()
-  @IsOptional()
-  pinCode?: string;
-
-  @IsString()
-  @IsOptional()
-  mobile?: string;
-
-  @IsString()
-  @IsOptional()
-  email?: string;
+  guardianName?: string;
 
   @IsNumber()
   plotArea: number;
@@ -61,7 +47,7 @@ export class CreateBookingDto {
 
   @IsString()
   @IsOptional()
-  paymentMode?: PaymentMode;
+  paymentMode?: string;
 
   @IsString()
   @IsOptional()
@@ -104,19 +90,8 @@ export class CreateBookingDto {
   @IsOptional()
   notes?: string;
 
-  @IsString()
+  @IsInt()
   @IsOptional()
-  propertyType?: string;
-
-  @IsString()
-  @IsOptional()
-  projectName?: string;
-
-  @IsString()
-  @IsOptional()
-  projectNo?: string;
-
-  @IsString()
-  @IsOptional()
-  location?: string;
+  @Type(() => Number)
+  siteVisitId?: number;
 }

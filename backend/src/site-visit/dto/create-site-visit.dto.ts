@@ -1,3 +1,4 @@
+// src/site-visit/dto/create-site-visit.dto.ts
 import { Transform, Type } from 'class-transformer';
 import { IsString, IsNotEmpty, IsOptional, IsInt, IsDateString } from 'class-validator';
 
@@ -6,6 +7,11 @@ export class CreateSiteVisitDto {
   @Type(() => Number)
   @IsNotEmpty()
   customerId: number;
+
+  @IsInt()
+  @Type(() => Number)
+  @IsNotEmpty()
+  projectId: number;
 
   @IsInt()
   @Type(() => Number)

@@ -50,17 +50,17 @@ model User {
   assignedVisits        SiteVisit[] @relation("AssignedUser")
   createdBookings       Booking[] @relation("CreatedBookings")
   assignedBookings      Booking[] @relation("AssignedBookings")
+  createdProjects       Project[] @relation("CreatedProjects")
 
   @@map("users")
 }
 
-model Site {
+model Project {
   id              Int @id @default(autoincrement())
 
   name            String
   location        String
-  totalPlots      Int?
-  availablePlots  Int?
+  
   pricePerSqft    Float?
   description     String?
 
@@ -69,15 +69,47 @@ model Site {
   documents       Json?
 
   createdBy       Int?
+  creator     User? @relation("CreatedProjects", fields: [createdBy], references: [id], onDelete: SetNull)
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   status          String @default("Active")
 
+   // Relations
+  sites           Site[]
   visits          SiteVisit[]
   bookings        Booking[]
 
+  @@map("projects")
+}
+
+
+model Site {
+  id              Int      @id @default(autoincrement())
+
+  projectId       Int
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  siteNo          String
+
+  facing          String?
+  eastWest        String?
+  northSouth      String?
+
+  totalSqft       Float
+  pricePerSqft    Float
+
+  status          String   @default("Available") // Available, Booked, Sold, On Hold
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  visits          SiteVisit[]
+  bookings        Booking[]
+
+  @@unique([projectId, siteNo])
   @@map("sites")
 }
 
@@ -112,6 +144,9 @@ model SiteVisit {
   id           Int      @id @default(autoincrement())
   customerId   Int
   customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  projectId   Int
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
 
   siteId       Int
   site         Site     @relation(fields: [siteId], references: [id], onDelete: Restrict)
@@ -149,6 +184,9 @@ model Booking {
 
   guardianName   String?
 
+  projectId   Int
+  project     Project @relation(fields: [projectId], references: [id])
+
   siteId         Int
   site           Site     @relation(fields: [siteId], references: [id])
 
@@ -174,8 +212,7 @@ model Booking {
 
   officeIdNo     String?
   notes          String?
-  projectName    String?
-  projectNo      String?
+
   siteVisitId    Int?
   siteVisit      SiteVisit? @relation(fields: [siteVisitId], references: [id], onDelete: SetNull)
 
