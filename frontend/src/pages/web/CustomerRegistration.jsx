@@ -65,6 +65,7 @@ export default function CustomerRegistration() {
     pinCode: "",
     occupation: "",
     location: "",
+    projectId: "",
     siteId: "",
     visitDate: "",
     visitTime: "09:00",
@@ -81,7 +82,9 @@ export default function CustomerRegistration() {
   const [errors, setErrors] = useState({});
 
   const approvedSites = sites.filter(s => s.status === "Active");
-  const selectedSite = approvedSites.find(s => s.id === +form.siteId);
+  const selectedProject = approvedSites.find(s => s.id === +form.projectId);
+  const availablePlots = selectedProject?.plots?.filter(p => p.status === "Active") || [];
+  const selectedSite = availablePlots.find(p => p.id === +form.siteId);
 
   const salesManager = {
     name: user?.name ,
@@ -210,9 +213,13 @@ export default function CustomerRegistration() {
     const newErrors = {};
     let errorMessages = [];
 
-    if (!form.siteId) {
-      newErrors.siteId = "Please select a project";
+    if (!form.projectId) {
+      newErrors.projectId = "Please select a project";
       errorMessages.push("Please select a project");
+    }
+    if (!form.siteId) {
+      newErrors.siteId = "Please select a site";
+      errorMessages.push("Please select a site");
     }
     if (!form.visitDate) {
       newErrors.visitDate = "Visit date is required";
@@ -285,6 +292,7 @@ export default function CustomerRegistration() {
       // Step 2: Create site visit for this customer
       const visitPayload = {
         customerId: createdCustomer.id,
+        projectId: Number(form.projectId),
         siteId: Number(form.siteId),
         visitDate: form.visitDate,
         visitTime: form.visitTime,
@@ -451,19 +459,43 @@ export default function CustomerRegistration() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ overflow: 'visible' }}>
               <F label="Select Project" icon={Building2} required className="md:col-span-2">
-                <select value={form.siteId} onChange={e => setForm(p => ({ ...p, siteId: e.target.value }))} className="input-field">
+                <select value={form.projectId} onChange={e => setForm(p => ({ ...p, projectId: e.target.value, siteId: "" }))} className={`input-field ${errors.projectId ? 'border-red-500' : ''}`}>
                   <option value="">Choose project…</option>
                   {approvedSites.map(s => <option key={s.id} value={s.id}>{s.name} — {s.location}</option>)}
                 </select>
+                {errors.projectId && <p className="text-xs text-red-500 mt-1">{errors.projectId}</p>}
               </F>
 
-              {selectedSite && (
+              {selectedProject && (
                 <div className="md:col-span-2 bg-blue-50 rounded-xl p-4 flex items-center gap-4">
-                  {selectedSite.images?.[0] && <img src={selectedSite.images[0]} className="w-20 h-20 rounded-xl object-cover flex-shrink-0" alt={selectedSite.name} />}
+                  {selectedProject.images?.[0] && <img src={selectedProject.images[0]} className="w-20 h-20 rounded-xl object-cover flex-shrink-0" alt={selectedProject.name} />}
                   <div>
-                    <div className="font-semibold text-gray-800">{selectedSite.name}</div>
-                    <div className="text-sm text-gray-500">{selectedSite.location}</div>
-                    <div className="text-sm text-blue-600 font-medium mt-1">{selectedSite.availablePlots} plots · ₹{Number(selectedSite.pricePerSqft).toLocaleString("en-IN")}/sqft</div>
+                    <div className="font-semibold text-gray-800">{selectedProject.name}</div>
+                    <div className="text-sm text-gray-500">{selectedProject.location}</div>
+                    <div className="text-sm text-blue-600 font-medium mt-1">{selectedProject.availablePlots} available · ₹{Number(selectedProject.pricePerSqft).toLocaleString("en-IN")}/sqft</div>
+                  </div>
+                </div>
+              )}
+
+              {form.projectId && (
+                <F label="Select Site / Plot" icon={MapPin} required className="md:col-span-2">
+                  <select value={form.siteId} onChange={e => setForm(p => ({ ...p, siteId: e.target.value }))} className={`input-field ${errors.siteId ? 'border-red-500' : ''}`}>
+                    <option value="">Choose site…</option>
+                    {availablePlots.map(p => <option key={p.id} value={p.id}>Site {p.siteNo} — {p.facing} — {Number(p.totalSqft).toLocaleString("en-IN")} sqft</option>)}
+                  </select>
+                  {errors.siteId && <p className="text-xs text-red-500 mt-1">{errors.siteId}</p>}
+                </F>
+              )}
+
+              {selectedSite && (
+                <div className="md:col-span-2 bg-green-50 rounded-xl p-4 flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+                    <MapPin size={24} className="text-green-600" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-800">Site {selectedSite.siteNo}</div>
+                    <div className="text-sm text-gray-500">{selectedSite.facing} · {Number(selectedSite.totalSqft).toLocaleString("en-IN")} sqft</div>
+                    <div className="text-sm text-green-600 font-medium mt-1">₹{Number(selectedSite.pricePerSqft).toLocaleString("en-IN")}/sqft</div>
                   </div>
                 </div>
               )}
@@ -536,7 +568,8 @@ export default function CustomerRegistration() {
                 ["Address", form.address],
                 ["Pin Code", form.pinCode],
                 ["Occupation", form.occupation],
-                ["Project Interested", selectedSite?.name || "—"],
+                ["Project", selectedProject?.name || "—"],
+                ["Site / Plot", selectedSite ? `Site ${selectedSite.siteNo} (${selectedSite.facing})` : "—"],
                 ["Purchase Mode", form.purchaseMode],
                 ["Visit Date", form.visitDate],
                 ["Visit Time", form.visitTime ? (() => { const [h,m] = form.visitTime.split(':'); const hour = parseInt(h,10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })() : '—'],

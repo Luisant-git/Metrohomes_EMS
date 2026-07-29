@@ -61,7 +61,7 @@ export default function PWAVisitRegistration() {
   const [form, setForm] = useState({
     name: "", mobile: "", email: "", address: "", pinCode: "",
     occupation: "",
-    location: "", siteId: prefillSite || "", visitDate: "", visitTime: "09:00",
+    location: "", projectId: "", siteId: prefillSite || "", visitDate: "", visitTime: "09:00",
     persons: "", purchaseMode: "Own Funding",
     notes: "", status: "Interested",
   });
@@ -75,7 +75,9 @@ export default function PWAVisitRegistration() {
   const [errors, setErrors] = useState({});
 
   const approvedSites = sites.filter(s => s.status === "Active");
-  const selectedSite = approvedSites.find(s => s.id === +form.siteId);
+  const selectedProject = approvedSites.find(s => s.id === +form.projectId);
+  const availablePlots = selectedProject?.plots?.filter(p => p.status === "Active") || [];
+  const selectedSite = availablePlots.find(p => p.id === +form.siteId);
 
   const salesManager = {
     name: "Anjali Verma",
@@ -234,9 +236,13 @@ export default function PWAVisitRegistration() {
     const newErrors = {};
     let errorMessages = [];
 
-    if (!form.siteId) {
-      newErrors.siteId = "Please select a project";
+    if (!form.projectId) {
+      newErrors.projectId = "Please select a project";
       errorMessages.push("Please select a project");
+    }
+    if (!form.siteId) {
+      newErrors.siteId = "Please select a site";
+      errorMessages.push("Please select a site");
     }
     if (!form.visitDate) {
       newErrors.visitDate = "Visit date is required";
@@ -308,6 +314,7 @@ export default function PWAVisitRegistration() {
       // Step 2: Create site visit
       const visitPayload = {
         customerId: createdCustomer.id,
+        projectId: Number(form.projectId),
         siteId: Number(form.siteId),
         visitDate: form.visitDate,
         visitTime: form.visitTime,
@@ -478,19 +485,43 @@ export default function PWAVisitRegistration() {
 
             <div className="grid grid-cols-1 gap-4">
               <F label="Select Project" icon={Building2} required>
-                <select value={form.siteId} onChange={e => setForm(p => ({ ...p, siteId: e.target.value }))} className="input-field">
+                <select value={form.projectId} onChange={e => setForm(p => ({ ...p, projectId: e.target.value, siteId: "" }))} className={`input-field ${errors.projectId ? 'border-red-500' : ''}`}>
                   <option value="">Choose project…</option>
                   {approvedSites.map(s => <option key={s.id} value={s.id}>{s.name} — {s.location}</option>)}
                 </select>
+                {errors.projectId && <p className="text-xs text-red-500 mt-1">{errors.projectId}</p>}
               </F>
 
-              {selectedSite && (
+              {selectedProject && (
                 <div className="bg-blue-50 rounded-2xl p-3 flex items-center gap-3">
-                  {selectedSite.images?.[0] && <img src={selectedSite.images[0]} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" alt={selectedSite.name} />}
+                  {selectedProject.images?.[0] && <img src={selectedProject.images[0]} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" alt={selectedProject.name} />}
                   <div>
-                    <div className="font-bold text-gray-800 text-sm">{selectedSite.name}</div>
-                    <div className="text-xs text-gray-400">{selectedSite.location}</div>
-                    <div className="text-xs text-blue-600 font-semibold mt-0.5">{selectedSite.availablePlots} plots · ₹{Number(selectedSite.pricePerSqft).toLocaleString("en-IN")}/sqft</div>
+                    <div className="font-bold text-gray-800 text-sm">{selectedProject.name}</div>
+                    <div className="text-xs text-gray-400">{selectedProject.location}</div>
+                    <div className="text-xs text-blue-600 font-semibold mt-0.5">{selectedProject.availablePlots} available · ₹{Number(selectedProject.pricePerSqft).toLocaleString("en-IN")}/sqft</div>
+                  </div>
+                </div>
+              )}
+
+              {form.projectId && (
+                <F label="Select Site / Plot" icon={MapPin} required>
+                  <select value={form.siteId} onChange={e => setForm(p => ({ ...p, siteId: e.target.value }))} className={`input-field ${errors.siteId ? 'border-red-500' : ''}`}>
+                    <option value="">Choose site…</option>
+                    {availablePlots.map(p => <option key={p.id} value={p.id}>Site {p.siteNo} — {p.facing} — {Number(p.totalSqft).toLocaleString("en-IN")} sqft</option>)}
+                  </select>
+                  {errors.siteId && <p className="text-xs text-red-500 mt-1">{errors.siteId}</p>}
+                </F>
+              )}
+
+              {selectedSite && (
+                <div className="bg-green-50 rounded-2xl p-3 flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+                    <MapPin size={20} className="text-green-600" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-gray-800 text-sm">Site {selectedSite.siteNo}</div>
+                    <div className="text-xs text-gray-400">{selectedSite.facing} · {Number(selectedSite.totalSqft).toLocaleString("en-IN")} sqft</div>
+                    <div className="text-xs text-green-600 font-semibold mt-0.5">₹{Number(selectedSite.pricePerSqft).toLocaleString("en-IN")}/sqft</div>
                   </div>
                 </div>
               )}
@@ -569,7 +600,8 @@ export default function PWAVisitRegistration() {
                 ["Address", form.address],
                 ["Pin Code", form.pinCode],
                 ["Occupation", form.occupation],
-                ["Project", selectedSite?.name || "—"],
+                ["Project", selectedProject?.name || "—"],
+                ["Site / Plot", selectedSite ? `Site ${selectedSite.siteNo} (${selectedSite.facing})` : "—"],
                 ["Purchase Mode", form.purchaseMode],
                 ["Visit Date", form.visitDate],
                 ["Visit Time", form.visitTime ? (() => { const [h,m] = form.visitTime.split(':'); const hour = parseInt(h,10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })() : '—'],
