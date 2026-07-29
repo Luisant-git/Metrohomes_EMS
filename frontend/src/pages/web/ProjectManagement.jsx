@@ -559,7 +559,7 @@ export default function ProjectManagement() {
       </Modal>
 
       {/* View Modal */}
-      <Modal open={modal === "view"} onClose={() => setModal(null)} title="Project Overview & Details" size="lg">
+      <Modal open={modal === "view"} onClose={() => setModal(null)} title="Project Overview & Details" size="xl">
         {selected && (
           <div className="space-y-5">
             {/* Image Gallery */}
@@ -640,8 +640,14 @@ export default function ProjectManagement() {
                 <p className="text-xs font-medium text-green-600 uppercase tracking-wider">Available</p>
                 <p className="text-xl font-bold text-gray-900 mt-1">{selected.availablePlots || 0}</p>
               </div>
-            
-              
+              <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
+                <p className="text-xs font-medium text-amber-600 uppercase tracking-wider">Booked</p>
+                <p className="text-xl font-bold text-gray-900 mt-1">{(selected.plots || []).filter(p => p.status === "Booked").length}</p>
+              </div>
+              <div className="bg-rose-50 rounded-xl p-4 border border-rose-100">
+                <p className="text-xs font-medium text-rose-600 uppercase tracking-wider">Sold</p>
+                <p className="text-xl font-bold text-gray-900 mt-1">{(selected.plots || []).filter(p => p.status === "Sold").length}</p>
+              </div>
             </div>
 
             {/* Available Plots Table */}
