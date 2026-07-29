@@ -4,11 +4,13 @@ import DataTable from "../../components/DataTable.jsx";
 import Modal from "../../components/Modal.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import StatCard from "../../components/StatCard.jsx";
-import { SquarePen, Trash2, Eye, Building2, MapPin, FileText, Image as ImageIcon, X, Plus, File, Download, Loader2, AlertTriangle, Globe, CheckCircle, XCircle, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
+import { SquarePen, Trash2, Eye, Building2, MapPin, FileText, Image as ImageIcon, X, Plus, File, Download, Loader2, AlertTriangle, Globe, CheckCircle, XCircle, LayoutGrid, ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
 import { toast } from "react-toastify";
 import { uploadAPI } from "../../api/upload.js";
 
-const empty = { name: "", location: "", totalPlots: "", availablePlots: "", pricePerSqft: "", description: "", status: "Active", images: [], brochure: null, documents: [] };
+const empty = { name: "", location: "", totalPlots: "", availablePlots: "", pricePerSqft: "", description: "", status: "Active", images: [], brochure: null, documents: [], plots: [] };
+
+const emptyPlot = { siteNo: "", facing: "East", eastWest: "", northSouth: "", totalSqft: "", pricePerSqft: "", status: "Available" };
 
 function FormField({ label, children, span, required }) {
   return (
@@ -30,11 +32,17 @@ export default function SiteManagement() {
   const [imgIdx, setImgIdx] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [editingPlotIdx, setEditingPlotIdx] = useState(null);
+  const [plotForm, setPlotForm] = useState(emptyPlot);
+  const [showPlotForm, setShowPlotForm] = useState(false);
 
   const openAdd = () => { setForm(empty); setModal("add"); };
   const openEdit = (s) => {
     setSelected(s);
-    setForm({ ...s, images: s.images || [], brochure: s.brochure || null, documents: s.documents || [] });
+    setForm({ ...s, images: s.images || [], brochure: s.brochure || null, documents: s.documents || [], plots: s.plots || [] });
+    setEditingPlotIdx(null);
+    setPlotForm(emptyPlot);
+    setShowPlotForm(false);
     setModal("edit");
   };
   const openView = (s) => { setSelected(s); setImgIdx(0); setModal("view"); };
@@ -62,6 +70,55 @@ export default function SiteManagement() {
 
   const removeImage = (index) => setForm(p => ({ ...p, images: p.images.filter((_, i) => i !== index) }));
   const removeDocument = (index) => setForm(p => ({ ...p, documents: p.documents.filter((_, i) => i !== index) }));
+
+  // --- Plot Management ---
+  const handleAddPlot = () => {
+    if (!plotForm.siteNo || !plotForm.totalSqft) {
+      toast.error("Site No and Total Sqft are required");
+      return;
+    }
+    if (editingPlotIdx !== null) {
+      // Update existing
+      setForm(p => ({
+        ...p,
+        plots: p.plots.map((pl, i) => i === editingPlotIdx ? { ...plotForm, totalSqft: +plotForm.totalSqft, pricePerSqft: +plotForm.pricePerSqft } : pl)
+      }));
+      toast.success("Plot updated");
+    } else {
+      // Add new
+      setForm(p => ({
+        ...p,
+        plots: [...(p.plots || []), { ...plotForm, totalSqft: +plotForm.totalSqft, pricePerSqft: +plotForm.pricePerSqft }]
+      }));
+      toast.success("Plot added");
+    }
+    setPlotForm(emptyPlot);
+    setEditingPlotIdx(null);
+    setShowPlotForm(false);
+  };
+
+  const handleEditPlot = (idx) => {
+    const pl = form.plots[idx];
+    setPlotForm({ ...pl, totalSqft: pl.totalSqft.toString(), pricePerSqft: pl.pricePerSqft.toString() });
+    setEditingPlotIdx(idx);
+    setShowPlotForm(true);
+  };
+
+  const handleDeletePlot = (idx) => {
+    setForm(p => ({ ...p, plots: p.plots.filter((_, i) => i !== idx) }));
+    if (editingPlotIdx === idx) {
+      setPlotForm(emptyPlot);
+      setEditingPlotIdx(null);
+      setShowPlotForm(false);
+    }
+    toast.success("Plot removed");
+  };
+
+  const handleCancelPlotEdit = () => {
+    setPlotForm(emptyPlot);
+    setEditingPlotIdx(null);
+    setShowPlotForm(false);
+  };
 
   const handleSave = async () => {
     if (!form.name || !form.location) { toast.error("Name and location required"); return; }
@@ -98,6 +155,7 @@ export default function SiteManagement() {
         images: [...existingImageUrls, ...uploadedImageUrls],
         brochure: brochureUrl,
         documents: [...existingDocUrls, ...uploadedDocUrls],
+        plots: form.plots || [],
       };
 
       if (modal === "add") {
@@ -145,6 +203,17 @@ export default function SiteManagement() {
 
   const getFileName = (doc) => typeof doc === 'string' ? 'Document' : doc.name;
 
+  const plotColumns = [
+    { key: "sNo", label: "S.No" },
+    { key: "siteNo", label: "Site" },
+    { key: "facing", label: "Facing" },
+    { key: "eastWest", label: "East West", render: v => v || "-" },
+    { key: "northSouth", label: "North South", render: v => v || "-" },
+    { key: "totalSqft", label: "Total Sqft", render: v => Number(v).toLocaleString("en-IN") },
+    { key: "pricePerSqft", label: "Price/sqft", render: v => `₹${Number(v).toLocaleString("en-IN")}` },
+    { key: "status", label: "Status" },
+  ];
+
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
@@ -170,33 +239,210 @@ export default function SiteManagement() {
       />
 
       {/* Add/Edit Modal */}
-      <Modal key={modal} open={modal === "add" || modal === "edit"} onClose={() => setModal(null)} title={modal === "add" ? "Add New Project" : "Edit Project"} size="lg">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <Modal key={modal} open={modal === "add" || modal === "edit"} onClose={() => setModal(null)} title={modal === "add" ? "Add New Project" : "Edit Project"} size="xl">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <FormField label="Project Name" required>
             <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="input-field" placeholder="Project name" autoComplete="off" />
           </FormField>
           <FormField label="Location" required>
             <input value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))} className="input-field" placeholder="Area, City" autoComplete="off" />
           </FormField>
-
-          <FormField label="Total Plots">
-            <input type="number" value={form.totalPlots} onChange={e => setForm(p => ({ ...p, totalPlots: e.target.value }))} className="input-field" />
-          </FormField>
-          <FormField label="Available Plots">
-            <input type="number" value={form.availablePlots} onChange={e => setForm(p => ({ ...p, availablePlots: e.target.value }))} className="input-field" />
-          </FormField>
-          <FormField label="Price per Sqft (₹)">
-            <input type="number" value={form.pricePerSqft} onChange={e => setForm(p => ({ ...p, pricePerSqft: e.target.value }))} className="input-field" />
-          </FormField>
           <FormField label="Status">
             <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="input-field">
-              <option>Active</option>
-              <option>Inactive</option>
+                <option>Active</option>
+                <option>Inactive</option>
             </select>
           </FormField>
 
+          <FormField label="Total Sites">
+            <input type="number" value={form.totalPlots} onChange={e => setForm(p => ({ ...p, totalPlots: e.target.value }))} className="input-field" />
+          </FormField>
+          <FormField label="Available Sites">
+            <input type="number" value={form.availablePlots} onChange={e => setForm(p => ({ ...p, availablePlots: e.target.value }))} className="input-field" />
+          </FormField>
+
+          {/* Available Sites Section */}
+          <div className="sm:col-span-3 bg-gray-50/70 p-4 rounded-xl border border-gray-200 space-y-3.5">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <LayoutGrid size={15} className="text-blue-600" />
+                  Available Sites Breakdown
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                  {(form.plots || []).length} Site(s)
+                </span>
+              </div>
+              {editingPlotIdx === null && !showPlotForm && (
+                <button 
+                  type="button"
+                  onClick={() => { setShowPlotForm(true); setPlotForm(emptyPlot); }} 
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-all shadow-xs inline-flex items-center gap-1.5 active:scale-95"
+                >
+                  <Plus size={14} /> Add Site Item
+                </button>
+              )}
+            </div>
+
+            {/* Add / Edit Plot Form Single Row */}
+            {showPlotForm && (
+              <div className="p-3 bg-white rounded-xl border border-blue-200 shadow-sm space-y-2">
+                <div className="flex flex-wrap lg:flex-nowrap items-end gap-2">
+                  <div className="flex-1 min-w-[80px]">
+                    <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-1 block">Site No *</label>
+                    <input 
+                      value={plotForm.siteNo} 
+                      onChange={e => setPlotForm(p => ({ ...p, siteNo: e.target.value }))} 
+                      className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white" 
+                      placeholder="Site No"
+                    />
+                  </div>
+                  <div className="w-[105px] shrink-0">
+                    <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-1 block">Facing</label>
+                    <select 
+                      value={plotForm.facing} 
+                      onChange={e => setPlotForm(p => ({ ...p, facing: e.target.value }))} 
+                      className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white leading-normal"
+                    >
+                      <option value="East">East</option>
+                      <option value="West">West</option>
+                      <option value="North">North</option>
+                      <option value="South">South</option>
+                      <option value="North-East">N-E</option>
+                      <option value="North-West">N-W</option>
+                      <option value="South-East">S-E</option>
+                      <option value="South-West">S-W</option>
+                    </select>
+                  </div>
+                  <div className="flex-1 min-w-[80px]">
+                    <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-1 block">East-West</label>
+                    <input 
+                      value={plotForm.eastWest} 
+                      onChange={e => setPlotForm(p => ({ ...p, eastWest: e.target.value }))} 
+                      className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white" 
+                      placeholder="Dim (ft)" 
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[80px]">
+                    <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-1 block">North-South</label>
+                    <input 
+                      value={plotForm.northSouth} 
+                      onChange={e => setPlotForm(p => ({ ...p, northSouth: e.target.value }))} 
+                      className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white" 
+                      placeholder="Dim (ft)" 
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[85px]">
+                    <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-1 block">Total Sqft *</label>
+                    <input 
+                      type="number" 
+                      value={plotForm.totalSqft} 
+                      onChange={e => setPlotForm(p => ({ ...p, totalSqft: e.target.value }))} 
+                      className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white" 
+                      placeholder="Sqft" 
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[85px]">
+                    <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-1 block">Price/sqft</label>
+                    <input 
+                      type="number" 
+                      value={plotForm.pricePerSqft} 
+                      onChange={e => setPlotForm(p => ({ ...p, pricePerSqft: e.target.value }))} 
+                      className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white" 
+                      placeholder="Price (₹)" 
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[85px]">
+                    <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-1 block">Status</label>
+                    <select
+                      value={plotForm.status}
+                      onChange={e => setPlotForm(p => ({ ...p, status: e.target.value }))}
+                      className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
+                    >
+                      <option>Available</option>
+                      <option>Booked</option>
+                      <option>Sold</option>
+                      <option>On Hold</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 pb-0.5">
+                    <button 
+                      type="button"
+                      onClick={handleAddPlot} 
+                      className="h-[34px] px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors inline-flex items-center gap-1 shadow-xs"
+                    >
+                     
+                      {editingPlotIdx !== null ? "Save" : "Add"}
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={handleCancelPlotEdit} 
+                      className="h-[34px] px-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition-colors flex items-center justify-center"
+                      title="Cancel"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Plots Table - with inline editing */}
+            {(form.plots || []).length > 0 && (
+              <div className="overflow-x-auto border border-gray-200 rounded-xl bg-white shadow-xs">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      {plotColumns.map(col => (
+                        <th key={col.key} className="text-left px-3.5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">{col.label}</th>
+                      ))}
+                      <th className="text-right px-3.5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {(form.plots || []).map((pl, idx) => (
+                      <tr key={idx} className={`transition-colors ${editingPlotIdx === idx ? "bg-blue-50/60 font-medium border-l-2 border-l-blue-500" : "hover:bg-gray-50/70"}`}>
+                        <td className="px-3.5 py-2 text-gray-500 font-medium text-xs">{idx + 1}</td>
+                        <td className="px-3.5 py-2 text-gray-900 font-semibold text-xs">{pl.siteNo}</td>
+                        <td className="px-3.5 py-2">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
+                            pl.facing === "East" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                            pl.facing === "West" ? "bg-indigo-50 text-indigo-700 border-indigo-200" :
+                            pl.facing === "North" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                            pl.facing === "South" ? "bg-rose-50 text-rose-700 border-rose-200" :
+                            "bg-gray-50 text-gray-600 border-gray-200"
+                          }`}>
+                            {pl.facing}
+                          </span>
+                        </td>
+                        <td className="px-3.5 py-2 text-gray-700 text-xs">{pl.eastWest ? `${pl.eastWest} ft` : "-"}</td>
+                        <td className="px-3.5 py-2 text-gray-700 text-xs">{pl.northSouth ? `${pl.northSouth} ft` : "-"}</td>
+                        <td className="px-3.5 py-2 text-gray-900 font-medium text-xs">{Number(pl.totalSqft).toLocaleString("en-IN")} sqft</td>
+                        <td className="px-3.5 py-2 text-gray-900 font-medium text-xs">
+                          {pl.pricePerSqft ? `₹${Number(pl.pricePerSqft).toLocaleString("en-IN")}` : "-"}
+                        </td>
+                        <td className="px-3.5 py-2 text-gray-700 text-xs">{pl.status}</td>
+                        <td className="px-3.5 py-2 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button type="button" onClick={() => handleEditPlot(idx)} className="p-1.5 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors border border-orange-100" title="Edit Plot">
+                              <SquarePen size={13} />
+                            </button>
+                            <button type="button" onClick={() => handleDeletePlot(idx)} className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100" title="Delete Plot">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           {/* Upload Section */}
-          <div className="sm:col-span-2">
+          <div className="sm:col-span-3">
             <div className="text-sm font-medium text-gray-700 mb-3">Upload Files</div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Images */}
@@ -301,7 +547,7 @@ export default function SiteManagement() {
             </div>
           </div>
 
-          <FormField label="Description" span>
+          <FormField label="Description" span className="sm:col-span-3">
             <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className="input-field h-20 resize-none" placeholder="Project description..." />
           </FormField>
         </div>
@@ -388,7 +634,7 @@ export default function SiteManagement() {
             {/* Key Metrics Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-                <p className="text-xs font-medium text-blue-600 uppercase tracking-wider">Total Plots</p>
+                <p className="text-xs font-medium text-blue-600 uppercase tracking-wider">Total Sites</p>
                 <p className="text-xl font-bold text-gray-900 mt-1">{selected.totalPlots || 0}</p>
               </div>
               <div className="bg-green-50 rounded-xl p-4 border border-green-100">
@@ -399,10 +645,57 @@ export default function SiteManagement() {
                 <p className="text-xs font-medium text-purple-600 uppercase tracking-wider">Price/sqft</p>
                 <p className="text-xl font-bold text-gray-900 mt-1">₹{Number(selected.pricePerSqft || 0).toLocaleString("en-IN")}</p>
               </div>
-             
+              <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
+                <p className="text-xs font-medium text-amber-600 uppercase tracking-wider">Plots Added</p>
+                <p className="text-xl font-bold text-gray-900 mt-1">{(selected.plots || []).length}</p>
+              </div>
             </div>
 
-           
+            {/* Available Plots Table */}
+            {(selected.plots || []).length > 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <LayoutGrid size={14} className="text-blue-600" />
+                    Available Plots
+                  </h4>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        {plotColumns.map(col => (
+                          <th key={col.key} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">{col.label}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {(selected.plots || []).map((pl, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50/50">
+                          <td className="px-4 py-2.5 text-gray-500 font-medium text-xs">{idx + 1}</td>
+                          <td className="px-4 py-2.5 text-gray-800 font-medium">{pl.siteNo}</td>
+                          <td className="px-4 py-2.5">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              pl.facing === "East" ? "bg-amber-50 text-amber-700" :
+                              pl.facing === "West" ? "bg-indigo-50 text-indigo-700" :
+                              pl.facing === "North" ? "bg-blue-50 text-blue-700" :
+                              pl.facing === "South" ? "bg-rose-50 text-rose-700" :
+                              "bg-gray-50 text-gray-600"
+                            }`}>
+                              {pl.facing}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5 text-gray-700">{pl.eastWest || "-"}</td>
+                          <td className="px-4 py-2.5 text-gray-700">{pl.northSouth || "-"}</td>
+                          <td className="px-4 py-2.5 text-gray-800 font-medium">{Number(pl.totalSqft).toLocaleString("en-IN")}</td>
+                          <td className="px-4 py-2.5 text-gray-800">₹{Number(pl.pricePerSqft).toLocaleString("en-IN")}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Brochure Download */}
             {selected.brochure && (
