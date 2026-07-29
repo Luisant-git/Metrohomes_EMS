@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Search, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 
-export default function DataTable({ columns, data, actions, searchKey, title, onAdd, addLabel = "Add New", hideSearch }) {
+export default function DataTable({ columns, data, actions, searchKey, title, onAdd, addLabel = "Add New", hideSearch, extraActions }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const perPage = 8;
@@ -29,6 +29,7 @@ export default function DataTable({ columns, data, actions, searchKey, title, on
                   placeholder="Search…" className="bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2 text-sm w-52 focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
             )}
+            {extraActions}
             {onAdd && (
               <button onClick={onAdd} className="btn-primary">
                 {addLabel}
