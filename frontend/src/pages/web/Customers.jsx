@@ -28,6 +28,7 @@ export default function WebCustomers() {
   const [siteVisits, setSiteVisits] = useState([]);
   const [visitsLoading, setVisitsLoading] = useState(true);
   const [visitSearch, setVisitSearch] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchSiteVisits();
@@ -357,20 +358,29 @@ export default function WebCustomers() {
                   />
                 </div>
                 <button 
+                  disabled={saving}
                   onClick={async () => { 
-                    const updates = { 
-                      status: selected.status,
-                      driverName: selected.driverName,
-                      driverMobile: selected.driverMobile,
-                      cabNumber: selected.cabNumber,
-                    };
-                    await siteVisit.update(selected.id, updates);
-                    toast.success("Visit updated successfully!"); 
-                    setModal(null);
-                    fetchSiteVisits();
+                    try {
+                      setSaving(true);
+                      const hasDriver = selected.driverName || selected.driverMobile || selected.cabNumber;
+                      const updates = { 
+                        status: hasDriver ? "Visit Scheduled" : selected.status,
+                        driverName: selected.driverName,
+                        driverMobile: selected.driverMobile,
+                        cabNumber: selected.cabNumber,
+                      };
+                      await siteVisit.update(selected.id, updates);
+                      toast.success("Visit updated successfully!"); 
+                      setModal(null);
+                      fetchSiteVisits();
+                    } catch (err) {
+                      toast.error(err.message || "Failed to update visit");
+                    } finally {
+                      setSaving(false);
+                    }
                   }}
-                  className="btn-primary w-full justify-center py-2.5">
-                  Save Changes
+                  className="btn-primary w-full justify-center py-2.5 disabled:opacity-50">
+                  {saving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </div>

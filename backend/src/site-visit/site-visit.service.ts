@@ -117,9 +117,6 @@ export class SiteVisitService {
     if (data.notes !== undefined) updateData.notes = data.notes;
     if (data.assignedTo !== undefined) updateData.assignedTo = data.assignedTo;
     if (data.driverName !== undefined) updateData.driverName = data.driverName;
-    if (data.driverMobile !== undefined) updateData.driverMobile = data.driverMobile;
-    if (data.cabNumber !== undefined) updateData.cabNumber = data.cabNumber;
-
     // Auto-set status to "Visit Scheduled" when driver details are provided
     const hasDriverDetails = data.driverName !== undefined || data.driverMobile !== undefined || data.cabNumber !== undefined;
     if (hasDriverDetails && (data.driverName || data.driverMobile || data.cabNumber)) {
@@ -154,12 +151,12 @@ export class SiteVisitService {
         });
 
         if (visitWithRelations) {
-          const siteName = `${visitWithRelations.project?.name || ''} - Site ${visitWithRelations.site?.siteNo || ''}`;
-          const visitDate = visitWithRelations.visitDate ? new Date(visitWithRelations.visitDate).toLocaleDateString('en-IN') : '';
-          const visitTime = visitWithRelations.visitTime || '';
-          const driverName = updateData.driverName || '';
-          const driverMobile = updateData.driverMobile || '';
-          const vehicleNo = updateData.cabNumber || '';
+          const siteName = `${visitWithRelations.project?.name || 'Project'} - Site ${visitWithRelations.site?.siteNo || 'N/A'}`;
+          const visitDate = visitWithRelations.visitDate ? new Date(visitWithRelations.visitDate).toLocaleDateString('en-IN') : 'N/A';
+          const visitTime = visitWithRelations.visitTime || 'N/A';
+          const driverName = visitWithRelations.driverName || updateData.driverName || 'Not Assigned';
+          const driverMobile = visitWithRelations.driverMobile || updateData.driverMobile || 'N/A';
+          const vehicleNo = visitWithRelations.cabNumber || updateData.cabNumber || 'N/A';
 
           // Send to assigned user/sales manager
           if (visitWithRelations.assignedToUser?.mobile) {

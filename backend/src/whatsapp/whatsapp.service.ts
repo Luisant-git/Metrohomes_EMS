@@ -84,13 +84,13 @@ export class WhatsappService {
               {
                 type: 'body',
                 parameters: [
-                  { type: 'text', text: customerName },
-                  { type: 'text', text: siteName },
-                  { type: 'text', text: visitDate },
-                  { type: 'text', text: visitTime },
-                  { type: 'text', text: driverName },
-                  { type: 'text', text: driverMobile },
-                  { type: 'text', text: vehicleNo },
+                  { type: 'text', text: this.sanitizeText(customerName) },
+                  { type: 'text', text: this.sanitizeText(siteName) },
+                  { type: 'text', text: this.sanitizeText(visitDate) },
+                  { type: 'text', text: this.sanitizeText(visitTime) },
+                  { type: 'text', text: this.sanitizeText(driverName, 'Not Assigned') },
+                  { type: 'text', text: this.sanitizeText(driverMobile) },
+                  { type: 'text', text: this.sanitizeText(vehicleNo) },
                 ],
               },
             ],
@@ -138,15 +138,15 @@ export class WhatsappService {
               {
                 type: 'body',
                 parameters: [
-                  { type: 'text', text: salesManagerName },
-                  { type: 'text', text: customerName },
-                  { type: 'text', text: customerMobile },
-                  { type: 'text', text: siteName },
-                  { type: 'text', text: visitDate },
-                  { type: 'text', text: visitTime },
-                  { type: 'text', text: driverName },
-                  { type: 'text', text: driverMobile },
-                  { type: 'text', text: vehicleNo },
+                  { type: 'text', text: this.sanitizeText(salesManagerName, 'Sales Manager') },
+                  { type: 'text', text: this.sanitizeText(customerName) },
+                  { type: 'text', text: this.sanitizeText(customerMobile) },
+                  { type: 'text', text: this.sanitizeText(siteName) },
+                  { type: 'text', text: this.sanitizeText(visitDate) },
+                  { type: 'text', text: this.sanitizeText(visitTime) },
+                  { type: 'text', text: this.sanitizeText(driverName, 'Not Assigned') },
+                  { type: 'text', text: this.sanitizeText(driverMobile) },
+                  { type: 'text', text: this.sanitizeText(vehicleNo) },
                 ],
               },
             ],
@@ -231,6 +231,12 @@ export class WhatsappService {
       },
     };
     return this.sendTemplate('payment_receipt', formattedNumber, payload);
+  }
+
+  private sanitizeText(val: any, defaultVal = 'N/A'): string {
+    if (val === null || val === undefined) return defaultVal;
+    const str = String(val).trim();
+    return str.length > 0 ? str : defaultVal;
   }
 
   async sendTemplate(templateName: string, formattedNumber: string, payload: any): Promise<any> {
