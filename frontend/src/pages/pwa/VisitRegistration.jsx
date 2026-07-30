@@ -498,7 +498,7 @@ export default function PWAVisitRegistration() {
                   <div>
                     <div className="font-bold text-gray-800 text-sm">{selectedProject.name}</div>
                     <div className="text-xs text-gray-400">{selectedProject.location}</div>
-                    <div className="text-xs text-blue-600 font-semibold mt-0.5">{selectedProject.availablePlots} available · ₹{Number(selectedProject.pricePerSqft).toLocaleString("en-IN")}/sqft</div>
+                    <div className="text-xs text-blue-600 font-semibold mt-0.5">{selectedProject.availablePlots} available </div>
                   </div>
                 </div>
               )}

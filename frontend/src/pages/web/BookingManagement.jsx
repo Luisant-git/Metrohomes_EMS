@@ -3,7 +3,7 @@ import { useData } from "../../context/DataContext.jsx";
 import DataTable from "../../components/DataTable.jsx";
 import Modal from "../../components/Modal.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
-import { BookOpen, Eye, Plus, IndianRupee, FileText, MessageSquare, CheckCircle, Bell, Home, Building2, Phone, SquarePen, AlertCircle, Printer } from "lucide-react";
+import { BookOpen, Eye, Plus, IndianRupee, FileText, MessageSquare, CheckCircle, Bell, Home, Building2, Phone, SquarePen, AlertCircle, Download, MapPin } from "lucide-react";
 import { toast } from "react-toastify";
 import { siteVisit } from "../../api/siteVisit.js";
 import { booking as bookingApi } from "../../api/booking.js";
@@ -149,31 +149,23 @@ export default function BookingManagement() {
         projectId: Number(form.projectId),
         siteId: Number(form.siteId),
         bookingDate: form.bookingDate,
-        applicantName: form.applicantName,
-        relation: form.relation,
-        address: form.address,
-        pinCode: form.pinCode,
-        mobile: form.mobile,
-        email: form.email,
+        guardianName: form.guardianName || undefined,
         plotArea: Number(form.plotArea),
         pricePerSqft: Number(pricePerSqft),
         plotPrice: Number(plotPrice),
         paidAmount: Number(form.paidAmount),
         remainingAmount: Number(remaining),
         paymentMode: form.paymentMode,
-        bankName: form.bankName,
-        chequeNo: form.chequeNo,
-        chequeDate: form.chequeDate,
-        transferId: form.transferId,
+        bankName: form.bankName || undefined,
+        chequeNo: form.chequeNo || undefined,
+        chequeDate: form.chequeDate || undefined,
+        transferId: form.transferId || undefined,
         loanOrOwn: form.loanOrOwn,
         status: form.status,
         assignedTo: form.assignedTo ? Number(form.assignedTo) : undefined,
-        assignedToUserName: form.salesManagerName,
-        officeIdNo: form.officeIdNo,
-        notes: form.notes,
-        projectName: form.projectName,
-        projectNo: form.projectNo,
-        location: form.location,
+        assignedToUserName: form.salesManagerName || undefined,
+        officeIdNo: form.officeIdNo || undefined,
+        notes: form.notes || undefined,
       };
       const rawRes = await bookingApi.create(payload);
       const res = rawRes && rawRes.data ? rawRes.data : rawRes;
@@ -198,10 +190,12 @@ export default function BookingManagement() {
         type: 'booking',
         customerName: form.applicantName,
         siteName: form.projectName,
+        siteNo: form.siteNo,
         receipt: {
           ...newReceipt,
           customerName: form.applicantName,
           siteName: form.projectName,
+          siteNo: form.siteNo,
           projectNo: form.projectNo,
           status: form.status,
         }
@@ -352,7 +346,7 @@ export default function BookingManagement() {
             .header-text {
               flex-grow: 1;
               text-align: center;
-              margin-right: 85px; /* offset the logo to center text */
+              margin-right: 85px;
             }
             .company-name {
               font-family: 'Arial Black', Impact, sans-serif;
@@ -492,17 +486,20 @@ export default function BookingManagement() {
               margin-bottom: 2px;
               color: #1e293b;
             }
-            .btn-print {
+            .btn-pdf {
               display: block;
               margin: 15px auto 0 auto;
-              padding: 6px 20px;
+              padding: 8px 24px;
               background: #2563eb;
               color: white;
               border: none;
               border-radius: 5px;
               cursor: pointer;
-              font-size: 12px;
+              font-size: 13px;
               font-weight: bold;
+            }
+            .btn-pdf:hover {
+              background: #1d4ed8;
             }
             @media print {
               body {
@@ -630,12 +627,14 @@ export default function BookingManagement() {
 
             </div>
             
-           
+            <button class="btn-pdf no-print" onclick="window.print()">Download PDF</button>
           </div>
         </body>
         </html>
       `);
       printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => { try { printWindow.print(); } catch(e) {} }, 500);
     }
   };
 
@@ -702,6 +701,7 @@ export default function BookingManagement() {
           actions={(row) => (
             <>
               <button onClick={() => { setSelected(row); setModal("view"); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="View"><Eye size={15} /></button>
+              <button onClick={() => printInvoice(row)} className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg" title="Download PDF"><Download size={15} /></button>
               <button onClick={() => { setWhatsappRow(row); setWhatsappModalOpen(true); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="WhatsApp"><MessageSquare size={15} /></button>
             </>
           )}
@@ -750,6 +750,66 @@ export default function BookingManagement() {
                     </div>
                   </div>
                 )}
+
+                {customerVisits.length > 0 && (
+                  <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2">
+                      <Home size={16} />
+                      Site Visits ({customerVisits.length})
+                    </h4>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {customerVisits.map((visit, idx) => (
+                        <div key={visit.id || idx} className="bg-white rounded-lg p-3 border border-blue-100">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <div className="text-sm font-semibold text-gray-800">
+                                {visit.siteName || visit.site?.name || `Visit #${idx + 1}`}
+                              </div>
+                              <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                                <MapPin size={11} />
+                                {visit.projectName || visit.project?.name || 'N/A'}
+                              </div>
+                            </div>
+                            <StatusBadge status={visit.status || "Interested"} />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            {visit.visitDate && (
+                              <div>
+                                <span className="text-gray-500">Date:</span>
+                                <span className="ml-1 font-medium text-gray-700">
+                                  {new Date(visit.visitDate).toLocaleDateString("en-IN")}
+                                </span>
+                              </div>
+                            )}
+                            {visit.visitTime && (
+                              <div>
+                                <span className="text-gray-500">Time:</span>
+                                <span className="ml-1 font-medium text-gray-700">{visit.visitTime}</span>
+                              </div>
+                            )}
+                            {visit.assignedToUser?.name && (
+                              <div>
+                                <span className="text-gray-500">Sales Manager:</span>
+                                <span className="ml-1 font-medium text-gray-700">{visit.assignedToUser.name}</span>
+                              </div>
+                            )}
+                            {visit.persons && (
+                              <div>
+                                <span className="text-gray-500">Persons:</span>
+                                <span className="ml-1 font-medium text-gray-700">{visit.persons}</span>
+                              </div>
+                            )}
+                          </div>
+                          {visit.notes && (
+                            <div className="mt-2 text-xs text-gray-600 bg-gray-50 rounded p-2">
+                              <span className="font-medium">Notes:</span> {visit.notes}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -782,29 +842,69 @@ export default function BookingManagement() {
               <div className="space-y-4">
                 <div><label className="label">Project Name <span className="text-red-500 ml-1">*</span></label>
                   <select value={form.projectId} onChange={e => {
-                    const selectedProject = sites.find(s => s.id === +e.target.value);
-                    setForm(p => ({ ...p, projectId: e.target.value, siteId: "", projectName: selectedProject?.name || "", projectNo: selectedProject ? `PRJ-${String(selectedProject.id).padStart(3, '0')}` : "", pricePerSqft: selectedProject?.pricePerSqft || "", location: selectedProject?.location || "" }));
+                  const selectedProject = sites.find(s => s.id === +e.target.value);
+                    setForm(p => ({ ...p, projectId: e.target.value, siteId: "", siteNo: "", projectName: selectedProject?.name || "", projectNo: selectedProject ? `PRJ-${String(selectedProject.id).padStart(3, '0')}` : "", pricePerSqft: selectedProject?.pricePerSqft || "", location: selectedProject?.location || "" }));
                   }} className="input-field">
                     <option value="">Select project…</option>
                     {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
-                <div><label className="label">Plot No. <span className="text-red-500 ml-1">*</span></label>
+                <div><label className="label">Site No. <span className="text-red-500 ml-1">*</span></label>
                   <select value={form.siteId} onChange={e => {
                     const selectedProject = sites.find(s => s.id === +form.projectId);
                     const selectedPlot = selectedProject?.plots?.find(p => p.id === +e.target.value);
                     const pricePerSqft = selectedPlot?.pricePerSqft || selectedProject?.pricePerSqft || 5000;
                     const area = selectedPlot?.totalSqft || "";
-                    setForm(p => ({ ...p, siteId: e.target.value, pricePerSqft, plotArea: area, plotPrice: area ? area * pricePerSqft : "" }));
+                    const siteNo = selectedPlot?.siteNo || "";
+                    setForm(p => ({ ...p, siteId: e.target.value, siteNo, pricePerSqft, plotArea: area, plotPrice: area ? area * pricePerSqft : "" }));
                   }} className="input-field" disabled={!form.projectId}>
-                    <option value="">Select plot…</option>
-                    {sites.find(s => s.id === +form.projectId)?.plots?.filter(p => p.status === 'Available').map(p => <option key={p.id} value={p.id}>{p.siteNo} {p.totalSqft ? `(${p.totalSqft} sqft)` : ''}</option>)}
+                    <option value="">Select site…</option>
+                    {sites.find(s => s.id === +form.projectId)?.plots?.filter(p => p.status === 'Active').map(p => <option key={p.id} value={p.id}>{p.siteNo} {p.totalSqft ? `(${p.totalSqft} sqft)` : ''}</option>)}
                   </select>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div><label className="label">Project No.</label><input value={form.projectNo} readOnly className="input-field bg-white border-amber-200" placeholder="Auto-generated" /></div>
-                  <div><label className="label">Price per sq.ft (₹)</label><input value={form.pricePerSqft} readOnly className="input-field bg-white border-amber-200" placeholder="Fetched from project/plot" /></div>
-                </div>
+                {form.siteId && (() => {
+                  const selectedProject = sites.find(s => s.id === +form.projectId);
+                  const selectedPlot = selectedProject?.plots?.find(p => p.id === +form.siteId);
+                  return selectedPlot ? (
+                    <div className="bg-white rounded-xl border border-amber-200 overflow-hidden">
+                      <div className="px-4 py-2 bg-amber-50 border-b border-amber-200">
+                        <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider">Selected Site Details</h4>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-gray-50">
+                              <th className="text-left px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase">Site No</th>
+                              <th className="text-left px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase">Facing</th>
+                              <th className="text-left px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase">East-West</th>
+                              <th className="text-left px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase">North-South</th>
+                              <th className="text-left px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase">Total Sqft</th>
+                              <th className="text-left px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase">Price/sqft</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="border-t border-gray-100">
+                              <td className="px-3 py-2 font-bold text-gray-800">{selectedPlot.siteNo}</td>
+                              <td className="px-3 py-2">
+                                <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                  selectedPlot.facing === "East" ? "bg-amber-50 text-amber-700" :
+                                  selectedPlot.facing === "West" ? "bg-indigo-50 text-indigo-700" :
+                                  selectedPlot.facing === "North" ? "bg-blue-50 text-blue-700" :
+                                  selectedPlot.facing === "South" ? "bg-rose-50 text-rose-700" :
+                                  "bg-gray-50 text-gray-600"
+                                }`}>{selectedPlot.facing}</span>
+                              </td>
+                              <td className="px-3 py-2 text-gray-700">{selectedPlot.eastWest ? `${selectedPlot.eastWest} ft` : '-'}</td>
+                              <td className="px-3 py-2 text-gray-700">{selectedPlot.northSouth ? `${selectedPlot.northSouth} ft` : '-'}</td>
+                              <td className="px-3 py-2 font-medium text-gray-800">{Number(selectedPlot.totalSqft).toLocaleString("en-IN")}</td>
+                              <td className="px-3 py-2 font-medium text-gray-800">₹{Number(selectedPlot.pricePerSqft).toLocaleString("en-IN")}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div><label className="label">Plot Area (sqft) *</label><input type="number" value={form.plotArea} onChange={e => { const area = e.target.value; setForm(p => ({ ...p, plotArea: area, plotPrice: area ? area * (+p.pricePerSqft || 5000) : "" })); }} className="input-field" placeholder="1200" /></div>
                   <div><label className="label">Plot Price (₹) *</label><input type="number" value={form.plotPrice} readOnly className="input-field bg-white border-amber-200 font-medium text-amber-700" placeholder="Auto-calculated" /></div>
@@ -885,6 +985,7 @@ export default function BookingManagement() {
               <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-gray-500">Customer</span><span className="font-medium">{form.applicantName || foundCustomer?.name}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Project</span><span className="font-medium">{form.projectName}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Site No.</span><span className="font-medium">{form.siteNo || 'N/A'}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Plot Price</span><span className="font-medium">₹{Number(form.plotPrice || 0).toLocaleString("en-IN")}</span></div>
                 <div className="flex justify-between border-t border-gray-200 pt-2"><span className="text-gray-500">Previous Paid</span><span className="font-medium text-gray-600">₹0</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Today's Payment</span><span className="font-medium text-blue-600">₹{Number(form.paidAmount || 0).toLocaleString("en-IN")}</span></div>
@@ -1048,6 +1149,7 @@ export default function BookingManagement() {
             <div className="bg-gray-50 rounded-xl p-4 text-left text-sm space-y-1.5 border border-gray-100">
               <div className="flex justify-between"><span className="text-gray-500">Receipt No:</span><span className="font-medium text-gray-800">{successData.receipt?.receiptNo || '—'}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Date:</span><span className="font-medium text-gray-800">{successData.receipt?.paymentDate || '—'}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Site No.:</span><span className="font-medium text-gray-800">{successData.siteNo || successData.receipt?.siteNo || '—'}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Amount Paid:</span><span className="font-bold text-green-600">₹{Number(successData.receipt?.currentPayment || successData.receipt?.amount || 0).toLocaleString("en-IN")}</span></div>
               <div className="flex justify-between border-t border-gray-200 pt-1.5"><span className="text-gray-500">Remaining Balance:</span><span className="font-bold text-red-500">₹{Number(successData.receipt?.balance || 0).toLocaleString("en-IN")}</span></div>
             </div>
