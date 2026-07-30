@@ -254,6 +254,10 @@ export default function CustomerRegistration() {
     if (step === 1) {
       const isValid = validateStep1();
       if (!isValid) return;
+      if (!otpVerified) {
+        toast.error("Please verify OTP before proceeding to the next step");
+        return;
+      }
     }
     if (step === 2) {
       const isValid = validateStep2();

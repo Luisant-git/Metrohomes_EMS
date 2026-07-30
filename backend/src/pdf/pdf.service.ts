@@ -142,7 +142,7 @@ export class PdfService {
         const logoImg = this.loadLogo(doc);
         this.drawWatermark(doc, pageWidth, pageHeight, logoImg);
 
-        const logoBlockSize = 56;
+        const logoBlockSize = 75;
         const logoBlockX = margin + 12;
         const logoBlockY = margin + 14;
         if (logoImg) {
@@ -303,7 +303,7 @@ export class PdfService {
         const logoImg = this.loadLogo(doc);
         this.drawWatermark(doc, pageWidth, pageHeight, logoImg);
 
-        const logoBlockSize = 56;
+        const logoBlockSize = 75;
         const logoBlockX = margin + 12;
         const logoBlockY = margin + 14;
         if (logoImg) {

@@ -275,8 +275,12 @@ export default function PWAVisitRegistration() {
 
   const handleNextStep = () => {
     setErrors({});
-    if (step === 1 && !validateStep1()) {
-      return;
+    if (step === 1) {
+      if (!validateStep1()) return;
+      if (!otpVerified) {
+        toast.error("Please verify OTP before proceeding to the next step");
+        return;
+      }
     }
     if (step === 2 && !validateStep2()) {
       return;

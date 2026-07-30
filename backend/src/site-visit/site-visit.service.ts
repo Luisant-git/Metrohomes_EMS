@@ -115,11 +115,18 @@ export class SiteVisitService {
     if (data.pickupLocation !== undefined) updateData.pickupLocation = data.pickupLocation;
     if (data.purchaseMode !== undefined) updateData.purchaseMode = data.purchaseMode;
     if (data.notes !== undefined) updateData.notes = data.notes;
-    if (data.status !== undefined) updateData.status = data.status;
     if (data.assignedTo !== undefined) updateData.assignedTo = data.assignedTo;
     if (data.driverName !== undefined) updateData.driverName = data.driverName;
     if (data.driverMobile !== undefined) updateData.driverMobile = data.driverMobile;
     if (data.cabNumber !== undefined) updateData.cabNumber = data.cabNumber;
+
+    // Auto-set status to "Visit Scheduled" when driver details are provided
+    const hasDriverDetails = data.driverName !== undefined || data.driverMobile !== undefined || data.cabNumber !== undefined;
+    if (hasDriverDetails && (data.driverName || data.driverMobile || data.cabNumber)) {
+      updateData.status = 'Visit Scheduled';
+    } else if (data.status !== undefined) {
+      updateData.status = data.status;
+    }
 
     const updated = await this.prisma.siteVisit.update({
       where: { id },
@@ -132,7 +139,7 @@ export class SiteVisitService {
       },
     });
 
-    // Send WhatsApp notifications if status is updated to "Visit Scheduled" and driver details are provided
+    // Send WhatsApp notifications if status is "Visit Scheduled" and driver details are provided
     if (updateData.status === 'Visit Scheduled' && (updateData.driverName || updateData.driverMobile || updateData.cabNumber)) {
       try {
         // Fetch complete visit data with relations for notifications
