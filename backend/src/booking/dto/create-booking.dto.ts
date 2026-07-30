@@ -1,5 +1,5 @@
 // src/booking/dto/create-booking.dto.ts
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { IsString, IsNotEmpty, IsOptional, IsInt, IsNumber } from 'class-validator';
 
 export enum PaymentMode {
@@ -28,7 +28,8 @@ export class CreateBookingDto {
 
   @IsString()
   @IsOptional()
-  guardianName?: string;
+  @Transform(({ value }) => (value === '' || value === undefined ? null : value))
+  guardianName?: string | null;
 
   @IsNumber()
   plotArea: number;

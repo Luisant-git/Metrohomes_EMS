@@ -70,10 +70,19 @@ export class PdfService {
   }
 
   private drawCheckbox(doc: any, x: number, y: number, size: number, checked: boolean, label: string) {
-    doc.rect(x, y, size, size).stroke('#1e3a8a');
+    doc.rect(x, y, size, size).lineWidth(1).stroke('#1e3a8a');
     if (checked) {
       doc.fillColor('#1e3a8a').rect(x, y, size, size).fill();
-      doc.fillColor('#ffffff').fontSize(size * 0.7).text('✓', x + 2, y + 1, { width: size, align: 'center' });
+      // Draw vector tick mark
+      const pad = size * 0.18;
+      doc.save()
+        .moveTo(x + pad, y + size * 0.52)
+        .lineTo(x + size * 0.42, y + size - pad)
+        .lineTo(x + size - pad, y + pad)
+        .lineWidth(1.5)
+        .strokeColor('#ffffff')
+        .stroke()
+        .restore();
     }
     doc.fillColor('#1e293b').fontSize(9).font('Helvetica').text(label, x + size + 5, y + 1);
   }
@@ -233,8 +242,8 @@ export class PdfService {
 
         doc.roundedRect(margin + 12, yPos, 215, 32, 6).lineWidth(2).stroke('#0f172a');
         doc.fillColor('#f8fafc').roundedRect(margin + 13, yPos + 1, 213, 30, 5).fill();
-        doc.fillColor('#1e3a8a').fontSize(20).font('Helvetica-Bold').text('₹', margin + 22, yPos + 5);
-        doc.fillColor('#000').fontSize(15).font('Courier-Bold').text(`${data.paidAmount.toLocaleString('en-IN')}/-`, margin + 44, yPos + 8);
+        doc.fillColor('#1e3a8a').fontSize(13).font('Helvetica-Bold').text('Rs.', margin + 20, yPos + 10);
+        doc.fillColor('#000').fontSize(15).font('Courier-Bold').text(`${data.paidAmount.toLocaleString('en-IN')}/-`, margin + 46, yPos + 8);
 
         doc.fillColor('#1e293b').fontSize(12).font('Helvetica-Bold').text('For Metro Homes', signX, yPos + 2, { width: 165, align: 'center' });
         yPos += 22;
@@ -394,8 +403,8 @@ export class PdfService {
 
         doc.roundedRect(margin + 12, yPos, 215, 32, 6).lineWidth(2).stroke('#0f172a');
         doc.fillColor('#f8fafc').roundedRect(margin + 13, yPos + 1, 213, 30, 5).fill();
-        doc.fillColor('#1e3a8a').fontSize(20).font('Helvetica-Bold').text('₹', margin + 22, yPos + 5);
-        doc.fillColor('#000').fontSize(15).font('Courier-Bold').text(`${data.currentPayment.toLocaleString('en-IN')}/-`, margin + 44, yPos + 8);
+        doc.fillColor('#1e3a8a').fontSize(13).font('Helvetica-Bold').text('Rs.', margin + 20, yPos + 10);
+        doc.fillColor('#000').fontSize(15).font('Courier-Bold').text(`${data.currentPayment.toLocaleString('en-IN')}/-`, margin + 46, yPos + 8);
 
         doc.fillColor('#1e293b').fontSize(12).font('Helvetica-Bold').text('For Metro Homes', signX, yPos + 2, { width: 165, align: 'center' });
         yPos += 22;

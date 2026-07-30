@@ -462,6 +462,84 @@ export class BookingService {
     }
   }
 
+  async downloadReceiptPdf(receiptId: number): Promise<string> {
+    const receipt = await this.prisma.paymentReceipt.findUnique({
+      where: { id: receiptId },
+      include: {
+        booking: {
+          include: {
+            customer: { select: { name: true, phone: true } },
+            project: { select: { name: true } },
+            site: { select: { siteNo: true } },
+          },
+        },
+      },
+    });
+
+    if (!receipt) {
+      throw new NotFoundException('Receipt not found');
+    }
+
+    const booking = receipt.booking;
+    const customer = booking.customer;
+    const projectName = booking.project?.name || '';
+    const siteName = `${projectName} - Site ${booking.site?.siteNo || ''}`;
+
+    const isFirstPayment = receipt.previousPaid === 0;
+    const isInitial = isFirstPayment;
+    const isPart = receipt.previousPaid > 0 && receipt.balance > 0;
+    const isFull = receipt.balance <= 0;
+
+    let pdfFilename: string;
+
+    if (isFirstPayment) {
+      pdfFilename = await this.pdfService.generateBookingReceipt({
+        receiptNo: receipt.receiptNo,
+        bookingDate: receipt.paymentDate,
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        siteName,
+        projectName,
+        plotArea: booking.plotArea,
+        pricePerSqft: booking.pricePerSqft,
+        plotPrice: booking.plotPrice,
+        paidAmount: receipt.totalPaid,
+        remainingAmount: receipt.balance,
+        paymentMode: receipt.paymentMode,
+        bankName: receipt.bankName || undefined,
+        chequeNo: receipt.chequeNo || undefined,
+        chequeDate: receipt.chequeDate || undefined,
+        transferId: receipt.transferId || undefined,
+        isInitial,
+        isPart,
+        isFull,
+      });
+    } else {
+      pdfFilename = await this.pdfService.generatePaymentReceipt({
+        receiptNo: receipt.receiptNo,
+        paymentDate: receipt.paymentDate,
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        siteName,
+        projectName,
+        previousPaid: receipt.previousPaid,
+        currentPayment: receipt.currentPayment,
+        totalPaid: receipt.totalPaid,
+        balance: receipt.balance,
+        paymentMode: receipt.paymentMode,
+        bankName: receipt.bankName || undefined,
+        chequeNo: receipt.chequeNo || undefined,
+        chequeDate: receipt.chequeDate || undefined,
+        transferId: receipt.transferId || undefined,
+        isInitial,
+        isPart,
+        isFull,
+      });
+    }
+
+    return this.pdfService.getPdfPath(pdfFilename);
+  }
+
   async debugWhatsApp(to: string, templateName: 'plot_booking_receipt_v1' | 'payment_receipt') {
     if (templateName === 'plot_booking_receipt_v1') {
       return this.whatsappService.sendPlotBookingReceipt(to, 'Test User', 'http://localhost:3000/uploads/test.pdf');
@@ -561,9 +639,11 @@ export class BookingService {
   private formatBooking(b: any) {
     const projectName = b.project?.name || '';
     const siteNo = b.site?.siteNo || '';
+    const projectNo = b.projectId ? `PRJ-${String(b.projectId).padStart(3, '0')}` : '';
     return {
       ...b,
       projectName,
+      projectNo,
       siteName: siteNo ? `${projectName} - Site ${siteNo}` : projectName,
       siteNo,
       customerName: b.customer?.name || '',

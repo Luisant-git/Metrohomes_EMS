@@ -108,4 +108,17 @@ export const booking = {
     });
     return handleResponse(response);
   },
+  async downloadReceiptPdf(receiptId) {
+    const response = await fetch(`${VITE_API_URL}/bookings/receipts/${receiptId}/pdf`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'Failed to download PDF');
+    }
+    return response.blob();
+  },
 };

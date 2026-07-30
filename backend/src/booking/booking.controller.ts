@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, Query, HttpCode, HttpStatus, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { BookingService } from './booking.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -50,6 +50,18 @@ export class BookingController {
   async remove(@Param('id') id: number) {
     const result = await this.bookingService.remove(id);
     return result;
+  }
+
+  @Get('receipts/:id/pdf')
+  @ApiOperation({ summary: 'Download receipt as PDF' })
+  async downloadReceiptPdf(@Param('id') id: number, @Res() res: any) {
+    const filePath = await this.bookingService.downloadReceiptPdf(Number(id));
+    const filename = filePath.split(/[\\/]/).pop() || 'receipt.pdf';
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    const { createReadStream } = await import('fs');
+    const stream = createReadStream(filePath);
+    stream.pipe(res);
   }
 
   @Post('receipts')

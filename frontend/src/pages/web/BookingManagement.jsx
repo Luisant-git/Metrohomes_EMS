@@ -33,6 +33,22 @@ export default function BookingManagement() {
   const [whatsappRow, setWhatsappRow] = useState(null);
   const [whatsappModalOpen, setWhatsappModalOpen] = useState(false);
 
+  const handleDownloadPdf = async (row) => {
+    try {
+      const blob = await bookingApi.downloadReceiptPdf(row.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${row.receiptNo || 'receipt'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error(err.message || 'Failed to download PDF');
+    }
+  };
+
   const readyCustomers = customers.filter(c => c.status === "Ready for Booking");
   const totalRevenue = bookings.reduce((a, b) => a + (b.paidAmount || 0), 0);
   const totalPending = bookings.reduce((a, b) => a + (b.remainingAmount || 0), 0);
@@ -50,6 +66,7 @@ export default function BookingManagement() {
             mobile: booking.customer?.phone || receipt.mobile || '',
             projectNo: booking.projectNo,
             status: booking.status,
+            notes: booking.notes || receipt.notes || '',
           });
         });
       }
@@ -131,6 +148,7 @@ export default function BookingManagement() {
     } else {
       setFoundCustomer(null);
       setCustomerVisits([]);
+      setForm(p => ({ ...p, customerId: "" }));
     }
   };
 
@@ -149,7 +167,7 @@ export default function BookingManagement() {
         projectId: Number(form.projectId),
         siteId: Number(form.siteId),
         bookingDate: form.bookingDate,
-        guardianName: form.guardianName || undefined,
+        guardianName: form.guardianName || null,
         plotArea: Number(form.plotArea),
         pricePerSqft: Number(pricePerSqft),
         plotPrice: Number(plotPrice),
@@ -231,10 +249,12 @@ export default function BookingManagement() {
         type: 'payment',
         customerName: foundCustomer.name || foundCustomer.customerName,
         siteName: foundCustomer.existingBooking.projectName || foundCustomer.existingBooking.siteName,
+        siteNo: foundCustomer.existingBooking.site?.siteNo || foundCustomer.existingBooking.siteNo || '',
         receipt: {
           ...res,
           customerName: foundCustomer.name || foundCustomer.customerName,
           siteName: foundCustomer.existingBooking.projectName || foundCustomer.existingBooking.siteName,
+          siteNo: foundCustomer.existingBooking.site?.siteNo || foundCustomer.existingBooking.siteNo || '',
           projectNo: foundCustomer.existingBooking.projectNo,
           status: form.status,
         }
@@ -664,6 +684,7 @@ export default function BookingManagement() {
           setForm({ ...empty, bookingDate: today });
           setFoundCustomer(null);
           setMobileSearch("");
+          setCustomerVisits([]);
           setModal("add");
         }} className="btn-primary"><Plus size={16} />New Booking</button>
       </div>
@@ -701,7 +722,7 @@ export default function BookingManagement() {
           actions={(row) => (
             <>
               <button onClick={() => { setSelected(row); setModal("view"); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="View"><Eye size={15} /></button>
-              <button onClick={() => printInvoice(row)} className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg" title="Download PDF"><Download size={15} /></button>
+              <button onClick={() => handleDownloadPdf(row)} className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg" title="Download PDF"><Download size={15} /></button>
               <button onClick={() => { setWhatsappRow(row); setWhatsappModalOpen(true); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="WhatsApp"><MessageSquare size={15} /></button>
             </>
           )}
@@ -744,6 +765,9 @@ export default function BookingManagement() {
                     <h4 className="text-sm font-bold text-amber-900 mb-2">Previous Booking Details</h4>
                     <div className="space-y-1.5 text-sm">
                       <div className="flex justify-between"><span className="text-gray-600">Project</span><span className="font-medium text-gray-800">{foundCustomer.existingBooking.projectName || foundCustomer.existingBooking.siteName}</span></div>
+                      {foundCustomer.existingBooking.siteNo && (
+                        <div className="flex justify-between"><span className="text-gray-600">Site No.</span><span className="font-medium text-gray-800">{foundCustomer.existingBooking.siteNo}</span></div>
+                      )}
                       <div className="flex justify-between"><span className="text-gray-600">Plot Price</span><span className="font-medium text-gray-800">₹{Number(foundCustomer.existingBooking.plotPrice).toLocaleString("en-IN")}</span></div>
                       <div className="flex justify-between border-t border-amber-200 pt-1.5"><span className="text-gray-600 font-medium">Already Paid</span><span className="font-bold text-green-600">₹{Number(foundCustomer.existingBooking.paidAmount || 0).toLocaleString("en-IN")}</span></div>
                       <div className="flex justify-between"><span className="text-red-600 font-medium">Remaining Balance</span><span className="font-bold text-red-600">₹{Number(foundCustomer.existingBooking.remainingAmount || 0).toLocaleString("en-IN")}</span></div>
@@ -751,7 +775,7 @@ export default function BookingManagement() {
                   </div>
                 )}
 
-                {customerVisits.length > 0 && (
+                {customerVisits.length > 0 && !foundCustomer?.existingBooking && (
                   <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <h4 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2">
                       <Home size={16} />
@@ -831,12 +855,15 @@ export default function BookingManagement() {
           <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
             <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2"><div className="w-6 h-6 rounded-lg bg-amber-600 flex items-center justify-center"><Home size={14} className="text-white" /></div>Project Details</h3>
             {foundCustomer?.existingBooking ? (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white rounded-lg p-3 border border-amber-200"><div className="text-xs text-gray-500 mb-1">Project Name</div><div className="text-sm font-medium text-gray-800">{foundCustomer.existingBooking.projectName || foundCustomer.existingBooking.siteName || 'N/A'}</div></div>
-                <div className="bg-white rounded-lg p-3 border border-amber-200"><div className="text-xs text-gray-500 mb-1">Project No.</div><div className="text-sm font-medium text-gray-800">{foundCustomer.existingBooking.projectNo || 'N/A'}</div></div>
-                <div className="bg-white rounded-lg p-3 border border-amber-200"><div className="text-xs text-gray-500 mb-1">Plot Area</div><div className="text-sm font-medium text-gray-800">{foundCustomer.existingBooking.plotArea ? `${foundCustomer.existingBooking.plotArea} sq.yd.` : 'N/A'}</div></div>
-                <div className="bg-white rounded-lg p-3 border border-amber-200"><div className="text-xs text-gray-500 mb-1">Price per sq.ft</div><div className="text-sm font-medium text-gray-800">₹{Number(foundCustomer.existingBooking.pricePerSqft || 0).toLocaleString("en-IN")}</div></div>
-                <div className="col-span-2 bg-white rounded-lg p-3 border border-amber-200"><div className="text-xs text-gray-500 mb-1">Total Plot Price</div><div className="text-sm font-bold text-amber-700">₹{Number(foundCustomer.existingBooking.plotPrice || 0).toLocaleString("en-IN")}</div></div>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white rounded-lg p-3 border border-amber-200"><div className="text-xs text-gray-500 mb-1">Project Name</div><div className="text-sm font-medium text-gray-800">{foundCustomer.existingBooking.projectName || 'N/A'}</div></div>
+                  <div className="bg-white rounded-lg p-3 border border-amber-200"><div className="text-xs text-gray-500 mb-1">Project No.</div><div className="text-sm font-medium text-gray-800">{foundCustomer.existingBooking.projectNo || (foundCustomer.existingBooking.projectId ? `PRJ-${String(foundCustomer.existingBooking.projectId).padStart(3, '0')}` : 'N/A')}</div></div>
+                  <div className="bg-white rounded-lg p-3 border border-amber-200"><div className="text-xs text-gray-500 mb-1">Site No.</div><div className="text-sm font-bold text-blue-700">{foundCustomer.existingBooking.siteNo || 'N/A'}</div></div>
+                  <div className="bg-white rounded-lg p-3 border border-amber-200"><div className="text-xs text-gray-500 mb-1">Plot Area</div><div className="text-sm font-medium text-gray-800">{foundCustomer.existingBooking.plotArea ? `${foundCustomer.existingBooking.plotArea} sq.ft` : 'N/A'}</div></div>
+                  <div className="bg-white rounded-lg p-3 border border-amber-200"><div className="text-xs text-gray-500 mb-1">Price per sq.ft</div><div className="text-sm font-medium text-gray-800">₹{Number(foundCustomer.existingBooking.pricePerSqft || 0).toLocaleString("en-IN")}</div></div>
+                  <div className="bg-white rounded-lg p-3 border border-amber-200"><div className="text-xs text-gray-500 mb-1">Total Plot Price</div><div className="text-sm font-bold text-amber-700">₹{Number(foundCustomer.existingBooking.plotPrice || 0).toLocaleString("en-IN")}</div></div>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
@@ -964,8 +991,8 @@ export default function BookingManagement() {
         </div>
         <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
           <button onClick={() => setConfirmOpen(true)} className="btn-primary flex-1 justify-center py-2.5">{foundCustomer?.existingBooking ? <><IndianRupee size={16} /> Pay Now</> : <><BookOpen size={16} />Register Booking</>}</button>
-          {!foundCustomer?.existingBooking && (<button onClick={() => { setForm(empty); setFoundCustomer(null); setMobileSearch(""); }} className="btn-secondary flex-1 justify-center py-2.5"><span className="text-orange-600 font-medium">Clear</span></button>)}
-          <button onClick={() => setModal(null)} className="btn-secondary flex-1 justify-center py-2.5">Cancel</button>
+          {!foundCustomer?.existingBooking && (<button onClick={() => { setForm(empty); setFoundCustomer(null); setMobileSearch(""); setCustomerVisits([]); }} className="btn-secondary flex-1 justify-center py-2.5"><span className="text-orange-600 font-medium">Clear</span></button>)}
+          <button onClick={() => { setModal(null); setCustomerVisits([]); }} className="btn-secondary flex-1 justify-center py-2.5">Cancel</button>
         </div>
 
         <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)} title={foundCustomer?.existingBooking ? "Confirm Payment" : "Confirm Booking"} size="sm">
@@ -1089,6 +1116,22 @@ export default function BookingManagement() {
               <span className={`font-semibold ${Number(selected.balance) > 0 ? 'text-red-500' : 'text-green-500'}`}>₹{Number(selected.balance).toLocaleString("en-IN")}</span>
             </div>
 
+            {/* Payment Type / Status */}
+            {selected.status && (
+              <div className="text-sm border-b border-gray-100 pb-3 mb-3 flex justify-between">
+                <span className="text-gray-500">Payment Type</span>
+                <span className="font-medium text-gray-800">{selected.status}</span>
+              </div>
+            )}
+
+            {/* Notes */}
+            {selected.notes && (
+              <div className="text-sm border-b border-gray-100 pb-3 mb-3">
+                <div className="text-gray-500 mb-1">Notes</div>
+                <div className="text-gray-800 bg-gray-50 rounded-lg p-2.5 text-xs leading-relaxed">{selected.notes}</div>
+              </div>
+            )}
+
             {/* Amount in Words */}
             <p className="text-xs text-gray-400 italic text-center mt-2">
               Rupees {numberToWords(Number(selected.currentPayment))} Only
@@ -1149,8 +1192,10 @@ export default function BookingManagement() {
             <div className="bg-gray-50 rounded-xl p-4 text-left text-sm space-y-1.5 border border-gray-100">
               <div className="flex justify-between"><span className="text-gray-500">Receipt No:</span><span className="font-medium text-gray-800">{successData.receipt?.receiptNo || '—'}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Date:</span><span className="font-medium text-gray-800">{successData.receipt?.paymentDate || '—'}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Project:</span><span className="font-medium text-gray-800">{successData.siteName || successData.receipt?.siteName || '—'}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Site No.:</span><span className="font-medium text-gray-800">{successData.siteNo || successData.receipt?.siteNo || '—'}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Amount Paid:</span><span className="font-bold text-green-600">₹{Number(successData.receipt?.currentPayment || successData.receipt?.amount || 0).toLocaleString("en-IN")}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Total Paid:</span><span className="font-bold text-blue-600">₹{Number(successData.receipt?.totalPaid || successData.receipt?.currentPayment || 0).toLocaleString("en-IN")}</span></div>
               <div className="flex justify-between border-t border-gray-200 pt-1.5"><span className="text-gray-500">Remaining Balance:</span><span className="font-bold text-red-500">₹{Number(successData.receipt?.balance || 0).toLocaleString("en-IN")}</span></div>
             </div>
 
