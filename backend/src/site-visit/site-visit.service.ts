@@ -2,10 +2,11 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSiteVisitDto } from './dto/create-site-visit.dto';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 
 @Injectable()
 export class SiteVisitService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly whatsappService: WhatsappService) {}
 
   async create(dto: CreateSiteVisitDto) {
     // Verify customer exists
@@ -127,9 +128,66 @@ export class SiteVisitService {
         customer: { select: { id: true, name: true, phone: true } },
         project: { select: { name: true, location: true } },
         site: { select: { siteNo: true, facing: true, totalSqft: true } },
-        assignedToUser: { select: { name: true, employeeCode: true } },
+        assignedToUser: { select: { name: true, employeeCode: true, mobile: true } },
       },
     });
+
+    // Send WhatsApp notifications if status is updated to "Visit Scheduled" and driver details are provided
+    if (updateData.status === 'Visit Scheduled' && (updateData.driverName || updateData.driverMobile || updateData.cabNumber)) {
+      try {
+        // Fetch complete visit data with relations for notifications
+        const visitWithRelations = await this.prisma.siteVisit.findUnique({
+          where: { id },
+          include: {
+            customer: { select: { id: true, name: true, phone: true, email: true } },
+            project: { select: { name: true, location: true } },
+            site: { select: { siteNo: true, facing: true, totalSqft: true } },
+            assignedToUser: { select: { name: true, employeeCode: true, mobile: true } },
+          },
+        });
+
+        if (visitWithRelations) {
+          const siteName = `${visitWithRelations.project?.name || ''} - Site ${visitWithRelations.site?.siteNo || ''}`;
+          const visitDate = visitWithRelations.visitDate ? new Date(visitWithRelations.visitDate).toLocaleDateString('en-IN') : '';
+          const visitTime = visitWithRelations.visitTime || '';
+          const driverName = updateData.driverName || '';
+          const driverMobile = updateData.driverMobile || '';
+          const vehicleNo = updateData.cabNumber || '';
+
+          // Send to assigned user/sales manager
+          if (visitWithRelations.assignedToUser?.mobile) {
+            await this.whatsappService.sendCustomerSiteVisitConfirmation(
+              visitWithRelations.assignedToUser.mobile,
+              visitWithRelations.assignedToUser?.name || 'Sales Manager',
+              visitWithRelations.customer?.name || '',
+              visitWithRelations.customer?.phone || '',
+              siteName,
+              visitDate,
+              visitTime,
+              driverName,
+              driverMobile,
+              vehicleNo,
+            );
+          }
+
+          // Send to customer
+          if (visitWithRelations.customer?.phone) {
+            await this.whatsappService.sendSiteVisitScheduled(
+              visitWithRelations.customer.phone,
+              visitWithRelations.customer?.name || '',
+              siteName,
+              visitDate,
+              visitTime,
+              driverName,
+              driverMobile,
+              vehicleNo,
+            );
+          }
+        }
+      } catch (error) {
+        console.error('Failed to send WhatsApp notifications for site visit:', error);
+      }
+    }
 
     return this.formatVisit(updated);
   }

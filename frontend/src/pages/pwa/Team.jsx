@@ -8,6 +8,7 @@ const ITEMS_PER_PAGE = 10;
 
 const abbreviateRole = (role) => {
   const map = {
+    "Director": "DIR",
     "Sales Manager": "SM",
     "Branch Manager": "BM",
     "Regional Manager": "RM",
@@ -17,6 +18,12 @@ const abbreviateRole = (role) => {
 
 // All roles below the logged-in user in the hierarchy - shows what they can manage
 const SUB_ROLES = {
+  "Director": [
+    { role: "Regional Manager", icon: Building2, color: "text-blue-600", bg: "bg-blue-50", label: "RM Count" },
+    { role: "Branch Manager", icon: Users, color: "text-cyan-600", bg: "bg-cyan-50", label: "BM Count" },
+    { role: "BDM", icon: Users, color: "text-purple-600", bg: "bg-purple-50", label: "BDM Count" },
+    { role: "Sales Manager", icon: UserCheck, color: "text-green-600", bg: "bg-green-50", label: "SM Count" },
+  ],
   "Regional Manager": [
     { role: "Branch Manager", icon: Building2, color: "text-cyan-600", bg: "bg-cyan-50", label: "BM Count" },
     { role: "BDM", icon: Users, color: "text-purple-600", bg: "bg-purple-50", label: "BDM Count" },
@@ -33,6 +40,12 @@ const SUB_ROLES = {
 };
 
 const TEAM_CONFIG = {
+  "Director": {
+    role: "Regional Manager",
+    title: "My Team",
+    subtitle: "All team members under you",
+    cardLabel: "Regional Managers",
+  },
   "Regional Manager": {
     role: "Branch Manager",
     title: "My Team",

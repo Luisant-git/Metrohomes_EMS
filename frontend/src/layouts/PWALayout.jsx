@@ -3,6 +3,17 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { LayoutDashboard, Building2, Users, MapPin, User, LogOut, Bell, ChevronLeft, BarChart3 } from "lucide-react";
 import logo from "../assests/logo 1.png";
 
+const ROUTE_TITLES = {
+  "/": "Dashboard",
+  "/sites": "Sites",
+  "/customers": "Customers",
+  "/site-visits": "Site Visits",
+  "/visits": "Visits",
+  "/my-team": "My Team",
+  "/profile": "Profile",
+  "/customers/register": "Register Customer",
+};
+
 const ROLE_BOTTOM_NAV = {
   "Regional Manager": [
     { path: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -25,6 +36,13 @@ const ROLE_BOTTOM_NAV = {
     { path: "/customers", icon: Users, label: "Customers" },
     { path: "/profile", icon: User, label: "Profile" },
   ],
+  "Director": [
+    { path: "/", icon: LayoutDashboard, label: "Dashboard" },
+    { path: "/sites", icon: Building2, label: "Projects" },
+    { path: "/my-team", icon: Users, label: "My Team" },
+    { path: "/customers", icon: Users, label: "Customers" },
+    { path: "/profile", icon: User, label: "Profile" },
+  ],
   "Sales Manager": [
     { path: "/", icon: LayoutDashboard, label: "Home" },
     { path: "/sites", icon: Building2, label: "Projects" },
@@ -40,12 +58,7 @@ export default function PWALayout({ children }) {
   const location = useLocation();
 
   const isNested = ["/sites/", "/customers/register"].some(p => location.pathname.startsWith(p) && location.pathname !== p.slice(0, -1));
-  const pageTitle = {
-    "/": "Dashboard", "/sites": "Sites", "/customers": "Customers",
-    "/visits": "Site Visits", "/profile": "Profile",
-    "/customers/register": "Register Customer",
-  };
-  const title = pageTitle[location.pathname] || "Metrohomes";
+  const title = ROUTE_TITLES[location.pathname] || "Metrohomes";
   const subtitle = { "Admin": "Admin", "Director": "Director", "Regional Manager": "Reg. Manager", "Branch Manager": "Branch Manager", "BDM": "Business Dev. Manager", "Sales Manager": "Sales Manager" }[user?.role] || user?.role;
 
   return (
@@ -94,11 +107,12 @@ export default function PWALayout({ children }) {
         <div className="flex items-stretch">
           {(ROLE_BOTTOM_NAV[user?.role] || ROLE_BOTTOM_NAV["Sales Manager"]).map(item => {
             const active = location.pathname === item.path;
+            const IconComponent = item.icon;
             return (
               <button key={item.path} onClick={() => navigate(item.path)}
                 className={`flex-1 flex flex-col items-center justify-center py-3 gap-0.5 transition-all duration-200 ${active ? "text-blue-600" : "text-gray-400 hover:text-gray-600"}`}>
                 <div className={`p-1.5 rounded-xl transition-all ${active ? "bg-blue-50" : ""}`}>
-                  <item.icon size={active ? 22 : 20} strokeWidth={active ? 2.5 : 1.5} />
+                  <IconComponent size={active ? 22 : 20} strokeWidth={active ? 2.5 : 1.5} />
                 </div>
                 <span className={`text-xs font-medium ${active ? "text-blue-600" : ""}`}>{item.label}</span>
               </button>

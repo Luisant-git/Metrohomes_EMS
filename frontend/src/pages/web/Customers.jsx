@@ -10,6 +10,7 @@ import { Eye, SquarePen, Trash2, UserCheck, Phone, UserPlus, AlertTriangle, Sear
 import { toast } from "react-toastify";
 
 const STATUSES = ["Interested", "Visit Scheduled", "Visit Completed", "Booked", "Payment Done"];
+const DIRECTOR_STATUSES = ["Interested", "Visit Scheduled", "Visit Completed"];
 
 export default function WebCustomers() {
   const navigate = useNavigate();
@@ -110,6 +111,8 @@ export default function WebCustomers() {
     }
   };
 
+  const availableStatuses = user?.role === "Director" ? DIRECTOR_STATUSES : STATUSES;
+
   const columns = [
     { key: "customerName", label: "Customer", render: (v, row) => (
       <div>
@@ -133,7 +136,7 @@ export default function WebCustomers() {
 
       {/* Status filter chips */}
       <div className="flex flex-wrap gap-2">
-        {["All", ...STATUSES].map(s => (
+        {["All", ...availableStatuses].map(s => (
           <button key={s} onClick={() => setFilterStatus(s)}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${filterStatus === s ? "bg-blue-600 text-white shadow-sm" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
             {s} {s === "All" ? `(${siteVisits.length})` : `(${siteVisits.filter(v => v.status === s).length})`}
@@ -188,13 +191,19 @@ export default function WebCustomers() {
             <UserPlus size={16} /> New Registration
           </button>
         }
-        actions={(row) => (
-          <>
-            <button onClick={() => openView(row)} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="View"><Eye size={15} /></button>
-            <button onClick={() => openEdit(row)} className="p-1.5 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors" title="Edit"><SquarePen size={15} /></button>
-            <button onClick={() => setDeleteTarget(row)} className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Delete"><Trash2 size={15} /></button>
-          </>
-        )}
+        actions={(row) => {
+          const isDirector = user?.role === "Director";
+          const canDelete = !isDirector; // Director can edit but not delete
+          return (
+            <>
+              <button onClick={() => openView(row)} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="View"><Eye size={15} /></button>
+              <button onClick={() => openEdit(row)} className="p-1.5 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors" title="Edit"><SquarePen size={15} /></button>
+              {canDelete && (
+                <button onClick={() => setDeleteTarget(row)} className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Delete"><Trash2 size={15} /></button>
+              )}
+            </>
+          );
+        }}
       />
 
       {/* Delete Confirmation Modal */}
@@ -309,7 +318,7 @@ export default function WebCustomers() {
                 onChange={e => setSelected(p => ({ ...p, status: e.target.value }))}
                 className="input-field mt-2"
               >
-                {STATUSES.map(s => (
+                {availableStatuses.map(s => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>

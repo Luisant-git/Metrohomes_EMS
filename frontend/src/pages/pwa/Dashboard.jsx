@@ -71,6 +71,21 @@ export default function PWADashboard() {
         };
       }
 
+      case "Director": {
+        return {
+          teamTitle: null, teamList: null, teamEmpty: null, teamPath: null,
+          quickActions: [
+            { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
+            { label: "View Projects", icon: Building2, path: "/sites", color: "bg-purple-500" },
+            { label: "My Team", icon: Users, path: "/my-team", color: "bg-orange-500" },
+            { label: "My Customers", icon: UserCheck, path: "/customers", color: "bg-green-500" },
+            { label: "My Booking", icon: Award, path: "/customers?status=Booked", color: "bg-teal-500" },
+            { label: "Site Visit", icon: MapPin, path: "/site-visits", color: "bg-emerald-500" },
+          ],
+          myCustomers: [],
+        };
+      }
+
       default: {
         const myCustomers = customers.filter((c) => c.createdById === user?.id);
         return {

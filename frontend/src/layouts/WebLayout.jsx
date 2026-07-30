@@ -9,15 +9,15 @@ import {
 import logo from "../assests/logo 1.png";
 
 const NAV_ITEMS = [
-  { path: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["Admin", "Director"] },
-  { path: "/users", icon: Users, label: "User Management", roles: ["Admin", "Director"] },
-  { path: "/projects", icon: Building2, label: "Project Master", roles: ["Admin", "Director"] },
+  { path: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["Admin"] },
+  { path: "/users", icon: Users, label: "User Management", roles: ["Admin"] },
+  { path: "/projects", icon: Building2, label: "Project Master", roles: ["Admin"] },
   { path: "/customers", icon: UserCheck, label: "Site Visit", roles: ["Admin", "Director"] },
   { path: "/customer-registration", icon: UserPlus, label: "Site Visit Registration", roles: ["Admin", "Director"] },
-  { path: "/bookings", icon: BookOpen, label: "Booking Management", roles: ["Admin", "Director"] },
-  { path: "/sales-report", icon: BarChart3, label: "Booking Report", roles: ["Admin", "Director"] },
-  { path: "/achievers", icon: Trophy, label: "Achievers Report", roles: ["Admin", "Director"] },
-  { path: "/commission", icon: Coins, label: "Commission", roles: ["Admin", "Director"] },
+  { path: "/bookings", icon: BookOpen, label: "Booking Management", roles: ["Admin"] },
+  { path: "/sales-report", icon: BarChart3, label: "Booking Report", roles: ["Admin"] },
+  { path: "/achievers", icon: Trophy, label: "Achievers Report", roles: ["Admin"] },
+  { path: "/commission", icon: Coins, label: "Commission", roles: ["Admin"] },
   { path: "/profile", icon: User, label: "Profile", roles: ["Admin", "Director"] },
 ];
 

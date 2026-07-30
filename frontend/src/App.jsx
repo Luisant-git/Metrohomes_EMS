@@ -27,6 +27,7 @@ import PWASites from "./pages/pwa/Sites.jsx";
 import PWASiteDetail from "./pages/pwa/SiteDetail.jsx";
 import PWACustomers from "./pages/pwa/PWACustomers.jsx";
 import PWAVisits from "./pages/pwa/Visits.jsx";
+import PWASiteVisits from "./pages/pwa/PWASiteVisits.jsx";
 import PWABookings from "./pages/pwa/PWABookings.jsx";
 import PWASReport from "./pages/pwa/PWASReport.jsx";
 import PWAPerf from "./pages/pwa/PWAPerf.jsx";
@@ -42,7 +43,7 @@ function AppRoutes() {
   // Register PWA only for PWA roles
   registerPWAIfNeeded(user);
 
-  if (user.role === "Admin" || user.role === "Director") {
+  if (user.role === "Admin") {
     return (
       <WebLayout>
         <Routes>
@@ -79,6 +80,25 @@ function AppRoutes() {
           <Route path="/sites" element={<PWASites />} />
           <Route path="/sites/:id" element={<PWASiteDetail />} />
           <Route path="/profile" element={<PWAProfile />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </PWALayout>
+    );
+  }
+
+  // Director - uses PWA pages
+  if (user.role === "Director") {
+    return (
+      <PWALayout>
+        <Routes>
+          <Route path="/" element={<PWADashboard />} />
+          <Route path="/sites" element={<PWASites />} />
+          <Route path="/sites/:id" element={<PWASiteDetail />} />
+          <Route path="/my-team" element={<TeamPage />} />
+          <Route path="/customers" element={<PWACustomers />} />
+          <Route path="/site-visits" element={<PWASiteVisits />} />
+          <Route path="/profile" element={<PWAProfile />} />
+          <Route path="/customer-registration" element={<PWAVisitRegistration />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </PWALayout>
