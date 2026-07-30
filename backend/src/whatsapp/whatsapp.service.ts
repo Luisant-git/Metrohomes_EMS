@@ -1,6 +1,8 @@
 // src/whatsapp/whatsapp.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class WhatsappService {
@@ -12,6 +14,53 @@ export class WhatsappService {
   constructor() {
     this.accessToken = process.env.WHATSAPP_ACCESS_TOKEN as string;
     this.phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID as string;
+  }
+
+  async uploadMedia(filePathOrUrl: string): Promise<string | null> {
+    try {
+      let filePath = filePathOrUrl;
+      if (filePath.includes('/uploads/')) {
+        const filename = filePath.split('/uploads/').pop();
+        filePath = path.join(process.cwd(), 'uploads', filename || '');
+      } else if (!path.isAbsolute(filePath)) {
+        filePath = path.join(process.cwd(), 'uploads', filePath);
+      }
+
+      if (!fs.existsSync(filePath)) {
+        this.logger.warn(`Media file not found at ${filePath}`);
+        return null;
+      }
+
+      const buffer = fs.readFileSync(filePath);
+      const filename = path.basename(filePath);
+      const mimeType = filename.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream';
+
+      const form = new (globalThis as any).FormData();
+      const blob = new (globalThis as any).Blob([buffer], { type: mimeType });
+      form.append('file', blob, filename);
+      form.append('messaging_product', 'whatsapp');
+
+      const apiUrl = `${this.apiUrl}/${this.phoneNumberId}/media`;
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+        },
+        body: form as any,
+      });
+
+      const json = await response.json();
+      if (!response.ok) {
+        this.logger.error(`WhatsApp media upload failed: ${JSON.stringify(json)}`);
+        return null;
+      }
+
+      this.logger.log(`WhatsApp media uploaded successfully: id=${json.id}`);
+      return json.id;
+    } catch (error: any) {
+      this.logger.error(`Error uploading media to WhatsApp: ${error.message}`);
+      return null;
+    }
   }
 
   async sendEmployeeRegistrationSuccess(
@@ -173,6 +222,12 @@ export class WhatsappService {
     pdfUrl: string,
   ): Promise<any> {
     const formattedNumber = this.normalizePhone(toPhoneNumber);
+    const mediaId = await this.uploadMedia(pdfUrl);
+
+    const documentParam = mediaId
+      ? { id: mediaId, filename: 'Booking_Receipt.pdf' }
+      : { link: pdfUrl, filename: 'Booking_Receipt.pdf' };
+
     const payload = {
       messaging_product: 'whatsapp',
       to: formattedNumber,
@@ -186,7 +241,7 @@ export class WhatsappService {
             parameters: [
               {
                 type: 'document',
-                document: { link: pdfUrl, filename: 'Booking_Receipt.pdf' },
+                document: documentParam,
               },
             ],
           },
@@ -206,6 +261,12 @@ export class WhatsappService {
     pdfUrl: string,
   ): Promise<any> {
     const formattedNumber = this.normalizePhone(toPhoneNumber);
+    const mediaId = await this.uploadMedia(pdfUrl);
+
+    const documentParam = mediaId
+      ? { id: mediaId, filename: 'Payment_Receipt.pdf' }
+      : { link: pdfUrl, filename: 'Payment_Receipt.pdf' };
+
     const payload = {
       messaging_product: 'whatsapp',
       to: formattedNumber,
@@ -219,7 +280,7 @@ export class WhatsappService {
             parameters: [
               {
                 type: 'document',
-                document: { link: pdfUrl, filename: 'Payment_Receipt.pdf' },
+                document: documentParam,
               },
             ],
           },
