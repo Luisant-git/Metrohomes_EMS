@@ -117,6 +117,9 @@ export class SiteVisitService {
     if (data.notes !== undefined) updateData.notes = data.notes;
     if (data.assignedTo !== undefined) updateData.assignedTo = data.assignedTo;
     if (data.driverName !== undefined) updateData.driverName = data.driverName;
+    if (data.driverMobile !== undefined) updateData.driverMobile = data.driverMobile;
+    if (data.cabNumber !== undefined) updateData.cabNumber = data.cabNumber;
+
     // Auto-set status to "Visit Scheduled" when driver details are provided
     const hasDriverDetails = data.driverName !== undefined || data.driverMobile !== undefined || data.cabNumber !== undefined;
     if (hasDriverDetails && (data.driverName || data.driverMobile || data.cabNumber)) {
