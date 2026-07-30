@@ -29,9 +29,35 @@ export default function PWACustomers() {
     return allTeam.map(u => u.id);
   }, [users, user, hierarchy]);
 
+  // Raw customers for this team (one entry per customer)
   const myCustomers = useMemo(() => {
     return customers.filter(c => teamUserIds.includes(c.createdById));
   }, [customers, teamUserIds]);
+
+  // Expand: one row per site-visit so same customer with 2 sites → 2 rows
+  const expandedCustomers = useMemo(() => {
+    const rows = [];
+    myCustomers.forEach(c => {
+      const visits = c.visits && c.visits.length > 0 ? c.visits : null;
+      if (!visits) {
+        // No visits recorded — show one row with base customer info
+        rows.push({ ...c, _rowKey: `${c.id}-base` });
+      } else {
+        visits.forEach((v, idx) => {
+          rows.push({
+            ...c,
+            siteName: v.siteName || c.siteName || "—",
+            visitDate: v.visitDate || c.visitDate || "",
+            visitTime: v.visitTime || c.visitTime || "",
+            status: v.status || c.status,
+            _visitId: v.id,
+            _rowKey: `${c.id}-${v.id ?? idx}`,
+          });
+        });
+      }
+    });
+    return rows;
+  }, [myCustomers]);
 
   const teamRoles = useMemo(() => {
     const roleSet = new Set();
@@ -53,16 +79,16 @@ export default function PWACustomers() {
   };
 
   const searchedCustomers = useMemo(() => {
-    if (!search.trim()) return myCustomers;
+    if (!search.trim()) return expandedCustomers;
     const s = search.toLowerCase().trim();
-    return myCustomers.filter(c =>
+    return expandedCustomers.filter(c =>
       c.name?.toLowerCase().includes(s) ||
       c.mobile?.includes(s) ||
       c.siteName?.toLowerCase().includes(s) ||
       c.salesManagerName?.toLowerCase().includes(s) ||
       String(c.createdById || c.createdBy || "").includes(s)
     );
-  }, [myCustomers, search]);
+  }, [expandedCustomers, search]);
 
   const filteredCustomers = useMemo(() => {
     let result = searchedCustomers;
@@ -80,6 +106,9 @@ export default function PWACustomers() {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     return filteredCustomers.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredCustomers, currentPage]);
+
+  // Count label: unique customers, not expanded rows
+  const uniqueCustomerCount = myCustomers.length;
 
   const statusCounts = useMemo(() => {
     const counts = {
@@ -121,7 +150,7 @@ export default function PWACustomers() {
   };
 
   const handleSelectStatus = (customer, newStatus) => {
-    if (customer.status === newStatus) return;
+    if (!newStatus || customer.status === newStatus) return;
     setPendingUpdate({ customer, newStatus });
   };
 
@@ -152,7 +181,7 @@ export default function PWACustomers() {
           <h3 className="font-bold text-gray-800 text-sm mb-3">Summary</h3>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: "Total", value: myCustomers.length, color: "text-blue-600" },
+              { label: "Total", value: uniqueCustomerCount, color: "text-blue-600" },
               { label: "Booked", value: statusCounts.Booked + statusCounts["Payment Done"], color: "text-green-600" },
             ].map(s => (
               <div key={s.label} className="text-center p-3 bg-gray-50 rounded-xl">
@@ -209,7 +238,7 @@ export default function PWACustomers() {
           </div>
 
           <div className="px-4 pb-2 text-xs text-gray-400">
-            Showing {paginatedCustomers.length} of {filteredCustomers.length} customers
+            Showing {paginatedCustomers.length} of {filteredCustomers.length} rows ({uniqueCustomerCount} customers)
           </div>
 
           <div className="overflow-x-auto">
@@ -237,7 +266,7 @@ export default function PWACustomers() {
                   </tr>
                 ) : (
                   paginatedCustomers.map(c => (
-                    <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={c._rowKey} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3">
                         <div className="font-semibold text-gray-800 text-sm">{c.name}</div>
                       </td>
@@ -248,13 +277,13 @@ export default function PWACustomers() {
                       <td className="px-4 py-3 text-gray-500 text-xs">{c.siteName || "—"}</td>
                       <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(c.visitDate)}</td>
                       <td className="px-4 py-3">
-                        {c.status !== "Visit Completed" && (c.createdById === user?.id || ["Admin", "Director"].includes(user?.role)) ? (
+                        {c.status === "Visit Scheduled" && (c.createdById === user?.id || ["Admin", "Director"].includes(user?.role)) ? (
                           <select
-                            value={c.status}
+                            value=""
                             onChange={e => handleSelectStatus(c, e.target.value)}
                             className="text-xs font-semibold rounded-lg px-2 py-1 border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 outline-none cursor-pointer transition-colors"
                           >
-                            <option value={c.status}>{c.status}</option>
+                            <option value="">Update Status…</option>
                             <option value="Visit Completed">Visit Completed</option>
                           </select>
                         ) : (
@@ -268,13 +297,6 @@ export default function PWACustomers() {
                           title="View Details"
                         >
                           <Eye size={15} />
-                        </button>
-                        <button
-                          onClick={() => setHistoryCustomer(c)}
-                          className="p-1.5 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
-                          title="Visit History"
-                        >
-                          <Clock size={15} />
                         </button>
                       </td>
                     </tr>

@@ -182,10 +182,6 @@ export class WhatsappService {
         language: { code: 'en' },
         components: [
           {
-            type: 'body',
-            parameters: [{ type: 'text', text: customerName || '' }],
-          },
-          {
             type: 'header',
             parameters: [
               {
@@ -193,6 +189,10 @@ export class WhatsappService {
                 document: { link: pdfUrl, filename: 'Booking_Receipt.pdf' },
               },
             ],
+          },
+          {
+            type: 'body',
+            parameters: [{ type: 'text', text: this.sanitizeText(customerName, 'Customer') }],
           },
         ],
       },
@@ -215,10 +215,6 @@ export class WhatsappService {
         language: { code: 'en' },
         components: [
           {
-            type: 'body',
-            parameters: [{ type: 'text', text: customerName || '' }],
-          },
-          {
             type: 'header',
             parameters: [
               {
@@ -226,6 +222,10 @@ export class WhatsappService {
                 document: { link: pdfUrl, filename: 'Payment_Receipt.pdf' },
               },
             ],
+          },
+          {
+            type: 'body',
+            parameters: [{ type: 'text', text: this.sanitizeText(customerName, 'Customer') }],
           },
         ],
       },

@@ -185,7 +185,6 @@ export default function ProjectManagement() {
     },
     { key: "totalPlots", label: "Total Sites" },
     { key: "availablePlots", label: "Available" },
-    // { key: "pricePerSqft", label: "Price/sqft", render: v => `₹${Number(v).toLocaleString("en-IN")}` },
     { key: "status", label: "Status", render: v => <StatusBadge status={v} /> },
   ];
 
@@ -224,9 +223,9 @@ export default function ProjectManagement() {
         <StatCard icon={Globe} label="Total Projects" value={sites.length} color="blue" />
         <StatCard icon={CheckCircle} label="Available Projects" value={sites.filter(s => s.status === "Active").length} color="green" />
         <StatCard icon={LayoutGrid} label="Total Sites" value={sites.filter(s => s.status === "Active").reduce((a, s) => a + (s.totalPlots || 0), 0)} color="purple" />
-        <StatCard icon={XCircle} label="Available Sites" value={sites.filter(s => s.status === "Active").reduce((a, s) => a + (s.availablePlots || 0), 0)} color="orange" />
-        <StatCard icon={CalendarCheck} label="Booked Sites" value={sites.filter(s => s.status === "Active").reduce((a, s) => a + (s.plots || []).filter(p => p.status === "Booked").length, 0)} color="blue" />
-        <StatCard icon={DollarSign} label="Sold Sites" value={sites.filter(s => s.status === "Active").reduce((a, s) => a + (s.plots || []).filter(p => p.status === "Sold").length, 0)} color="green" />
+      <StatCard icon={XCircle} label="Available Sites" value={sites.filter(s => s.status === "Active").reduce((a, s) => a + (s.availablePlots || 0), 0)} color="orange" />
+      <StatCard icon={CalendarCheck} label="Booked Sites" value={sites.filter(s => s.status === "Active").reduce((a, s) => a + (s.plots || []).filter(p => p.status === "Booked").length, 0)} color="blue" />
+      <StatCard icon={DollarSign} label="Sold Sites" value={sites.filter(s => s.status === "Active").reduce((a, s) => a + (s.plots || []).filter(p => p.status === "Sold").length, 0)} color="green" />
       </div>
 
       <DataTable title="All Projects" columns={columns} data={sites} searchKey={["name", "location"]} onAdd={openAdd} addLabel="+ Add Project"

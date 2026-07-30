@@ -105,10 +105,11 @@ export class BookingService {
 
     this.logger.log(`Booking created: ${receiptNo} for customer ${customer.name}`);
 
-    // Update site status to Booked
+    // Update site status — Sold if fully paid at booking, Booked otherwise
+    const siteStatus = dto.remainingAmount <= 0 ? 'Sold' : 'Booked';
     await this.prisma.site.update({
       where: { id: dto.siteId },
-      data: { status: 'Booked' },
+      data: { status: siteStatus },
     }).catch(() => {
       // Non-critical — don't fail the booking
     });
@@ -333,6 +334,16 @@ export class BookingService {
       } catch (error: any) {
         this.logger.error(`Failed to send WhatsApp for payment receipt ${receiptNo}: ${error.message}`);
       }
+    }
+
+    // If fully paid, mark site as Sold
+    if (balance <= 0) {
+      await this.prisma.site.update({
+        where: { id: booking.siteId },
+        data: { status: 'Sold' },
+      }).catch(err => {
+        this.logger.error(`Failed to update site status to Sold: ${err.message}`);
+      });
     }
 
     return receipt;
