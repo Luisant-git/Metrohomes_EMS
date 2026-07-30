@@ -16,9 +16,9 @@ export class BookingService {
   ) {}
 
   async create(dto: CreateBookingDto, createdBy?: number) {
-    // Generate unique receipt number
-    const count = await this.prisma.booking.count();
-    const receiptNo = `RCPT${String(count + 1).padStart(4, '0')}`;
+    // Generate unique receipt number from PaymentReceipt count
+    const receiptCount = await this.prisma.paymentReceipt.count();
+    const receiptNo = `RCPT${String(receiptCount + 1).padStart(4, '0')}`;
 
     // Fetch customer
     const customer = await this.prisma.customer.findUnique({

@@ -67,6 +67,7 @@ export default function BookingManagement() {
             projectNo: booking.projectNo,
             status: booking.status,
             notes: booking.notes || receipt.notes || '',
+            guardianName: booking.guardianName || receipt.guardianName || '',
           });
         });
       }
@@ -102,6 +103,7 @@ export default function BookingManagement() {
         customerId: c.id,
         customerName: c.name,
         applicantName: c.name,
+        guardianName: existingBooking?.guardianName || '',
         relation: "",
         address: c.address || "",
         pinCode: c.pinCode || "",
@@ -130,6 +132,7 @@ export default function BookingManagement() {
           customerId: c.id,
           customerName: c.name,
           applicantName: c.name,
+          guardianName: existingBooking?.guardianName || '',
           relation: "",
           address: c.address || "",
           pinCode: c.pinCode || "",
@@ -167,7 +170,7 @@ export default function BookingManagement() {
         projectId: Number(form.projectId),
         siteId: Number(form.siteId),
         bookingDate: form.bookingDate,
-        guardianName: form.guardianName || null,
+        guardianName: form.guardianName || '',
         plotArea: Number(form.plotArea),
         pricePerSqft: Number(pricePerSqft),
         plotPrice: Number(plotPrice),
@@ -663,6 +666,14 @@ export default function BookingManagement() {
     return `₹${num.toLocaleString("en-US")}`;
   };
 
+  const modeColors = {
+    "Cash": "bg-green-100 text-green-700",
+    "Cheque": "bg-blue-100 text-blue-700",
+    "DD": "bg-purple-100 text-purple-700",
+    "Online Transfer": "bg-orange-100 text-orange-700",
+    "Fund Transfer": "bg-orange-100 text-orange-700",
+  };
+
   const columns = [
     { key: "receiptNo", label: "Receipt No." },
     { key: "bookingId", label: "Booking ID", render: (v) => <span className="font-mono text-xs text-gray-500">{v}</span> },
@@ -671,7 +682,10 @@ export default function BookingManagement() {
     { key: "currentPayment", label: "Payment", render: v => <span className="text-blue-600 font-medium">{formatCurrency(v)}</span> },
     { key: "totalPaid", label: "Total Paid", render: v => <span className="text-green-600 font-medium">{formatCurrency(v)}</span> },
     { key: "balance", label: "Balance", render: v => <span className={`font-medium ${v > 0 ? "text-red-500" : "text-green-500"}`}>{formatCurrency(v)}</span> },
-    { key: "paymentMode", label: "Mode", render: v => <StatusBadge status={v} /> },
+    { key: "paymentMode", label: "Mode", render: v => {
+      const colorClass = modeColors[v] || "bg-gray-100 text-gray-600";
+      return <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${colorClass}`}>{v}</span>;
+    } },
     { key: "paymentDate", label: "Payment Date" },
   ];
 
@@ -718,12 +732,12 @@ export default function BookingManagement() {
       )}
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <DataTable title="All Payment Receipts" columns={columns} data={[...receipts].sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate))} searchKey={["customerName", "siteName", "receiptNo"]}
+        <DataTable title="All Payment Receipts" columns={columns} data={[...receipts].sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate))} searchKey={["customerName", "siteName", "receiptNo", "projectNo"]}
           actions={(row) => (
             <>
-              <button onClick={() => { setSelected(row); setModal("view"); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="View"><Eye size={15} /></button>
-              <button onClick={() => handleDownloadPdf(row)} className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg" title="Download PDF"><Download size={15} /></button>
-              <button onClick={() => { setWhatsappRow(row); setWhatsappModalOpen(true); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="WhatsApp"><MessageSquare size={15} /></button>
+              <button onClick={() => { setSelected(row); setModal("view"); }} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg" title="View"><Eye size={15} /></button>
+              <button onClick={() => handleDownloadPdf(row)} className="p-1.5 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg" title="Download PDF"><Download size={15} /></button>
+              <button onClick={() => { setWhatsappRow(row); setWhatsappModalOpen(true); }} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg" title="WhatsApp"><MessageSquare size={15} /></button>
             </>
           )}
         />
@@ -1074,6 +1088,10 @@ export default function BookingManagement() {
             <div className="text-sm border-b border-gray-100 pb-3 mb-3 flex justify-between">
               <span className="text-gray-500">Customer</span>
               <span className="font-medium text-gray-800">{selected.customerName}</span>
+            </div>
+            <div className="text-sm border-b border-gray-100 pb-3 mb-3 flex justify-between">
+              <span className="text-gray-500">Guardian</span>
+              <span className="font-medium text-gray-800">{selected.guardianName || '—'}</span>
             </div>
             <div className="text-sm border-b border-gray-100 pb-3 mb-3 flex justify-between">
               <span className="text-gray-500">Project</span>
