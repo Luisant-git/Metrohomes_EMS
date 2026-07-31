@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../../context/DataContext.jsx";
-import { Search, MapPin, Home, ChevronRight, Filter, UserPlus, X, ChevronLeft, ChevronRight as ChevronRightIcon, Image as ImageIcon, LayoutGrid, FileText, Download } from "lucide-react";
+import { Search, MapPin, Home, ChevronRight, Filter, X, ChevronLeft, ChevronRight as ChevronRightIcon, Image as ImageIcon, LayoutGrid, FileText, Download, ArrowRight } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge.jsx";
 
 const ITEMS_PER_PAGE = 5;
@@ -62,7 +62,7 @@ export default function PWASites() {
       {/* Site cards */}
       <div className="px-4 mt-3 space-y-4">
         {paginatedSites.map(project => (
-          <div key={project.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div key={project.id} onClick={() => setSelectedSite(project)} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer active:scale-[0.99] transition-transform">
             {/* Image */}
             <div className="relative h-44 bg-gray-100">
               {project.images?.[0] ? (
@@ -72,7 +72,7 @@ export default function PWASites() {
                   <Home size={48} />
                 </div>
               )}
-              <button onClick={(e) => { e.stopPropagation(); setSelectedSite(project); }} className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-xl px-2.5 py-1 text-xs font-bold text-green-600 hover:bg-white transition-colors">
+              <button onClick={(e) => { e.stopPropagation(); }} className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-xl px-2.5 py-1 text-xs font-bold text-green-600 hover:bg-white transition-colors">
                 {project.availablePlots} available
               </button>
               {project.images?.length > 1 && (
@@ -90,7 +90,6 @@ export default function PWASites() {
                     <MapPin size={11} />{project.location}
                   </div>
                 </div>
-                <UserPlus size={18} className="text-blue-400 mt-1" />
               </div>
               {project.pricePerSqft > 0 && (
                 <div className="flex items-center justify-between mt-3">
@@ -105,10 +104,10 @@ export default function PWASites() {
                 <span>Total: <strong className="text-gray-700">{project.totalPlots}</strong></span>
                 <span>Available: <strong className="text-green-600">{project.availablePlots}</strong></span>
               </div>
-              {/* View More */}
+              {/* View Details */}
               <div className="mt-3 pt-3 border-t border-gray-100">
-                <button onClick={(e) => { e.stopPropagation(); setSelectedSite(project); }} className="w-full text-center text-xs font-semibold text-blue-600 hover:text-blue-700 py-2 rounded-xl hover:bg-blue-50 transition-colors">
-                  View More
+                <button onClick={(e) => { e.stopPropagation(); setSelectedSite(project); }} className="w-full text-center text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors flex items-center justify-center gap-1.5">
+                  View Details < ArrowRight size={15} />
                 </button>
               </div>
             </div>
@@ -264,27 +263,7 @@ export default function PWASites() {
                 </div>
               </div>
 
-              {/* Key Metrics Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-blue-50 rounded-xl p-3 sm:p-4 border border-blue-100">
-                  <p className="text-[10px] sm:text-xs font-medium text-blue-600 uppercase tracking-wider">Total Sites</p>
-                  <p className="text-lg sm:text-xl font-bold text-gray-900 mt-1">{selectedSite.totalPlots || 0}</p>
-                </div>
-                <div className="bg-green-50 rounded-xl p-3 sm:p-4 border border-green-100">
-                  <p className="text-[10px] sm:text-xs font-medium text-green-600 uppercase tracking-wider">Available</p>
-                  <p className="text-lg sm:text-xl font-bold text-gray-900 mt-1">{selectedSite.availablePlots || 0}</p>
-                </div>
-                <div className="bg-amber-50 rounded-xl p-3 sm:p-4 border border-amber-100">
-                  <p className="text-[10px] sm:text-xs font-medium text-amber-600 uppercase tracking-wider">Booked</p>
-                  <p className="text-lg sm:text-xl font-bold text-gray-900 mt-1">{(selectedSite.plots || []).filter(p => p.status === "Booked").length}</p>
-                </div>
-                <div className="bg-rose-50 rounded-xl p-3 sm:p-4 border border-rose-100">
-                  <p className="text-[10px] sm:text-xs font-medium text-rose-600 uppercase tracking-wider">Sold</p>
-                  <p className="text-lg sm:text-xl font-bold text-gray-900 mt-1">{(selectedSite.plots || []).filter(p => p.status === "Sold").length}</p>
-                </div>
-              </div>
-
-              {/* Available Plots Table */}
+              {/* Available Plots Table — Active plots only */}
               {selectedSite.plots?.length > 0 && (
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                   <div className="px-4 py-3 border-b border-gray-100">
@@ -304,11 +283,10 @@ export default function PWASites() {
                           <th className="text-left px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">North-South</th>
                           <th className="text-left px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Total Sqft</th>
                           <th className="text-left px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Price/sqft</th>
-                          <th className="text-left px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {selectedSite.plots.map((pl, idx) => (
+                        {selectedSite.plots.filter(pl => pl.status === "Active").map((pl, idx) => (
                           <tr key={pl.id} className="hover:bg-gray-50/50">
                             <td className="px-3 sm:px-4 py-2 text-gray-500 font-medium text-xs">{idx + 1}</td>
                             <td className="px-3 sm:px-4 py-2 text-gray-800 font-medium text-xs sm:text-sm">{pl.siteNo}</td>
@@ -327,9 +305,6 @@ export default function PWASites() {
                             <td className="px-3 sm:px-4 py-2 text-gray-700 text-xs sm:text-sm">{pl.northSouth ? `${pl.northSouth} ft` : "-"}</td>
                             <td className="px-3 sm:px-4 py-2 text-gray-800 font-medium text-xs sm:text-sm">{Number(pl.totalSqft).toLocaleString("en-IN")}</td>
                             <td className="px-3 sm:px-4 py-2 text-gray-800 font-medium text-xs sm:text-sm">₹{Number(pl.pricePerSqft).toLocaleString("en-IN")}</td>
-                            <td className="px-3 sm:px-4 py-2">
-                              <StatusBadge status={pl.status || "Active"} />
-                            </td>
                           </tr>
                         ))}
                       </tbody>
