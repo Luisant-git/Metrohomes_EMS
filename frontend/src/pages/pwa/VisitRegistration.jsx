@@ -644,7 +644,6 @@ export default function PWAVisitRegistration() {
                     max="12:00"
                     className={`input-field ${errors.visitTime ? 'border-red-500' : ''}`}
                   />
-                  <p className="text-xs text-amber-600 mt-1">Morning visits only (before 12:00 PM)</p>
                 </F>
               </div>
 
