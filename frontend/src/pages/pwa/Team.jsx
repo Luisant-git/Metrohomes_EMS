@@ -173,7 +173,12 @@ export default function TeamPage() {
 
   const getMemberStats = (member) => {
     const memberCustomers = customers.filter((c) => c.createdById === member.id);
-    const memberBookings = bookings.filter((b) => b.createdById === member.id);
+    const memberBookings = bookings.filter((b) => {
+      // Count bookings where the booking's creator OR the customer's creator matches the member
+      if ((b.createdById || b.createdBy) === member.id) return true;
+      const customer = customers.find((c) => c.id === b.customerId);
+      return customer && customer.createdById === member.id;
+    });
     return { customers: memberCustomers.length, bookings: memberBookings.length };
   };
 
@@ -201,7 +206,11 @@ export default function TeamPage() {
       return sum + customers.filter((c) => c.createdById === u.id).length;
     }, 0);
     const bookingsCount = downlineUsers.reduce((sum, u) => {
-      return sum + bookings.filter((b) => b.createdById === u.id).length;
+      return sum + bookings.filter((b) => {
+        if ((b.createdById || b.createdBy) === u.id) return true;
+        const customer = customers.find((c) => c.id === b.customerId);
+        return customer && customer.createdById === u.id;
+      }).length;
     }, 0);
     return { customers: customersCount, bookings: bookingsCount };
   }, [users, downlineUserIds, customers, bookings]);

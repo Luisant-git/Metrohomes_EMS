@@ -1,18 +1,22 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, Query, HttpCode, HttpStatus, Res } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Param, Put, Delete, Query, HttpCode, HttpStatus, Res, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { BookingService } from './booking.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @ApiTags('Bookings')
+@ApiBearerAuth()
 @Controller('bookings')
+@UseGuards(JwtAuthGuard)
 export class BookingController {
   constructor(private readonly bookingService: BookingService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new booking' })
-  async create(@Body() createBookingDto: CreateBookingDto) {
-    const booking = await this.bookingService.create(createBookingDto);
+  async create(@Body() createBookingDto: CreateBookingDto, @CurrentUser() currentUser: any) {
+    const booking = await this.bookingService.create(createBookingDto, currentUser?.id);
     return { success: true, data: booking };
   }
 

@@ -27,8 +27,13 @@ export default function WebDashboard() {
   }, [customers, teamUserIds]);
 
   const teamBookings = useMemo(() => {
-    return bookings.filter(b => teamUserIds.includes(b.createdById));
-  }, [bookings, teamUserIds]);
+    return bookings.filter(b => {
+      // Match bookings where the booking's creator OR the customer's creator is in the team
+      if (teamUserIds.includes(b.createdById || b.createdBy)) return true;
+      const customer = customers.find(c => c.id === b.customerId);
+      return customer && teamUserIds.includes(customer.createdById);
+    });
+  }, [bookings, teamUserIds, customers]);
 
   // Get team users with role breakdown (excluding current user for admin count)
   const teamInfo = useMemo(() => {

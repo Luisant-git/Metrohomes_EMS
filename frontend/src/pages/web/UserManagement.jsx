@@ -748,7 +748,10 @@ function TreeNode({ node, users, customers, bookings, depth = 0, onViewTeam }) {
 
   const activeCustomers = customers.filter(c => allSmIds.includes(c.createdById)).length;
   const totalSales = bookings
-    .filter(b => allSmIds.includes(b.salesManagerId))
+    .filter(b => {
+      const smId = b.assignedTo || b.createdBy;
+      return allSmIds.includes(smId);
+    })
     .reduce((sum, b) => sum + (b.paidAmount || 0), 0);
 
   const teamCount = children.length;

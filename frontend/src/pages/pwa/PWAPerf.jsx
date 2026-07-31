@@ -13,11 +13,11 @@ export default function PWAPerf() {
 
   const bmPerformance = myBMs.map(bm => {
     const bmCustomers = customers.filter(c => {
-      const sm = users.find(u => u.id === c.salesManagerId);
+      const sm = users.find(u => u.id === c.createdById);
       return sm && sm.parentUserId === bm.id;
     });
     const bmBookings = bookings.filter(b => {
-      const sm = users.find(u => u.id === b.salesManagerId);
+      const sm = users.find(u => u.id === (b.assignedTo || b.createdBy));
       return sm && sm.parentUserId === bm.id;
     });
     const revenue = bmBookings.reduce((sum, b) => sum + (b.plotPrice || 0), 0);

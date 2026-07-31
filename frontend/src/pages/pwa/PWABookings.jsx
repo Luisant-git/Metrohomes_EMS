@@ -12,7 +12,9 @@ export default function PWABookings() {
   const myBMIds = new Set(myBMs.map(b => b.id));
 
   const myBookings = bookings.filter(b => {
-    const salesManager = users.find(u => u.id === b.salesManagerId);
+    // Use assignedTo (the sales manager assigned to the booking) or createdBy as fallback
+    const smId = b.assignedTo || b.salesManagerId || b.createdBy;
+    const salesManager = users.find(u => u.id === smId);
     return salesManager && myBMIds.has(salesManager.parentUserId);
   });
 

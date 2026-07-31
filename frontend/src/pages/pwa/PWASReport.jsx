@@ -12,12 +12,14 @@ export default function PWASReport() {
   const myBMIds = new Set(myBMs.map(b => b.id));
 
   const myBookings = bookings.filter(b => {
-    const sm = users.find(u => u.id === b.salesManagerId);
+    // Use assignedTo (sales manager assigned to booking) or createdBy as fallback
+    const sm = users.find(u => u.id === (b.assignedTo || b.createdBy));
     return sm && myBMIds.has(sm.parentUserId);
   });
 
   const myCustomers = customers.filter(c => {
-    const sm = users.find(u => u.id === c.salesManagerId);
+    // Customers track their creator via createdById
+    const sm = users.find(u => u.id === c.createdById);
     return sm && myBMIds.has(sm.parentUserId);
   });
 
