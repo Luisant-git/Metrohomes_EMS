@@ -11,9 +11,10 @@ import { CustomerModule } from './customer/customer.module';
 import { SiteModule } from './site/site.module';
 import { SiteVisitModule } from './site-visit/site-visit.module';
 import { BookingModule } from './booking/booking.module';
+import { MapsModule } from './maps/maps.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, UserModule, WhatsappModule, DashboardModule, UploadModule, SiteModule, CustomerModule, SiteVisitModule, BookingModule],
+  imports: [PrismaModule, AuthModule, UserModule, WhatsappModule, DashboardModule, UploadModule, SiteModule, CustomerModule, SiteVisitModule, BookingModule, MapsModule],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { customer } from "../../api/customer.js";
 import { siteVisit } from "../../api/siteVisit.js";
-import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Users, Briefcase, DollarSign, ArrowLeft, ArrowRight, Clock } from "lucide-react";
+import { mapsApi } from "../../api/maps.js";
+import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Users, Briefcase, DollarSign, ArrowLeft, ArrowRight, Clock, Search, Compass, Car } from "lucide-react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -80,6 +81,11 @@ export default function CustomerRegistration() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [otpTimer, setOtpTimer] = useState(null);
   const [errors, setErrors] = useState({});
+  const [locLoading, setLocLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [distanceInfo, setDistanceInfo] = useState(null);
+  const [distLoading, setDistLoading] = useState(false);
 
   const approvedSites = sites.filter(s => s.status === "Active");
   const selectedProject = approvedSites.find(s => s.id === +form.projectId);
@@ -92,6 +98,103 @@ export default function CustomerRegistration() {
     mobile: user?.mobile,
     id: user?.id,
   };
+
+  const handleLocationInputChange = async (val) => {
+    setForm(p => ({ ...p, location: val }));
+    if (val && val.trim().length > 2) {
+      try {
+        const res = await mapsApi.getAutocomplete(val);
+        if (res?.suggestions) {
+          setSuggestions(res.suggestions);
+          setShowSuggestions(true);
+        }
+      } catch (err) {
+        console.warn("Autocomplete error:", err);
+      }
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSelectSuggestion = async (sug) => {
+    setForm(p => ({ ...p, location: sug.description }));
+    setShowSuggestions(false);
+    try {
+      const geocodeRes = await mapsApi.geocode(sug.description);
+      if (geocodeRes?.formatted_address) {
+        setForm(p => ({ ...p, location: geocodeRes.formatted_address }));
+      }
+    } catch (err) {
+      console.warn("Geocode error:", err);
+    }
+  };
+
+  const getLocation = () => {
+    setLocLoading(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async pos => {
+          const latlngStr = `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`;
+          try {
+            const geoRes = await mapsApi.geocode(null, latlngStr);
+            if (geoRes?.formatted_address) {
+              setForm(p => ({ ...p, location: geoRes.formatted_address }));
+              toast.success("Location captured & address resolved!");
+            } else {
+              setForm(p => ({ ...p, location: latlngStr }));
+              toast.success("GPS coordinates captured!");
+            }
+          } catch (e) {
+            setForm(p => ({ ...p, location: latlngStr }));
+            toast.success("GPS coordinates captured!");
+          } finally {
+            setLocLoading(false);
+          }
+        },
+        async () => {
+          const demoLatlng = "12.971598,77.594566";
+          try {
+            const geoRes = await mapsApi.geocode(null, demoLatlng);
+            setForm(p => ({ ...p, location: geoRes?.formatted_address || "MG Road, Bengaluru" }));
+          } catch (e) {
+            setForm(p => ({ ...p, location: "MG Road, Bengaluru" }));
+          }
+          setLocLoading(false);
+          toast.info("Sample location set");
+        }
+      );
+    } else {
+      setForm(p => ({ ...p, location: "MG Road, Bengaluru" }));
+      setLocLoading(false);
+    }
+  };
+
+  // Recalculate distance whenever pickup location or selected project changes
+  useEffect(() => {
+    const calcDist = async () => {
+      if (form.location && form.location.trim().length > 3 && selectedProject?.location) {
+        setDistLoading(true);
+        try {
+          const res = await mapsApi.calculateDistance(form.location, selectedProject.location);
+          if (res && res.success) {
+            setDistanceInfo(res);
+          } else {
+            setDistanceInfo(null);
+          }
+        } catch (err) {
+          console.warn("Distance calc failed:", err);
+          setDistanceInfo(null);
+        } finally {
+          setDistLoading(false);
+        }
+      } else {
+        setDistanceInfo(null);
+      }
+    };
+    const timer = setTimeout(calcDist, 600);
+    return () => clearTimeout(timer);
+  }, [form.location, selectedProject]);
 
   const startOtpTimer = () => {
     if (otpTimer) clearInterval(otpTimer);
@@ -539,14 +642,100 @@ export default function CustomerRegistration() {
                   className="input-field" placeholder="1" maxLength={2} />
               </F>
 
-              <F label="Pickup Location" icon={MapPin}>
-                <div className="flex gap-2">
-                  <input value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))}
-                    className="input-field flex-1" placeholder="lat,lng or address" />
-                  <button type="button" className="flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors">
-                    <Navigation size={16} />
-                  </button>
+              <F label="Pickup Location & Map Route" icon={MapPin} className="md:col-span-2">
+                <div className="relative">
+                  <div className="flex gap-2 items-center">
+                    <div className="relative flex-1">
+                      <input
+                        value={form.location}
+                        onChange={e => handleLocationInputChange(e.target.value)}
+                        onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                        className="input-field w-full pr-8"
+                        placeholder="Search pickup address or area…"
+                      />
+                      <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={getLocation}
+                      disabled={locLoading}
+                      title="Use Current GPS Location"
+                      className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 h-[44px] shadow-sm shadow-blue-200"
+                    >
+                      {locLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Compass size={16} />}
+                      {locLoading ? "" : "Detect GPS"}
+                    </button>
+                  </div>
+
+                  {/* Place Autocomplete Suggestions Dropdown */}
+                  {showSuggestions && suggestions.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden divide-y divide-gray-50 max-h-56 overflow-y-auto animate-fadeIn">
+                      {suggestions.map((sug, idx) => (
+                        <div
+                          key={sug.place_id || idx}
+                          onClick={() => handleSelectSuggestion(sug)}
+                          className="p-3 hover:bg-blue-50 cursor-pointer text-xs transition-colors flex items-start gap-2 text-gray-700"
+                        >
+                          <MapPin size={14} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <div className="font-semibold text-gray-900">{sug.main_text}</div>
+                            {sug.secondary_text && <div className="text-[11px] text-gray-400">{sug.secondary_text}</div>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
+
+                {/* Distance & Travel Time Calculation */}
+                {(distLoading || distanceInfo) && (
+                  <div className="mt-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-3 flex items-center justify-between text-xs animate-fadeIn">
+                    <div className="flex items-center gap-2 text-blue-900 font-medium">
+                      <Car size={16} className="text-blue-600" />
+                      <span>Route to Project Site:</span>
+                    </div>
+                    {distLoading ? (
+                      <span className="text-blue-500 font-semibold animate-pulse text-[11px]">Calculating travel distance & duration…</span>
+                    ) : distanceInfo ? (
+                      <div className="flex items-center gap-3">
+                        <span className="bg-blue-600 text-white px-2.5 py-1 rounded-full font-bold text-xs shadow-sm">
+                          🚗 {distanceInfo.distanceText || `${distanceInfo.distanceKm} km`}
+                        </span>
+                        <span className="bg-indigo-600 text-white px-2.5 py-1 rounded-full font-bold text-xs shadow-sm">
+                          ⏱️ {distanceInfo.durationText || `${distanceInfo.durationMins} mins`}
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+
+                {/* Google Map View Box */}
+                {form.location && (
+                  <div className="mt-3 rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-gray-50 relative group">
+                    <iframe
+                      title="Pickup Location Map"
+                      width="100%"
+                      height="220"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      allowFullScreen
+                      src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8&q=${encodeURIComponent(form.location)}`}
+                    />
+                    <div className="p-2.5 bg-white/90 backdrop-blur-sm border-t border-gray-100 flex items-center justify-between text-xs text-gray-600">
+                      <span className="truncate max-w-[80%] font-medium flex items-center gap-1.5">
+                        <MapPin size={14} className="text-red-500 flex-shrink-0" /> {form.location}
+                      </span>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.location)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-blue-600 font-bold hover:underline flex-shrink-0"
+                      >
+                        Open Maps ↗
+                      </a>
+                    </div>
+                  </div>
+                )}
               </F>
 
               <F label="Notes / Requirements" icon={FileText} className="md:col-span-2">
