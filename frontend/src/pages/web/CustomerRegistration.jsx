@@ -87,6 +87,9 @@ export default function CustomerRegistration() {
   const [distanceInfo, setDistanceInfo] = useState(null);
   const [distLoading, setDistLoading] = useState(false);
 
+  // Check if current time is before 12 PM (noon) — only allow morning visit times
+  const isBeforeNoon = new Date().getHours() < 12;
+
   const approvedSites = sites.filter(s => s.status === "Active");
   const selectedProject = approvedSites.find(s => s.id === +form.projectId);
   const availablePlots = selectedProject?.plots?.filter(p => p.status === "Active") || [];
@@ -628,14 +631,22 @@ export default function CustomerRegistration() {
                 />
               </F>
 
-              <F label="Visit Time" icon={Clock} required>
-                <input
-                  type="time"
-                  value={form.visitTime}
-                  onChange={e => setForm(p => ({ ...p, visitTime: e.target.value }))}
-                  className={`input-field ${errors.visitTime ? 'border-red-500' : ''}`}
-                />
-              </F>
+              {isBeforeNoon ? (
+                <F label="Visit Time" icon={Clock} required>
+                  <input
+                    type="time"
+                    value={form.visitTime}
+                    onChange={e => setForm(p => ({ ...p, visitTime: e.target.value }))}
+                    max="12:00"
+                    className={`input-field ${errors.visitTime ? 'border-red-500' : ''}`}
+                  />
+                </F>
+              ) : (
+                <div className="bg-amber-50 rounded-xl p-3 text-xs text-amber-700 font-medium flex items-center gap-1.5">
+                  <Clock size={14} />
+                  Visit scheduling is available only in the morning (before 12:00 PM). Afternoon visits are not available.
+                </div>
+              )}
 
               <F label="Number of Persons" icon={Users} required>
                 <input type="text" value={form.persons} onChange={e => setForm(p => ({ ...p, persons: e.target.value.replace(/[^\d]/g, '') }))}

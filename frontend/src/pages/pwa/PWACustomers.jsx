@@ -2,7 +2,17 @@ import { useState, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { UserX, Eye, Search, ChevronLeft, ChevronRight, CheckCircle, Clock, Users, IndianRupee } from "lucide-react";
+import {
+  UserX,
+  Eye,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle,
+  Clock,
+  Users,
+  IndianRupee,
+} from "lucide-react";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import Modal from "../../components/Modal.jsx";
 import { toast } from "react-toastify";
@@ -14,7 +24,9 @@ export default function PWACustomers() {
   const { customers = [], users = [], updateCustomer } = useData();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "All");
+  const [statusFilter, setStatusFilter] = useState(
+    searchParams.get("status") || "All",
+  );
   const [roleFilter, setRoleFilter] = useState("All");
   const [viewCustomer, setViewCustomer] = useState(null);
   const [pendingUpdate, setPendingUpdate] = useState(null);
@@ -26,18 +38,18 @@ export default function PWACustomers() {
     if (!users.length || !user?.id) return [user?.id].filter(Boolean);
     const downline = hierarchy.getDownline(users);
     const allTeam = [user, ...downline].filter(Boolean);
-    return allTeam.map(u => u.id);
+    return allTeam.map((u) => u.id);
   }, [users, user, hierarchy]);
 
   // Raw customers for this team (one entry per customer)
   const myCustomers = useMemo(() => {
-    return customers.filter(c => teamUserIds.includes(c.createdById));
+    return customers.filter((c) => teamUserIds.includes(c.createdById));
   }, [customers, teamUserIds]);
 
   // Expand: one row per site-visit so same customer with 2 sites → 2 rows
   const expandedCustomers = useMemo(() => {
     const rows = [];
-    myCustomers.forEach(c => {
+    myCustomers.forEach((c) => {
       const visits = c.visits && c.visits.length > 0 ? c.visits : null;
       if (!visits) {
         // No visits recorded — show one row with base customer info
@@ -61,42 +73,47 @@ export default function PWACustomers() {
 
   const teamRoles = useMemo(() => {
     const roleSet = new Set();
-    teamUserIds.forEach(id => {
-      const u = users.find(user => user.id === id);
+    teamUserIds.forEach((id) => {
+      const u = users.find((user) => user.id === id);
       if (u?.role) roleSet.add(u.role);
     });
     return ["All", ...Array.from(roleSet)];
   }, [users, teamUserIds]);
 
   const getCreatorRole = (customer) => {
-    const creator = users.find(u => u.id === (customer.createdById || customer.createdBy));
+    const creator = users.find(
+      (u) => u.id === (customer.createdById || customer.createdBy),
+    );
     return creator?.role || "";
   };
 
   const getCreatorName = (customer) => {
-    const creator = users.find(u => u.id === (customer.createdById || customer.createdBy));
-    return creator ? creator.name : (customer.salesManagerName || "—");
+    const creator = users.find(
+      (u) => u.id === (customer.createdById || customer.createdBy),
+    );
+    return creator ? creator.name : customer.salesManagerName || "—";
   };
 
   const searchedCustomers = useMemo(() => {
     if (!search.trim()) return expandedCustomers;
     const s = search.toLowerCase().trim();
-    return expandedCustomers.filter(c =>
-      c.name?.toLowerCase().includes(s) ||
-      c.mobile?.includes(s) ||
-      c.siteName?.toLowerCase().includes(s) ||
-      c.salesManagerName?.toLowerCase().includes(s) ||
-      String(c.createdById || c.createdBy || "").includes(s)
+    return expandedCustomers.filter(
+      (c) =>
+        c.name?.toLowerCase().includes(s) ||
+        c.mobile?.includes(s) ||
+        c.siteName?.toLowerCase().includes(s) ||
+        c.salesManagerName?.toLowerCase().includes(s) ||
+        String(c.createdById || c.createdBy || "").includes(s),
     );
   }, [expandedCustomers, search]);
 
   const filteredCustomers = useMemo(() => {
     let result = searchedCustomers;
     if (statusFilter !== "All") {
-      result = result.filter(c => c.status === statusFilter);
+      result = result.filter((c) => c.status === statusFilter);
     }
     if (roleFilter !== "All") {
-      result = result.filter(c => getCreatorRole(c) === roleFilter);
+      result = result.filter((c) => getCreatorRole(c) === roleFilter);
     }
     return result;
   }, [searchedCustomers, statusFilter, roleFilter, users]);
@@ -115,13 +132,13 @@ export default function PWACustomers() {
       All: myCustomers.length,
       Interested: 0,
       "Visit Scheduled": 0,
-      "Visit Completed": 0, 
+      "Visit Completed": 0,
       "Ready for Booking": 0,
       Booked: 0,
       "Payment Done": 0,
       Dropped: 0,
     };
-    myCustomers.forEach(c => {
+    myCustomers.forEach((c) => {
       if (counts[c.status] !== undefined) counts[c.status]++;
     });
     return counts;
@@ -130,8 +147,16 @@ export default function PWACustomers() {
   const filterOptions = [
     { key: "All", label: "All", count: statusCounts.All },
     { key: "Interested", label: "Interested", count: statusCounts.Interested },
-    { key: "Visit Scheduled", label: "Visit Scheduled", count: statusCounts["Visit Scheduled"] },
-    { key: "Visit Completed", label: "Visit Completed", count: statusCounts["Visit Completed"] },
+    {
+      key: "Visit Scheduled",
+      label: "Visit Scheduled",
+      count: statusCounts["Visit Scheduled"],
+    },
+    {
+      key: "Visit Completed",
+      label: "Visit Completed",
+      count: statusCounts["Visit Completed"],
+    },
   ];
 
   const formatDate = (dateStr) => {
@@ -173,7 +198,9 @@ export default function PWACustomers() {
     <div className="pb-4">
       <div className="px-4 py-4">
         <h1 className="text-xl font-bold text-gray-900">Customer Overview</h1>
-        <p className="text-sm text-gray-400 mt-0.5">Team customer performance</p>
+        <p className="text-sm text-gray-400 mt-0.5">
+          Team customer performance
+        </p>
       </div>
 
       <div className="px-4 space-y-3">
@@ -181,10 +208,21 @@ export default function PWACustomers() {
           <h3 className="font-bold text-gray-800 text-sm mb-3">Summary</h3>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: "Total", value: uniqueCustomerCount, color: "text-blue-600" },
-              { label: "Booked", value: statusCounts.Booked + statusCounts["Payment Done"], color: "text-green-600" },
-            ].map(s => (
-              <div key={s.label} className="text-center p-3 bg-gray-50 rounded-xl">
+              {
+                label: "Total",
+                value: uniqueCustomerCount,
+                color: "text-blue-600",
+              },
+              {
+                label: "Booked",
+                value: statusCounts.Booked + statusCounts["Payment Done"],
+                color: "text-green-600",
+              },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="text-center p-3 bg-gray-50 rounded-xl"
+              >
                 <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
                 <div className="text-xs text-gray-400 mt-0.5">{s.label}</div>
               </div>
@@ -199,10 +237,16 @@ export default function PWACustomers() {
 
           <div className="px-4 pb-2">
             <div className="relative">
-              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <Search
+                size={14}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              />
               <input
                 value={search}
-                onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setCurrentPage(1);
+                }}
                 placeholder="Search by Name, Mobile, Site, Created By..."
                 className="w-full pl-8 pr-2 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
@@ -212,10 +256,13 @@ export default function PWACustomers() {
           <div className="px-4 pb-2">
             <select
               value={roleFilter}
-              onChange={e => { setRoleFilter(e.target.value); setCurrentPage(1); }}
+              onChange={(e) => {
+                setRoleFilter(e.target.value);
+                setCurrentPage(1);
+              }}
               className="w-full rounded-xl px-3 py-2 bg-gray-50 border border-gray-200 text-xs font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {teamRoles.map(role => (
+              {teamRoles.map((role) => (
                 <option key={role} value={role}>
                   {role === "All" ? "All Roles" : role}
                 </option>
@@ -226,32 +273,51 @@ export default function PWACustomers() {
           <div className="px-4 pb-3">
             <select
               value={statusFilter}
-              onChange={e => handleFilterChange(e.target.value)}
+              onChange={(e) => handleFilterChange(e.target.value)}
               className="w-full rounded-xl px-3 py-2 bg-gray-50 border border-gray-200 text-xs font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {filterOptions.map(opt => (
+              {filterOptions.map((opt) => (
                 <option key={opt.key} value={opt.key}>
-                  {opt.label} ({opt.key === "All" ? statusCounts.All : statusCounts[opt.key] || 0})
+                  {opt.label} (
+                  {opt.key === "All"
+                    ? statusCounts.All
+                    : statusCounts[opt.key] || 0}
+                  )
                 </option>
               ))}
             </select>
           </div>
 
           <div className="px-4 pb-2 text-xs text-gray-400">
-            Showing {paginatedCustomers.length} of {filteredCustomers.length} rows ({uniqueCustomerCount} customers)
+            Showing {paginatedCustomers.length} of {filteredCustomers.length}{" "}
+            rows ({uniqueCustomerCount} customers)
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-t border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Customer</th>
-                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Created By</th>
-                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Mobile</th>
-                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Site</th>
-                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Visit Date</th>
-                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="text-center px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Action</th>
+                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                    Customer
+                  </th>
+                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                    Created By
+                  </th>
+                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                    Mobile
+                  </th>
+                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                    Site
+                  </th>
+                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                    Visit Date
+                  </th>
+                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="text-center px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                    Action
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -265,26 +331,43 @@ export default function PWACustomers() {
                     </td>
                   </tr>
                 ) : (
-                  paginatedCustomers.map(c => (
-                    <tr key={c._rowKey} className="hover:bg-gray-50 transition-colors">
+                  paginatedCustomers.map((c) => (
+                    <tr
+                      key={c._rowKey}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
                       <td className="px-4 py-3">
-                        <div className="font-semibold text-gray-800 text-sm">{c.name}</div>
+                        <div className="font-semibold text-gray-800 text-sm">
+                          {c.name}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-gray-700 text-xs font-medium">
                         {getCreatorName(c)}
                       </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{c.mobile}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{c.siteName || "—"}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(c.visitDate)}</td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">
+                        {c.mobile}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">
+                        {c.siteName || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">
+                        {formatDate(c.visitDate)}
+                      </td>
                       <td className="px-4 py-3">
-                        {c.status === "Visit Scheduled" && (c.createdById === user?.id || ["Admin", "Director"].includes(user?.role)) ? (
+                        {c.status === "Visit Scheduled" &&
+                        (c.createdById === user?.id ||
+                          ["Admin", "Director"].includes(user?.role)) ? (
                           <select
                             value=""
-                            onChange={e => handleSelectStatus(c, e.target.value)}
+                            onChange={(e) =>
+                              handleSelectStatus(c, e.target.value)
+                            }
                             className="text-xs font-semibold rounded-lg px-2 py-1 border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 outline-none cursor-pointer transition-colors"
                           >
                             <option value="">Update Status…</option>
-                            <option value="Visit Completed">Visit Completed</option>
+                            <option value="Visit Completed">
+                              Visit Completed
+                            </option>
                           </select>
                         ) : (
                           <StatusBadge status={c.status} />
@@ -309,7 +392,7 @@ export default function PWACustomers() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
               <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
                 className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed"
               >
@@ -343,7 +426,9 @@ export default function PWACustomers() {
                 })}
               </div>
               <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
                 disabled={currentPage === totalPages}
                 className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed"
               >
@@ -354,7 +439,12 @@ export default function PWACustomers() {
         </div>
       </div>
 
-      <Modal open={!!viewCustomer} onClose={() => setViewCustomer(null)} title="Customer Details" size="lg">
+      <Modal
+        open={!!viewCustomer}
+        onClose={() => setViewCustomer(null)}
+        title="Customer Details"
+        size="lg"
+      >
         {selected && (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
@@ -362,7 +452,9 @@ export default function PWACustomers() {
                 {selected.name?.charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-bold text-gray-900 truncate">{selected.name}</h3>
+                <h3 className="text-sm font-bold text-gray-900 truncate">
+                  {selected.name}
+                </h3>
                 <p className="text-[11px] text-gray-500">{selected.mobile}</p>
               </div>
               <StatusBadge status={selected.status} />
@@ -372,10 +464,47 @@ export default function PWACustomers() {
               {[
                 ["Email", selected.email],
                 ["Site", selected.siteName],
-                ["Created By", (() => { const creator = users.find(u => u.id === (selected.createdById || selected.createdBy)); return creator ? `${creator.name} (${creator.employeeCode})` : (selected.salesManagerName || "—"); })()],
-                [(() => { const creator = users.find(u => u.id === (selected.createdById || selected.createdBy)); return creator ? `${creator.role} Mobile` : "Mobile"; })(), (() => { const creator = users.find(u => u.id === (selected.createdById || selected.createdBy)); return creator?.mobile || "—"; })()],
+                [
+                  "Created By",
+                  (() => {
+                    const creator = users.find(
+                      (u) =>
+                        u.id === (selected.createdById || selected.createdBy),
+                    );
+                    return creator
+                      ? `${creator.name} (${creator.employeeCode})`
+                      : selected.salesManagerName || "—";
+                  })(),
+                ],
+                [
+                  (() => {
+                    const creator = users.find(
+                      (u) =>
+                        u.id === (selected.createdById || selected.createdBy),
+                    );
+                    return creator ? `${creator.role} Mobile` : "Mobile";
+                  })(),
+                  (() => {
+                    const creator = users.find(
+                      (u) =>
+                        u.id === (selected.createdById || selected.createdBy),
+                    );
+                    return creator?.mobile || "—";
+                  })(),
+                ],
                 ["Visit Date", formatDate(selected.visitDate)],
-                ["Visit Time", selected.visitTime ? (() => { const [h, m] = selected.visitTime.split(':'); const hour = parseInt(h, 10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })() : '—'],
+                [
+                  "Visit Time",
+                  selected.visitTime
+                    ? (() => {
+                        const [h, m] = selected.visitTime.split(":");
+                        const hour = parseInt(h, 10);
+                        const ampm = hour >= 12 ? "PM" : "AM";
+                        const hour12 = hour % 12 || 12;
+                        return `${hour12}:${m} ${ampm}`;
+                      })()
+                    : "—",
+                ],
                 ["Persons", selected.persons],
                 ["Purchase Mode", selected.purchaseMode],
                 ["Location", selected.location],
@@ -385,39 +514,68 @@ export default function PWACustomers() {
                 ["Address", selected.address],
               ].map(([k, v]) => (
                 <div key={k} className="flex flex-col gap-0.5">
-                  <span className="text-[11px] text-gray-400 font-medium tracking-wide">{k}</span>
-                  <span className="text-sm text-gray-800 break-words">{v || "—"}</span>
+                  <span className="text-[11px] text-gray-400 font-medium tracking-wide">
+                    {k}
+                  </span>
+                  <span className="text-sm text-gray-800 break-words">
+                    {(k === "Location" || k === "Pickup Location") && v ? (
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        {v} ↗
+                      </a>
+                    ) : (
+                      v || "—"
+                    )}
+                  </span>
                 </div>
               ))}
             </div>
 
             {selected.notes && (
               <div className="pt-2 border-t border-gray-100">
-                <p className="text-xs font-semibold text-gray-500 tracking-wide mb-1">Notes</p>
-                <p className="text-xs text-gray-700 leading-relaxed">{selected.notes}</p>
+                <p className="text-xs font-semibold text-gray-500 tracking-wide mb-1">
+                  Notes
+                </p>
+                <p className="text-xs text-gray-700 leading-relaxed">
+                  {selected.notes}
+                </p>
               </div>
             )}
 
-            {(selected.driverName || selected.driverMobile || selected.cabNumber) && (
+            {(selected.driverName ||
+              selected.driverMobile ||
+              selected.cabNumber) && (
               <div className="pt-2 border-t border-gray-100">
-                <p className="text-xs font-semibold text-blue-600 tracking-wide mb-1">🚗 Driver Details</p>
+                <p className="text-xs font-semibold text-blue-600 tracking-wide mb-1">
+                  🚗 Driver Details
+                </p>
                 <div className="space-y-1">
                   {selected.driverName && (
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-gray-400">Name</span>
-                      <span className="text-[11px] text-gray-800">{selected.driverName}</span>
+                      <span className="text-[11px] text-gray-800">
+                        {selected.driverName}
+                      </span>
                     </div>
                   )}
                   {selected.driverMobile && (
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-gray-400">Mobile</span>
-                      <span className="text-[11px] text-gray-800">{selected.driverMobile}</span>
+                      <span className="text-[11px] text-gray-800">
+                        {selected.driverMobile}
+                      </span>
                     </div>
                   )}
                   {selected.cabNumber && (
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-gray-400">Cab</span>
-                      <span className="text-[11px] text-gray-800">{selected.cabNumber}</span>
+                      <span className="text-[11px] text-gray-800">
+                        {selected.cabNumber}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -427,7 +585,12 @@ export default function PWACustomers() {
         )}
       </Modal>
 
-      <Modal open={!!historyCustomer} onClose={() => setHistoryCustomer(null)} title="Visit History" size="lg">
+      <Modal
+        open={!!historyCustomer}
+        onClose={() => setHistoryCustomer(null)}
+        title="Visit History"
+        size="lg"
+      >
         {historyCustomer && (
           <div className="space-y-0">
             <div className="flex items-center gap-3 mb-4">
@@ -435,12 +598,19 @@ export default function PWACustomers() {
                 {historyCustomer.name?.charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-bold text-gray-900 truncate">{historyCustomer.name}</h3>
-                <p className="text-[11px] text-gray-500">{historyCustomer.mobile}</p>
+                <h3 className="text-sm font-bold text-gray-900 truncate">
+                  {historyCustomer.name}
+                </h3>
+                <p className="text-[11px] text-gray-500">
+                  {historyCustomer.mobile}
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-semibold text-purple-700 bg-purple-100 border border-purple-200 px-3 py-1.5 rounded-full">
-                  {historyCustomer.visitCount || historyCustomer.visits?.length || 0} visits
+                  {historyCustomer.visitCount ||
+                    historyCustomer.visits?.length ||
+                    0}{" "}
+                  visits
                 </span>
                 <StatusBadge status={historyCustomer.status} />
               </div>
@@ -450,48 +620,101 @@ export default function PWACustomers() {
               {historyCustomer.visits && historyCustomer.visits.length > 0 ? (
                 historyCustomer.visits.map((visit, idx) => {
                   const statusColors = {
-                    'Interested': 'bg-blue-100 text-blue-700',
-                    'Visit Scheduled': 'bg-yellow-100 text-yellow-700',
-                    'Visit Completed': 'bg-green-100 text-green-700',
-                    'Booked': 'bg-emerald-100 text-emerald-700',
-                    'Payment Done': 'bg-green-100 text-green-700',
-                    'Follow-up': 'bg-orange-100 text-orange-700',
+                    Interested: "bg-blue-100 text-blue-700",
+                    "Visit Scheduled": "bg-yellow-100 text-yellow-700",
+                    "Visit Completed": "bg-green-100 text-green-700",
+                    Booked: "bg-emerald-100 text-emerald-700",
+                    "Payment Done": "bg-green-100 text-green-700",
+                    "Follow-up": "bg-orange-100 text-orange-700",
                   };
-                  const iconColors = ['bg-green-100 text-green-700', 'bg-yellow-100 text-yellow-700', 'bg-blue-100 text-blue-700'];
+                  const iconColors = [
+                    "bg-green-100 text-green-700",
+                    "bg-yellow-100 text-yellow-700",
+                    "bg-blue-100 text-blue-700",
+                  ];
                   const iconColor = iconColors[idx % iconColors.length];
                   const visitDate = formatDate(visit.visitDate);
-                  const displayDate = visitDate === '—' ? '—' : visitDate;
+                  const displayDate = visitDate === "—" ? "—" : visitDate;
 
                   return (
                     <div key={visit.id} className="px-4 py-4">
                       <div className="flex gap-3">
                         <div className="flex flex-col items-center">
                           <div className="text-[10px] text-gray-400 font-medium leading-tight">
-                            {displayDate !== '—' ? (() => { const d = new Date(visit.visitDate); return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`; })() : '—'}
+                            {displayDate !== "—"
+                              ? (() => {
+                                  const d = new Date(visit.visitDate);
+                                  return `${d.getDate()} ${d.toLocaleString("default", { month: "short" })}`;
+                                })()
+                              : "—"}
                           </div>
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center mt-1 ${iconColor}`}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+                          <div
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center mt-1 ${iconColor}`}
+                          >
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                              <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                            </svg>
                           </div>
                         </div>
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
-                            <h4 className="text-sm font-bold text-gray-900">{visit.siteName || `Visit #${historyCustomer.visitCount - idx}`}</h4>
-                            <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${statusColors[visit.status] || 'bg-gray-100 text-gray-700'}`}>{visit.status}</span>
+                            <h4 className="text-sm font-bold text-gray-900">
+                              {visit.siteName ||
+                                `Visit #${historyCustomer.visitCount - idx}`}
+                            </h4>
+                            <span
+                              className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${statusColors[visit.status] || "bg-gray-100 text-gray-700"}`}
+                            >
+                              {visit.status}
+                            </span>
                           </div>
 
                           <div className="text-[11px] text-gray-400 mb-2">
-                            {visit.visitDate && !visit.visitDate.includes('T') ? visit.visitDate : ''} {visit.visitTime ? (() => { const [h,m] = visit.visitTime.split(':'); const hour = parseInt(h,10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })() : ''}
+                            {visit.visitDate && !visit.visitDate.includes("T")
+                              ? visit.visitDate
+                              : ""}{" "}
+                            {visit.visitTime
+                              ? (() => {
+                                  const [h, m] = visit.visitTime.split(":");
+                                  const hour = parseInt(h, 10);
+                                  const ampm = hour >= 12 ? "PM" : "AM";
+                                  const hour12 = hour % 12 || 12;
+                                  return `${hour12}:${m} ${ampm}`;
+                                })()
+                              : ""}
                           </div>
 
                           <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-600 mb-2">
-                            <span className="flex items-center gap-1"><Users size={12} /> {visit.persons} Persons</span>
-                            <span className="flex items-center gap-1"><IndianRupee size={12} /> {visit.purchaseMode}</span>
+                            <span className="flex items-center gap-1">
+                              <Users size={12} /> {visit.persons} Persons
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <IndianRupee size={12} /> {visit.purchaseMode}
+                            </span>
                           </div>
 
                           {visit.registeredBy && (
                             <div className="text-[10px] text-gray-500">
-                              Assigned To <span className="font-semibold text-gray-700">{visit.registeredBy}</span> <span className="text-gray-400">{visit.registeredByRole ? `(${visit.registeredByRole})` : ''}</span>
+                              Assigned To{" "}
+                              <span className="font-semibold text-gray-700">
+                                {visit.registeredBy}
+                              </span>{" "}
+                              <span className="text-gray-400">
+                                {visit.registeredByRole
+                                  ? `(${visit.registeredByRole})`
+                                  : ""}
+                              </span>
                             </div>
                           )}
                         </div>
@@ -500,13 +723,18 @@ export default function PWACustomers() {
                   );
                 })
               ) : (
-                <div className="px-4 py-6 text-center text-gray-400 text-sm">No visit history available</div>
+                <div className="px-4 py-6 text-center text-gray-400 text-sm">
+                  No visit history available
+                </div>
               )}
             </div>
 
             {historyCustomer.visits && historyCustomer.visits.length > 1 && (
               <div className="text-center py-2">
-                <p className="text-[10px] text-gray-400">Showing all {historyCustomer.visits.length} visits · Latest visit at the top</p>
+                <p className="text-[10px] text-gray-400">
+                  Showing all {historyCustomer.visits.length} visits · Latest
+                  visit at the top
+                </p>
               </div>
             )}
           </div>
@@ -514,14 +742,28 @@ export default function PWACustomers() {
       </Modal>
 
       {pendingUpdate && (
-        <Modal open={!!pendingUpdate} onClose={() => setPendingUpdate(null)} title="Confirm Status Update">
+        <Modal
+          open={!!pendingUpdate}
+          onClose={() => setPendingUpdate(null)}
+          title="Confirm Status Update"
+        >
           <div className="text-center py-4 space-y-3">
             <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto shadow-inner">
               <CheckCircle size={28} />
             </div>
-            <h3 className="text-base font-bold text-gray-800">Update Customer Status</h3>
+            <h3 className="text-base font-bold text-gray-800">
+              Update Customer Status
+            </h3>
             <p className="text-xs text-gray-500 px-2 leading-relaxed">
-              Are you sure you want to update status for <span className="font-semibold text-gray-800">{pendingUpdate.customer.name}</span> to <span className="font-semibold text-blue-600">{pendingUpdate.newStatus}</span>?
+              Are you sure you want to update status for{" "}
+              <span className="font-semibold text-gray-800">
+                {pendingUpdate.customer.name}
+              </span>{" "}
+              to{" "}
+              <span className="font-semibold text-blue-600">
+                {pendingUpdate.newStatus}
+              </span>
+              ?
             </p>
             <div className="flex items-center gap-2 pt-2">
               <button

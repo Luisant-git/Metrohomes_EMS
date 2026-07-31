@@ -404,7 +404,7 @@ export default function PWAVisitRegistration() {
         projectId: Number(form.projectId),
         siteId: Number(form.siteId),
         visitDate: form.visitDate,
-        visitTime: form.visitTime,
+        visitTime: form.visitTime || "09:00",
         persons: Number(form.persons),
         pickupLocation: form.location,
         purchaseMode: form.purchaseMode,
@@ -641,8 +641,10 @@ export default function PWAVisitRegistration() {
                     type="time"
                     value={form.visitTime}
                     onChange={e => setForm(p => ({ ...p, visitTime: e.target.value }))}
+                    max="12:00"
                     className={`input-field ${errors.visitTime ? 'border-red-500' : ''}`}
                   />
+                  <p className="text-xs text-amber-600 mt-1">Morning visits only (before 12:00 PM)</p>
                 </F>
               </div>
 
