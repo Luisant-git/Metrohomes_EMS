@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import {
   LayoutDashboard, Users, Building2, CheckSquare, BookOpen, BarChart3,
-  Trophy, Coins, LogOut, Bell, Search, ChevronDown, User,
+  Trophy, Coins, LogOut, Search, ChevronDown, User,
   FileText, UserCheck, Settings, UserPlus, Menu, X,
 } from "lucide-react";
 import logo from "../assests/logo 1.png";
@@ -104,11 +104,6 @@ export default function WebLayout({ children }) {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 ml-auto">
-            <button className="relative text-gray-400 hover:text-gray-700 p-2 rounded-xl hover:bg-gray-50">
-              <Bell size={20} />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
-
             <div className="relative">
               <button onClick={() => setShowUserMenu(p => !p)}
                 className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 rounded-xl px-2 sm:px-3 py-2 transition-colors">

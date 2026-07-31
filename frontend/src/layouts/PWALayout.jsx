@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { LayoutDashboard, Building2, Users, MapPin, User, LogOut, Bell, ChevronLeft, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Building2, Users, MapPin, User, LogOut, ChevronLeft, BarChart3 } from "lucide-react";
 import logo from "../assests/logo 1.png";
 
 const ROUTE_TITLES = {
@@ -85,10 +85,6 @@ export default function PWALayout({ children }) {
           </div>
           {!isNested && (
             <div className="flex items-center gap-1 flex-shrink-0">
-              <button className="relative p-2 hover:bg-white/20 rounded-xl transition-colors">
-                <Bell size={20} />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-400 rounded-full animate-pulse" />
-              </button>
               <button onClick={logout} className="p-2 hover:bg-white/20 rounded-xl transition-colors" title="Logout">
                 <LogOut size={20} />
               </button>
