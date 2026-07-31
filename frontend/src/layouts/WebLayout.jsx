@@ -17,7 +17,6 @@ const NAV_ITEMS = [
   { path: "/bookings", icon: BookOpen, label: "Booking Management", roles: ["Admin"] },
   { path: "/sales-report", icon: BarChart3, label: "Booking Report", roles: ["Admin"] },
   { path: "/achievers", icon: Trophy, label: "Achievers Report", roles: ["Admin"] },
-  { path: "/commission", icon: Coins, label: "Commission", roles: ["Admin"] },
   { path: "/profile", icon: User, label: "Profile", roles: ["Admin", "Director"] },
 ];
 
