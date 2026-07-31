@@ -4,7 +4,7 @@ import axios from 'axios';
 @Injectable()
 export class MapsService {
   private get apiKey(): string {
-    return process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8';
+    return process.env.GOOGLE_MAPS_API_KEY;
   }
 
   async geocodeAddress(address?: string, latlng?: string) {
