@@ -331,6 +331,13 @@ export default function CustomerRegistration() {
     if (!form.visitTime) {
       newErrors.visitTime = "Visit time is required";
       errorMessages.push("Visit time is required");
+    } else {
+      const [h, m] = form.visitTime.split(":").map(Number);
+      const totalMinutes = h * 60 + m;
+      if (totalMinutes > 12 * 60) {
+        newErrors.visitTime = "Site visit registration is allowed only until 12:00 PM.";
+        errorMessages.push("Site visit registration is allowed only until 12:00 PM.");
+      }
     }
     if (!form.persons) {
       newErrors.persons = "Number of persons is required";
@@ -632,10 +639,23 @@ export default function CustomerRegistration() {
                 <input
                   type="time"
                   value={form.visitTime}
-                  onChange={e => setForm(p => ({ ...p, visitTime: e.target.value }))}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setForm(p => ({ ...p, visitTime: val }));
+                    if (val) {
+                      const [h, m] = val.split(":").map(Number);
+                      if (h * 60 + m > 12 * 60) {
+                        toast.error("Site visit registration is allowed only until 12:00 PM.");
+                        setErrors(prev => ({ ...prev, visitTime: "Site visit registration is allowed only until 12:00 PM." }));
+                      } else {
+                        setErrors(prev => ({ ...prev, visitTime: undefined }));
+                      }
+                    }
+                  }}
                   max="12:00"
                   className={`input-field ${errors.visitTime ? 'border-red-500' : ''}`}
                 />
+                {errors.visitTime && <p className="text-xs text-red-500 mt-1">{errors.visitTime}</p>}
               </F>
 
               <F label="Number of Persons" icon={Users} required>
