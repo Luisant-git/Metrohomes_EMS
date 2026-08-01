@@ -8,6 +8,27 @@ import { mapsApi } from "../../api/maps.js";
 import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Navigation, Users, Briefcase, IndianRupee, Clock, Search, Compass, Car } from "lucide-react";
 import { toast } from "react-toastify";
 
+const timeSlots = [
+  "07:00",
+  "07:30",
+  "08:00",
+  "08:30",
+  "09:00",
+  "09:30",
+  "10:00",
+  "10:30",
+  "11:00",
+  "11:30",
+  "12:00",
+];
+
+const formatSlot = (slot) => {
+  const [hour, minute] = slot.split(":").map(Number);
+  const suffix = hour === 12 ? "PM" : "AM";
+  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${String(displayHour).padStart(2, "0")}:${String(minute).padStart(2, "0")} ${suffix}`;
+};
+
 // Success Modal Component
 function SuccessModal({ isOpen, onClose, onViewCustomers }) {
   if (!isOpen) return null;
@@ -326,10 +347,6 @@ export default function PWAVisitRegistration() {
       newErrors.projectId = "Please select a project";
       errorMessages.push("Please select a project");
     }
-    if (!form.siteId) {
-      newErrors.siteId = "Please select a site";
-      errorMessages.push("Please select a site");
-    }
     if (!form.visitDate) {
       newErrors.visitDate = "Visit date is required";
       errorMessages.push("Visit date is required");
@@ -412,7 +429,7 @@ export default function PWAVisitRegistration() {
       const visitPayload = {
         customerId: createdCustomer.id,
         projectId: Number(form.projectId),
-        siteId: Number(form.siteId),
+        ...(form.siteId ? { siteId: Number(form.siteId) } : {}),
         visitDate: form.visitDate,
         visitTime: form.visitTime || "09:00",
         persons: Number(form.persons),
@@ -601,12 +618,11 @@ export default function PWAVisitRegistration() {
               )}
 
               {form.projectId && (
-                <F label="Select Site / Plot" icon={MapPin} required>
-                  <select value={form.siteId} onChange={e => setForm(p => ({ ...p, siteId: e.target.value }))} className={`input-field ${errors.siteId ? 'border-red-500' : ''}`}>
+                <F label="Select Site / Plot (optional)" icon={MapPin}>
+                  <select value={form.siteId} onChange={e => setForm(p => ({ ...p, siteId: e.target.value }))} className="input-field">
                     <option value="">Choose site…</option>
                     {availablePlots.map(p => <option key={p.id} value={p.id}>Site {p.siteNo} — {p.facing} — {Number(p.totalSqft).toLocaleString("en-IN")} sqft</option>)}
                   </select>
-                  {errors.siteId && <p className="text-xs text-red-500 mt-1">{errors.siteId}</p>}
                 </F>
               )}
 
@@ -647,25 +663,16 @@ export default function PWAVisitRegistration() {
                 </F>
 
                 <F label="Visit Time" icon={Clock} required>
-                  <input
-                    type="time"
+                  <select
                     value={form.visitTime}
-                    onChange={e => {
-                      const val = e.target.value;
-                      setForm(p => ({ ...p, visitTime: val }));
-                      if (val) {
-                        const [h, m] = val.split(":").map(Number);
-                        if (h * 60 + m > 12 * 60) {
-                          toast.error("Site visit registration is allowed only until 12:00 PM.");
-                          setErrors(prev => ({ ...prev, visitTime: "Site visit registration is allowed only until 12:00 PM." }));
-                        } else {
-                          setErrors(prev => ({ ...prev, visitTime: undefined }));
-                        }
-                      }
-                    }}
-                    max="12:00"
+                    onChange={e => setForm(p => ({ ...p, visitTime: e.target.value }))}
                     className={`input-field ${errors.visitTime ? 'border-red-500' : ''}`}
-                  />
+                  >
+                    <option value="">Choose time…</option>
+                    {timeSlots.map(slot => (
+                      <option key={slot} value={slot}>{formatSlot(slot)}</option>
+                    ))}
+                  </select>
                   {errors.visitTime && <p className="text-xs text-red-500 mt-1">{errors.visitTime}</p>}
                 </F>
               </div>
@@ -796,7 +803,7 @@ export default function PWAVisitRegistration() {
                 ["Pin Code", form.pinCode],
                 ["Occupation", form.occupation],
                 ["Project", selectedProject?.name || "—"],
-                ["Site / Plot", selectedSite ? `Site ${selectedSite.siteNo} (${selectedSite.facing})` : "—"],
+                ["Site / Plot", selectedSite ? `Site ${selectedSite.siteNo} (${selectedSite.facing})` : null],
                 ["Purchase Mode", form.purchaseMode],
                 ["Visit Date", form.visitDate],
                 ["Visit Time", form.visitTime ? (() => { const [h,m] = form.visitTime.split(':'); const hour = parseInt(h,10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })() : '—'],
@@ -806,12 +813,14 @@ export default function PWAVisitRegistration() {
                 ["Created By Role", salesManager.role],
                 ["Sales Manager", salesManager.name],
                 ["Sales Manager Mobile", salesManager.mobile],
-              ].map(([k, v]) => (
-                <div key={k} className="flex items-start justify-between px-4 py-3">
-                  <span className="text-sm text-gray-400 font-medium">{k}</span>
-                  <span className="text-sm font-semibold text-gray-800 text-right max-w-[55%]">{v}</span>
-                </div>
-              ))}
+              ]
+                .filter(([k, v]) => v !== null)
+                .map(([k, v]) => (
+                  <div key={k} className="flex items-start justify-between px-4 py-3">
+                    <span className="text-sm text-gray-400 font-medium">{k}</span>
+                    <span className="text-sm font-semibold text-gray-800 text-right max-w-[55%]">{v}</span>
+                  </div>
+                ))}
             </div>
 
             <div className="bg-blue-50 rounded-2xl p-3 text-xs text-blue-600">

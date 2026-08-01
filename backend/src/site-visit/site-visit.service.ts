@@ -25,31 +25,37 @@ export class SiteVisitService {
       throw new NotFoundException('Project not found');
     }
 
-    // Verify site exists and belongs to the project
-    const site = await this.prisma.site.findFirst({
-      where: { id: dto.siteId, projectId: dto.projectId },
-    });
-    if (!site) {
-      throw new NotFoundException('Site not found in this project');
+    let site = null;
+    if (dto.siteId !== undefined && dto.siteId !== null) {
+      site = await this.prisma.site.findFirst({
+        where: { id: dto.siteId, projectId: dto.projectId },
+      });
+      if (!site) {
+        throw new NotFoundException('Site not found in this project');
+      }
+    }
+
+    const visitData: any = {
+      customerId: dto.customerId,
+      projectId: dto.projectId,
+      visitDate: dto.visitDate ? new Date(dto.visitDate) : new Date(),
+      visitTime: dto.visitTime || '09:00',
+      persons: dto.persons,
+      pickupLocation: dto.pickupLocation,
+      purchaseMode: dto.purchaseMode,
+      notes: dto.notes,
+      status: dto.status || 'Interested',
+      assignedTo: dto.assignedTo,
+      driverName: dto.driverName,
+      driverMobile: dto.driverMobile,
+      cabNumber: dto.cabNumber,
+    };
+    if (dto.siteId !== undefined && dto.siteId !== null) {
+      visitData.siteId = dto.siteId;
     }
 
     const visit = await this.prisma.siteVisit.create({
-      data: {
-        customerId: dto.customerId,
-        projectId: dto.projectId,
-        siteId: dto.siteId,
-        visitDate: dto.visitDate ? new Date(dto.visitDate) : new Date(),
-        visitTime: dto.visitTime || '09:00',
-        persons: dto.persons,
-        pickupLocation: dto.pickupLocation,
-        purchaseMode: dto.purchaseMode,
-        notes: dto.notes,
-        status: dto.status || 'Interested',
-        assignedTo: dto.assignedTo,
-        driverName: dto.driverName,
-        driverMobile: dto.driverMobile,
-        cabNumber: dto.cabNumber,
-      },
+      data: visitData,
       include: {
         project: { select: { name: true, location: true } },
         site: { select: { siteNo: true, facing: true, totalSqft: true } },

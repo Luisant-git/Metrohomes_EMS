@@ -148,8 +148,8 @@ model SiteVisit {
   projectId   Int
   project     Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
 
-  siteId       Int
-  site         Site     @relation(fields: [siteId], references: [id], onDelete: Restrict)
+  siteId       Int?
+  site         Site?     @relation(fields: [siteId], references: [id], onDelete: Restrict)
 
   visitDate    DateTime?
   visitTime    String?

@@ -9,6 +9,27 @@ import { User, Phone, MapPin, Calendar, Building2, FileText, CheckCircle, Naviga
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+const timeSlots = [
+  "07:00",
+  "07:30",
+  "08:00",
+  "08:30",
+  "09:00",
+  "09:30",
+  "10:00",
+  "10:30",
+  "11:00",
+  "11:30",
+  "12:00",
+];
+
+const formatSlot = (slot) => {
+  const [hour, minute] = slot.split(":").map(Number);
+  const suffix = hour === 12 ? "PM" : "AM";
+  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${String(displayHour).padStart(2, "0")}:${String(minute).padStart(2, "0")} ${suffix}`;
+};
+
 function SuccessModal({ isOpen, onClose, onViewCustomers }) {
   if (!isOpen) return null;
   return (
@@ -323,10 +344,6 @@ export default function CustomerRegistration() {
       newErrors.projectId = "Please select a project";
       errorMessages.push("Please select a project");
     }
-    if (!form.siteId) {
-      newErrors.siteId = "Please select a site";
-      errorMessages.push("Please select a site");
-    }
     if (!form.visitDate) {
       newErrors.visitDate = "Visit date is required";
       errorMessages.push("Visit date is required");
@@ -410,7 +427,7 @@ export default function CustomerRegistration() {
       const visitPayload = {
         customerId: createdCustomer.id,
         projectId: Number(form.projectId),
-        siteId: Number(form.siteId),
+        ...(form.siteId ? { siteId: Number(form.siteId) } : {}),
         visitDate: form.visitDate,
         visitTime: form.visitTime,
         persons: Number(form.persons),
@@ -423,7 +440,7 @@ export default function CustomerRegistration() {
         driverMobile: form.driverMobile,
         cabNumber: form.cabNumber,
       };
-      
+
       await siteVisit.create(visitPayload);
       await refreshCustomers();
       setSuccessModalOpen(true);
@@ -595,12 +612,11 @@ export default function CustomerRegistration() {
               )}
 
               {form.projectId && (
-                <F label="Select Site / Plot" icon={MapPin} required className="md:col-span-2">
-                  <select value={form.siteId} onChange={e => setForm(p => ({ ...p, siteId: e.target.value }))} className={`input-field ${errors.siteId ? 'border-red-500' : ''}`}>
+                <F label="Select Site / Plot (optional)" icon={MapPin} className="md:col-span-2">
+                  <select value={form.siteId} onChange={e => setForm(p => ({ ...p, siteId: e.target.value }))} className="input-field">
                     <option value="">Choose site…</option>
                     {availablePlots.map(p => <option key={p.id} value={p.id}>Site {p.siteNo} — {p.facing} — {Number(p.totalSqft).toLocaleString("en-IN")} sqft</option>)}
                   </select>
-                  {errors.siteId && <p className="text-xs text-red-500 mt-1">{errors.siteId}</p>}
                 </F>
               )}
 
@@ -639,25 +655,16 @@ export default function CustomerRegistration() {
               </F>
 
               <F label="Visit Time" icon={Clock} required>
-                <input
-                  type="time"
+                <select
                   value={form.visitTime}
-                  onChange={e => {
-                    const val = e.target.value;
-                    setForm(p => ({ ...p, visitTime: val }));
-                    if (val) {
-                      const [h, m] = val.split(":").map(Number);
-                      if (h * 60 + m > 12 * 60) {
-                        toast.error("Site visit registration is allowed only until 12:00 PM.");
-                        setErrors(prev => ({ ...prev, visitTime: "Site visit registration is allowed only until 12:00 PM." }));
-                      } else {
-                        setErrors(prev => ({ ...prev, visitTime: undefined }));
-                      }
-                    }
-                  }}
-                  max="12:00"
+                  onChange={e => setForm(p => ({ ...p, visitTime: e.target.value }))}
                   className={`input-field ${errors.visitTime ? 'border-red-500' : ''}`}
-                />
+                >
+                  <option value="">Choose time…</option>
+                  {timeSlots.map(slot => (
+                    <option key={slot} value={slot}>{formatSlot(slot)}</option>
+                  ))}
+                </select>
                 {errors.visitTime && <p className="text-xs text-red-500 mt-1">{errors.visitTime}</p>}
               </F>
 
@@ -786,7 +793,7 @@ export default function CustomerRegistration() {
                 ["Pin Code", form.pinCode],
                 ["Occupation", form.occupation],
                 ["Project", selectedProject?.name || "—"],
-                ["Site / Plot", selectedSite ? `Site ${selectedSite.siteNo} (${selectedSite.facing})` : "—"],
+                ["Site / Plot", selectedSite ? `Site ${selectedSite.siteNo} (${selectedSite.facing})` : null],
                 ["Purchase Mode", form.purchaseMode],
                 ["Visit Date", form.visitDate],
                 ["Visit Time", form.visitTime ? (() => { const [h,m] = form.visitTime.split(':'); const hour = parseInt(h,10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })() : '—'],
@@ -795,12 +802,14 @@ export default function CustomerRegistration() {
                 ["Created By", salesManager.role],
                 ["Sales Manager", salesManager.name],
                 ["Sales Manager Mobile", salesManager.mobile],
-              ].map(([k, v]) => (
-                <div key={k} className="flex items-start justify-between px-5 py-3">
-                  <span className="text-sm text-gray-500 font-medium">{k}</span>
-                  <span className="text-sm font-medium text-gray-800 text-right max-w-[60%]">{v}</span>
-                </div>
-              ))}
+              ]
+                .filter(([k, v]) => v !== null)
+                .map(([k, v]) => (
+                  <div key={k} className="flex items-start justify-between px-5 py-3">
+                    <span className="text-sm text-gray-500 font-medium">{k}</span>
+                    <span className="text-sm font-medium text-gray-800 text-right max-w-[60%]">{v}</span>
+                  </div>
+                ))}
             </div>
 
             <div className="bg-blue-50 rounded-xl p-4 text-xs text-blue-700">

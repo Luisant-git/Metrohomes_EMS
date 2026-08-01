@@ -13,10 +13,13 @@ export class CreateSiteVisitDto {
   @IsNotEmpty()
   projectId: number;
 
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === '' || value === null || value === undefined) return undefined;
+    return Number(value);
+  })
   @IsInt()
-  @Type(() => Number)
-  @IsNotEmpty()
-  siteId: number;
+  siteId?: number;
 
   @IsDateString()
   @IsOptional()

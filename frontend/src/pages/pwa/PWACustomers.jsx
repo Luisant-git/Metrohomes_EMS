@@ -463,7 +463,7 @@ export default function PWACustomers() {
             <div className="space-y-2.5">
               {[
                 ["Email", selected.email],
-                ["Site", selected.siteName],
+                ["Site", selected.siteName || null],
                 [
                   "Created By",
                   (() => {
@@ -512,27 +512,29 @@ export default function PWACustomers() {
                 ["Occupation", selected.occupation],
                 ["Registered", formatDate(selected.registeredDate)],
                 ["Address", selected.address],
-              ].map(([k, v]) => (
-                <div key={k} className="flex flex-col gap-0.5">
-                  <span className="text-[11px] text-gray-400 font-medium tracking-wide">
-                    {k}
-                  </span>
-                  <span className="text-sm text-gray-800 break-words">
-                    {(k === "Location" || k === "Pickup Location") && v ? (
-                      <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1 cursor-pointer"
-                      >
-                        {v} ↗
-                      </a>
-                    ) : (
-                      v || "—"
-                    )}
-                  </span>
-                </div>
-              ))}
+              ]
+                .filter(([k, v]) => v !== null)
+                .map(([k, v]) => (
+                  <div key={k} className="flex flex-col gap-0.5">
+                    <span className="text-[11px] text-gray-400 font-medium tracking-wide">
+                      {k}
+                    </span>
+                    <span className="text-sm text-gray-800 break-words">
+                      {(k === "Location" || k === "Pickup Location") && v ? (
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          {v} ↗
+                        </a>
+                      ) : (
+                        v || "—"
+                      )}
+                    </span>
+                  </div>
+                ))}
             </div>
 
             {selected.notes && (
