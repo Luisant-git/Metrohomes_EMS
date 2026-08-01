@@ -499,8 +499,8 @@ export class CustomerService {
   // Uses in-memory store - no database records created for OTP
   // ---------------------------------------------------
   async requestCustomerOtp(mobile: string) {
-    // Generate 4-digit OTP preserving leading zeros
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    const isLocalDev = process.env.NODE_ENV !== 'production';
+    const otp = isLocalDev ? '1234' : Math.floor(1000 + Math.random() * 9000).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
 
     // Store OTP in memory (not in database)
@@ -510,10 +510,14 @@ export class CustomerService {
       attempts: 0,
     });
 
-    // Reuse existing sendOtp method from WhatsappService (metrohomes_verification_code_v1 template)
-    await this.whatsappService.sendOtp(mobile, otp);
+    if (!isLocalDev) {
+      // Reuse existing sendOtp method from WhatsappService (metrohomes_verification_code_v1 template)
+      await this.whatsappService.sendOtp(mobile, otp);
+      this.logger.log(`Customer OTP sent to ${mobile}`);
+    } else {
+      this.logger.log(`Local dev OTP for ${mobile} is ${otp}`);
+    }
 
-    this.logger.log(`Customer OTP sent to ${mobile}`);
     return { message: 'OTP sent to mobile number' };
   }
 
