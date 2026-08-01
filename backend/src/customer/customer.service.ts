@@ -432,6 +432,7 @@ export class CustomerService {
             visit.driverName || 'Not assigned',
             visit.driverMobile || 'N/A',
             visit.cabNumber || 'N/A',
+            visit.pickupLocation || 'N/A',
           );
           this.logger.log(`Customer site visit confirmation template sent to employee ${creator.mobile}`);
         }

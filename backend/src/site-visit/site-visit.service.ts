@@ -165,7 +165,7 @@ export class SiteVisitService {
           if (visitWithRelations.assignedToUser?.mobile) {
             await this.whatsappService.sendCustomerSiteVisitConfirmation(
               visitWithRelations.assignedToUser.mobile,
-              visitWithRelations.assignedToUser?.name || 'Sales Manager',
+              visitWithRelations.assignedToUser?.name || 'N/A',
               visitWithRelations.customer?.name || '',
               visitWithRelations.customer?.phone || '',
               siteName,
@@ -174,6 +174,7 @@ export class SiteVisitService {
               driverName,
               driverMobile,
               vehicleNo,
+              visitWithRelations.pickupLocation || 'N/A',
             );
           }
 

@@ -1,4 +1,4 @@
-// src/whatsapp/whatsapp.service.ts
+﻿// src/whatsapp/whatsapp.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import * as fs from 'fs';
@@ -171,6 +171,7 @@ export class WhatsappService {
     driverName: string,
     driverMobile: string,
     vehicleNo: string,
+    location: string,
   ): Promise<any> {
     const formattedNumber = this.normalizePhone(toPhoneNumber);
     try {
@@ -181,7 +182,7 @@ export class WhatsappService {
           to: formattedNumber,
           type: 'template',
           template: {
-            name: 'customer_site_visit_confirmation',
+            name: 'customer_site_visit_confirmation_v2',
             language: { code: 'en' },
             components: [
               {
@@ -196,6 +197,7 @@ export class WhatsappService {
                   { type: 'text', text: this.sanitizeText(driverName, 'Not Assigned') },
                   { type: 'text', text: this.sanitizeText(driverMobile) },
                   { type: 'text', text: this.sanitizeText(vehicleNo) },
+                  { type: 'text', text: this.sanitizeText(location) },
                 ],
               },
             ],
