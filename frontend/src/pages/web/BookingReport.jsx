@@ -79,6 +79,7 @@ export default function BookingReport() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [viewBooking, setViewBooking] = useState(null);
+  const [viewProject, setViewProject] = useState(null);
   const pageSize = 5;
 
   // User Map for quick fallback resolution of Created User (role, name, employeeCode)
@@ -187,6 +188,20 @@ export default function BookingReport() {
       { name: "Initial / Booked", value: stats.initialPaymentCount || 1, color: "#F59E0B" },
     ];
   }, [stats]);
+
+  // Per-project site stats: total sites, booked count, sold count
+  const projectStatsMap = useMemo(() => {
+    const map = new Map();
+    sites.forEach((project) => {
+      if (!project.plots) return;
+      const total = project.plots.length;
+      const booked = project.plots.filter((p) => p.status === "Booked" || p.status === "Booked").length;
+      const sold = project.plots.filter((p) => p.status === "Sold" || p.status === "Full Payment").length;
+      const available = project.plots.filter((p) => p.status === "Active" || p.status === "Available").length;
+      map.set(project.id, { total, booked, sold, available, name: project.name, location: project.location });
+    });
+    return map;
+  }, [sites]);
 
   // Project Sales Section Data - Booked Projects Alone (Project No, Project Name, Site No, Facing, Feet, Total Sqft)
   const projectSalesList = useMemo(() => {
@@ -383,17 +398,27 @@ export default function BookingReport() {
        
 
 
-      {/* ── 2. Stat Cards Section (Matching exact look of all pages) ── */}
-      {/* Requested 6 Stat Cards: Total Revenue, Avg Revenue, Total Project, Total Site, Total Customer, Booked Customer */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 w-full">
-        <StatCard
-          icon={IndianRupee}
-          label="Total Revenue"
-          value={stats.totalRevenue}
-          prefix="₹"
-          color="green"
-        />
-      
+      {/* ── 2. Stat Cards Section ── */}
+      {/* Total Revenue: wide dedicated card so large amounts are never truncated */}
+      <div className="card p-4 sm:p-5 bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-100 rounded-2xl shadow-sm flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="w-12 h-12 rounded-2xl flex-shrink-0 bg-emerald-100 ring-1 ring-emerald-200 flex items-center justify-center">
+            <IndianRupee size={22} className="text-emerald-600" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11px] sm:text-xs text-emerald-700 font-semibold uppercase tracking-wide mb-0.5">Total Revenue</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-emerald-800 leading-tight break-all">
+              ₹{stats.totalRevenue.toLocaleString("en-IN")}
+            </div>
+          </div>
+        </div>
+        <div className="flex-shrink-0 text-right">
+          <div className="text-[10px] text-emerald-600 font-medium">Plot Value</div>
+          <div className="text-sm sm:text-base font-semibold text-emerald-700">₹{stats.totalPlotPrice.toLocaleString("en-IN")}</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 w-full">
         <StatCard
           icon={Building2}
           label="Total Project"
@@ -558,7 +583,7 @@ export default function BookingReport() {
                 <th className="px-3.5 py-3">Facing</th>
                 <th className="px-3.5 py-3">Feet</th>
                 <th className="px-3.5 py-3">Total Sqft</th>
-              
+                <th className="px-3.5 py-3 text-right">View</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
@@ -575,11 +600,23 @@ export default function BookingReport() {
                     <td className="px-3.5 py-3 text-slate-600">{item.facing}</td>
                     <td className="px-3.5 py-3 text-slate-500">{item.feet}</td>
                     <td className="px-3.5 py-3 font-medium text-slate-800">{item.totalSqft} sq.ft</td>
+                    <td className="px-3.5 py-3 text-right">
+                      <button
+                        onClick={() => {
+                          const projSite = sites.find((s) => s.id === item.projectId || s.name === item.projectName);
+                          setViewProject({ item, stats: projSite ? projectStatsMap.get(projSite.id) : null, projSite });
+                        }}
+                        className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 px-2 py-1 rounded-lg transition-colors"
+                        title="View project site stats"
+                      >
+                        <Eye size={14} />
+                      </button>
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-slate-400 text-sm">
+                  <td colSpan={8} className="text-center py-8 text-slate-400 text-sm">
                     No project sales found.
                   </td>
                 </tr>
@@ -768,6 +805,58 @@ export default function BookingReport() {
       </div>
     </div>
   </div>
+
+      {/* ── Project Stats Modal ── */}
+      {viewProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onClick={() => setViewProject(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <h3 className="font-semibold text-slate-800 text-base flex items-center gap-2">
+                <Building2 size={16} className="text-indigo-600" /> Project Site Stats
+              </h3>
+              <button onClick={() => setViewProject(null)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <div className="text-xs font-semibold text-indigo-500 uppercase tracking-wider mb-1">Project</div>
+                <div className="text-sm font-semibold text-slate-800">{viewProject.item.projectName}</div>
+                <div className="text-xs text-slate-400 mt-0.5">{viewProject.projSite?.location || viewProject.item.projectNo}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
+                  <div className="text-2xl font-bold text-blue-700">{viewProject.stats?.total ?? viewProject.projSite?.plots?.length ?? "—"}</div>
+                  <div className="text-[11px] font-medium text-blue-500 mt-0.5">Total Sites</div>
+                </div>
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-center">
+                  <div className="text-2xl font-bold text-amber-700">
+                    {viewProject.stats?.booked ??
+                      (viewProject.projSite?.plots?.filter((p) => p.status === "Booked").length ?? "—")}
+                  </div>
+                  <div className="text-[11px] font-medium text-amber-500 mt-0.5">Booked</div>
+                </div>
+                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
+                  <div className="text-2xl font-bold text-emerald-700">
+                    {viewProject.stats?.sold ??
+                      (viewProject.projSite?.plots?.filter((p) => p.status === "Sold" || p.status === "Full Payment").length ?? "—")}
+                  </div>
+                  <div className="text-[11px] font-medium text-emerald-500 mt-0.5">Sold</div>
+                </div>
+              </div>
+              {viewProject.stats?.available !== undefined && (
+                <div className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-500">Available Sites</span>
+                  <span className="text-sm font-bold text-slate-700">{viewProject.stats.available}</span>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-3 border-t border-slate-100 flex justify-end">
+              <button onClick={() => setViewProject(null)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* View Booking Details Modal */}
       {viewBooking && (
