@@ -25,7 +25,7 @@ export default function StatCard({ icon: Icon, label, value, change, changeType 
           </div>
         )}
       </div>
-      <div className="text-sm sm:text-lg lg:text-2xl font-semibold text-gray-900 mb-0.5 truncate">
+      <div className="text-sm sm:text-lg lg:text-2xl font-medium text-gray-900 mb-0.5 truncate">
         {prefix}{typeof value === "number" ? value.toLocaleString("en-IN") : value}{suffix}
       </div>
       <div className="text-[10px] sm:text-xs lg:text-sm text-gray-400 font-medium truncate">{label}</div>

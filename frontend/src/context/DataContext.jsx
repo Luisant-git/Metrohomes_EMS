@@ -172,8 +172,13 @@ export function DataProvider({ children }) {
       const list = Array.isArray(data) ? data : (data.bookings || data.data || []);
       const normalized = list.map((b) => ({
         ...b,
-        siteName: b.siteName || b.site?.name || "",
+        siteName: b.siteName || (b.site?.siteNo ? `${b.project?.name || ''} - Site ${b.site.siteNo}` : b.project?.name || ""),
         customerName: b.customerName || b.customer?.name || "",
+        creatorName: b.creatorName || b.creator?.name || "",
+        creatorRole: b.creatorRole || b.creator?.role || "",
+        creatorEmployeeCode: b.creatorEmployeeCode || b.creator?.employeeCode || "",
+        createdUser: b.createdUser || b.creator || null,
+        createdById: b.createdById || b.createdBy || b.creator?.id || null,
         salesManagerName: b.salesManagerName || b.assignedToUser?.name || b.creator?.name || "",
       }));
       setBookings(normalized);
