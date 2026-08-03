@@ -7,6 +7,7 @@ import StatCard from "../../components/StatCard.jsx";
 import { SquarePen, Trash2, Eye, Building2, MapPin, FileText, Image as ImageIcon, X, Plus, File, Download, Loader2, AlertTriangle, Globe, CheckCircle, XCircle, LayoutGrid, ChevronLeft, ChevronRight, GripVertical, CalendarCheck, DollarSign } from "lucide-react";
 import { toast } from "react-toastify";
 import { uploadAPI } from "../../api/upload.js";
+import { formatINR } from "../../utils/format.js";
 
 const empty = { name: "", location: "", totalPlots: "", availablePlots: "", pricePerSqft: "", description: "", status: "Active", images: [], brochure: null, documents: [], plots: [] };
 
@@ -208,7 +209,7 @@ export default function ProjectManagement() {
     { key: "eastWest", label: "East West", render: v => v || "-" },
     { key: "northSouth", label: "North South", render: v => v || "-" },
     { key: "totalSqft", label: "Total Sqft", render: v => Number(v).toLocaleString("en-IN") },
-    { key: "pricePerSqft", label: "Price/sqft", render: v => `₹${Number(v).toLocaleString("en-IN")}` },
+    { key: "pricePerSqft", label: "Price/sqft", render: v => formatINR(v) },
     { key: "status", label: "Status" },
   ];
 
@@ -418,7 +419,7 @@ export default function ProjectManagement() {
                         <td className="px-3.5 py-2 text-gray-700 text-xs">{pl.northSouth ? `${pl.northSouth} ft` : "-"}</td>
                         <td className="px-3.5 py-2 text-gray-900 font-medium text-xs">{Number(pl.totalSqft).toLocaleString("en-IN")} sqft</td>
                         <td className="px-3.5 py-2 text-gray-900 font-medium text-xs">
-                          {pl.pricePerSqft ? `₹${Number(pl.pricePerSqft).toLocaleString("en-IN")}` : "-"}
+                          {pl.pricePerSqft ? formatINR(pl.pricePerSqft) : "-"}
                         </td>
                         <td className="px-3.5 py-2 text-gray-700 text-xs">{pl.status || "Active"}</td>
                         <td className="px-3.5 py-2 text-right">
@@ -686,7 +687,7 @@ export default function ProjectManagement() {
                           <td className="px-4 py-2.5 text-gray-700">{pl.eastWest || "-"}</td>
                           <td className="px-4 py-2.5 text-gray-700">{pl.northSouth || "-"}</td>
                           <td className="px-4 py-2.5 text-gray-800 font-medium">{Number(pl.totalSqft).toLocaleString("en-IN")}</td>
-                          <td className="px-4 py-2.5 text-gray-800">₹{Number(pl.pricePerSqft).toLocaleString("en-IN")}</td>
+                          <td className="px-4 py-2.5 text-gray-800">{formatINR(pl.pricePerSqft)}</td>
                           <td className="px-4 py-2.5">
                             <StatusBadge status={pl.status || "Active"} />
                           </td>

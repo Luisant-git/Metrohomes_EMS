@@ -1,6 +1,7 @@
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
 import { Trophy, TrendingUp, Award, Star } from "lucide-react";
+import { formatINRShort } from "../../utils/format.js";
 
 export default function PWAPerf() {
   const { user, hierarchy } = useAuth();
@@ -53,7 +54,7 @@ export default function PWAPerf() {
                     <div className="text-xs text-gray-400">{bm.branch}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-bold text-blue-600">₹{(bm.revenue / 100000).toFixed(1)}L</div>
+                    <div className="text-sm font-bold text-blue-600">{formatINRShort(bm.revenue, { decimals: 1 })}</div>
                     <div className="text-xs text-gray-500">{bm.bookingCount} bookings</div>
                   </div>
                 </div>

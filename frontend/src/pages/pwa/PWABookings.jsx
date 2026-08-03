@@ -1,6 +1,7 @@
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
 import { DollarSign, TrendingUp, Calendar, CheckCircle } from "lucide-react";
+import { formatINRShort } from "../../utils/format.js";
 
 export default function PWABookings() {
   const { user, hierarchy } = useAuth();
@@ -34,8 +35,8 @@ export default function PWABookings() {
           <div className="grid grid-cols-2 gap-2">
             {[
               { label: "Total Bookings", value: myBookings.length, color: "text-blue-600" },
-              { label: "Total Revenue", value: `₹${(totalRevenue / 100000).toFixed(1)}L`, color: "text-green-600" },
-              { label: "Amount Paid", value: `₹${(totalPaid / 100000).toFixed(1)}L`, color: "text-purple-600" },
+              { label: "Total Revenue", value: formatINRShort(totalRevenue, { decimals: 1 }), color: "text-green-600" },
+              { label: "Amount Paid", value: formatINRShort(totalPaid, { decimals: 1 }), color: "text-purple-600" },
               { label: "Pending", value: myBookings.filter(b => b.remainingAmount > 0).length, color: "text-orange-600" },
             ].map(s => (
               <div key={s.label} className="text-center p-3 bg-gray-50 rounded-xl">
@@ -65,7 +66,7 @@ export default function PWABookings() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs font-bold text-gray-800">₹{(b.plotPrice / 100000).toFixed(1)}L</div>
+                    <div className="text-xs font-bold text-gray-800">{formatINRShort(b.plotPrice, { decimals: 1 })}</div>
                     <div className={`text-xs font-semibold ${b.status === "Payment Done" ? "text-green-600" : "text-orange-600"}`}>{b.status}</div>
                   </div>
                 </div>

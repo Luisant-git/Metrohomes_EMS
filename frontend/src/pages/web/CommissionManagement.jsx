@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useData } from "../../context/DataContext.jsx";
 import { Coins, Calculator, ChevronDown, IndianRupee } from "lucide-react";
+import { formatINR, formatINRShort } from "../../utils/format.js";
 
 const ROLE_ORDER = ["Director", "Regional Manager", "Branch Manager", "BDM", "Sales Manager"];
 
@@ -31,7 +32,7 @@ export default function CommissionManagement() {
               <IndianRupee size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input type="number" value={plotPrice} onChange={e => setPlotPrice(+e.target.value)} className="input-field pl-10 text-lg font-semibold" />
             </div>
-            <div className="text-sm text-gray-400 mt-1">= ₹{(plotPrice / 10000000).toFixed(2)} Crore</div>
+            <div className="text-sm text-gray-400 mt-1">= {formatINRShort(plotPrice, { decimals: 2 })}</div>
           </div>
 
           <div className="bg-blue-50 rounded-2xl p-4 space-y-3">
@@ -52,14 +53,14 @@ export default function CommissionManagement() {
                   <div className="flex items-center gap-4">
                     <input type="number" step="0.1" value={rate} onChange={e => setCustomRates(p => ({ ...p, [role]: +e.target.value }))}
                       className="w-16 border border-blue-200 rounded-lg px-2 py-1 text-sm text-center bg-white focus:outline-none focus:ring-2 focus:ring-blue-400" />
-                    <span className="text-sm font-semibold text-green-600 w-28 text-right">₹{Math.round(amount).toLocaleString("en-IN")}</span>
+                    <span className="text-sm font-semibold text-green-600 w-28 text-right">{formatINR(Math.round(amount))}</span>
                   </div>
                 </div>
               );
             })}
             <div className="flex justify-between items-center pt-2 border-t border-blue-200 font-semibold">
               <span className="text-gray-800">Total Commission</span>
-              <span className="text-blue-600 text-lg">₹{Math.round(totalCommission).toLocaleString("en-IN")}</span>
+              <span className="text-blue-600 text-lg">{formatINR(Math.round(totalCommission))}</span>
             </div>
             <div className="text-xs text-gray-400 text-right">({((totalCommission / plotPrice) * 100).toFixed(2)}% of plot price)</div>
           </div>
@@ -77,7 +78,7 @@ export default function CommissionManagement() {
                     <div className="text-xs text-gray-400">{b.siteName} · Plot {b.plotNo}</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold text-gray-900">₹{Number(b.plotPrice).toLocaleString("en-IN")}</div>
+                    <div className="font-bold text-gray-900">{formatINR(b.plotPrice)}</div>
                     <div className="text-xs text-gray-400">{b.bookingDate}</div>
                   </div>
                 </div>
@@ -87,13 +88,13 @@ export default function CommissionManagement() {
                     return (
                       <div key={role} className="flex justify-between items-center text-xs">
                         <span className="text-gray-500">{role} ({customRates[role]}%)</span>
-                        <span className="font-medium text-green-600">₹{Math.round(amt).toLocaleString("en-IN")}</span>
+                        <span className="font-medium text-green-600">{formatINR(Math.round(amt))}</span>
                       </div>
                     );
                   })}
                   <div className="flex justify-between items-center text-xs font-semibold pt-1 border-t border-gray-100">
                     <span>Total Commission</span>
-                    <span className="text-blue-600">₹{Math.round(ROLE_ORDER.reduce((a, r) => a + calcCommission(b.plotPrice, customRates[r] || 0), 0)).toLocaleString("en-IN")}</span>
+                    <span className="text-blue-600">{formatINR(Math.round(ROLE_ORDER.reduce((a, r) => a + calcCommission(b.plotPrice, customRates[r] || 0), 0)))}</span>
                   </div>
                 </div>
               </div>
@@ -112,7 +113,7 @@ export default function CommissionManagement() {
             return (
               <div key={role} className={`bg-gradient-to-br ${roleColors[role]} rounded-2xl p-4 text-white text-center`}>
                 <div className="text-xs font-medium opacity-80 mb-1">{role}</div>
-                <div className="text-xl font-bold">₹{(total / 100000).toFixed(1)}L</div>
+                <div className="text-xl font-bold">{formatINRShort(total, { decimals: 1 })}</div>
                 <div className="text-xs opacity-70 mt-0.5">{customRates[role]}% rate</div>
               </div>
             );

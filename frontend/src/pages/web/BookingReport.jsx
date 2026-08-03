@@ -36,6 +36,7 @@ import {
   X,
   Filter,
 } from "lucide-react";
+import { formatINR, formatChartAxis } from "../../utils/format.js";
 
 // Role badge helper for Created User
 function UserRoleBadge({ role }) {
@@ -408,13 +409,13 @@ export default function BookingReport() {
           <div className="min-w-0">
             <div className="text-[11px] sm:text-xs text-emerald-700 font-semibold uppercase tracking-wide mb-0.5">Total Revenue</div>
             <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-emerald-800 leading-tight break-all">
-              ₹{stats.totalRevenue.toLocaleString("en-IN")}
+              {formatINR(stats.totalRevenue)}
             </div>
           </div>
         </div>
         <div className="flex-shrink-0 text-right">
           <div className="text-[10px] text-emerald-600 font-medium">Plot Value</div>
-          <div className="text-sm sm:text-base font-semibold text-emerald-700">₹{stats.totalPlotPrice.toLocaleString("en-IN")}</div>
+          <div className="text-sm sm:text-base font-semibold text-emerald-700">{formatINR(stats.totalPlotPrice)}</div>
         </div>
       </div>
 
@@ -476,10 +477,10 @@ export default function BookingReport() {
             <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#64748B" }} />
             <YAxis
               tick={{ fontSize: 11, fill: "#64748B" }}
-              tickFormatter={(val) => `₹${(val / 100000).toFixed(0)}L`}
+              tickFormatter={(val) => `₹${formatChartAxis(val)}`}
             />
             <Tooltip
-              formatter={(val) => [`₹${Number(val).toLocaleString("en-IN")}`, "Revenue"]}
+              formatter={(val) => [formatINR(val), "Revenue"]}
               contentStyle={{
                 backgroundColor: "#FFFFFF",
                 borderRadius: "10px",
@@ -933,15 +934,15 @@ export default function BookingReport() {
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <div className="text-[11px] font-medium text-slate-600">Plot Price</div>
-                    <div className="text-sm text-slate-900">₹{Number(viewBooking.plotPrice).toLocaleString("en-IN")}</div>
+                    <div className="text-sm text-slate-900">{formatINR(viewBooking.plotPrice)}</div>
                   </div>
                   <div>
                     <div className="text-[11px] font-medium text-slate-600">Paid</div>
-                    <div className="text-sm font-medium text-emerald-600">₹{Number(viewBooking.paidAmount).toLocaleString("en-IN")}</div>
+                    <div className="text-sm font-medium text-emerald-600">{formatINR(viewBooking.paidAmount)}</div>
                   </div>
                   <div>
                     <div className="text-[11px] font-medium text-slate-600">Balance</div>
-                    <div className="text-sm font-medium text-amber-600">₹{Number(viewBooking.remainingAmount).toLocaleString("en-IN")}</div>
+                    <div className="text-sm font-medium text-amber-600">{formatINR(viewBooking.remainingAmount)}</div>
                   </div>
                 </div>
                 <div className="mt-3">

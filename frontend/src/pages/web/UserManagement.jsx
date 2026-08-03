@@ -13,6 +13,7 @@ import {
   UserCog, UserCheck as UserVerify, FileText, Banknote, Users as UsersGroup
 } from "lucide-react";
 import { toast } from "react-toastify";
+import { formatINRShort } from "../../utils/format.js";
 
 const emptyForm = {
   name: "",
@@ -798,7 +799,7 @@ function TreeNode({ node, users, customers, bookings, depth = 0, onViewTeam }) {
           {teamCount > 0 && <NodeStat icon={UsersIcon} label="Direct" value={teamCount} color="blue" />}
           {totalDownline > 0 && <NodeStat icon={ChevronsDown} label="Team" value={totalDownline} color="purple" />}
           {activeCustomers > 0 && <NodeStat icon={UserCheck} label="Customers" value={activeCustomers} color="green" />}
-          {totalSales > 0 && <NodeStat icon={TrendingUp} label="Sales" value={`₹${(totalSales / 100000).toFixed(0)}L`} color="orange" />}
+          {totalSales > 0 && <NodeStat icon={TrendingUp} label="Sales" value={formatINRShort(totalSales, { decimals: 0 })} color="orange" />}
         </div>
 
         {children.length > 0 && (

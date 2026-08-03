@@ -2,8 +2,10 @@
 import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { PdfService } from '../pdf/pdf.service';
+import { CustomerService } from '../customer/customer.service';
 
 @Injectable()
 export class BookingService {
@@ -13,6 +15,7 @@ export class BookingService {
     private readonly prisma: PrismaService,
     private readonly whatsappService: WhatsappService,
     private readonly pdfService: PdfService,
+    private readonly customerService: CustomerService,
   ) {}
 
   async create(dto: CreateBookingDto, createdBy?: number) {
@@ -221,6 +224,61 @@ export class BookingService {
 
     this.logger.log(`Booking updated: ${updated.id}`);
     return this.formatBooking(updated);
+  }
+
+  async cancelBooking(id: number, data: CancelBookingDto, cancelledBy?: number) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id },
+      include: {
+        customer: { select: { name: true, phone: true } },
+        project: { select: { name: true } },
+        site: { select: { siteNo: true } },
+      },
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    if (booking.status === 'Cancelled') {
+      throw new BadRequestException('Booking is already cancelled');
+    }
+
+    if (booking.customer?.phone !== data.mobile) {
+      throw new BadRequestException('OTP mobile number does not match booking customer');
+    }
+
+    await this.customerService.verifyCustomerOtp(data.mobile, data.otp);
+
+    const updatedBooking = await this.prisma.booking.update({
+      where: { id },
+      data: {
+        status: 'Cancelled',
+        cancellationReason: data.cancellationReason ?? null,
+        refundAmount: data.refundAmount ?? 0,
+        cancelledAt: new Date(),
+        cancelledBy: cancelledBy ?? null,
+      },
+      include: {
+        customer: { select: { name: true, phone: true, email: true } },
+        project: { select: { name: true, location: true } },
+        site: { select: { siteNo: true, facing: true, totalSqft: true } },
+        creator: { select: { id: true, name: true, employeeCode: true, role: true } },
+        assignedToUser: { select: { name: true, mobile: true } },
+      },
+    });
+
+    if (booking.siteId) {
+      await this.prisma.site.update({
+        where: { id: booking.siteId },
+        data: { status: 'Active' },
+      }).catch(() => {
+        // continue even if site status reset fails
+      });
+    }
+
+    this.logger.log(`Booking cancelled: ${id}`);
+    return this.formatBooking(updatedBooking);
   }
 
   async createReceipt(bookingId: number, amount: number, paymentMode: string, bankName?: string, chequeNo?: string, chequeDate?: string, transferId?: string) {

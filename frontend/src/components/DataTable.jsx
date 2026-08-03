@@ -1,12 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 
-export default function DataTable({ columns, data, actions, searchKey, title, onAdd, addLabel = "Add New", hideSearch, extraActions }) {
+export default function DataTable({ columns, data, actions, searchKey, title, onAdd, addLabel = "Add New", hideSearch, extraActions, resetSearch, statusOptions = [], statusFilter = "", onStatusFilterChange, rowClassName }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const perPage = 8;
 
+  useEffect(() => {
+    if (resetSearch !== undefined && resetSearch !== null) {
+      setSearch("");
+      setPage(1);
+    }
+  }, [resetSearch]);
+
   const filtered = data.filter(row => {
+    if (statusFilter && row.status !== statusFilter) return false;
     if (!search) return true;
     const keys = searchKey ? (Array.isArray(searchKey) ? searchKey : [searchKey]) : Object.keys(row);
     return keys.some(k => String(row[k] ?? "").toLowerCase().includes(search.toLowerCase()));
@@ -28,6 +36,19 @@ export default function DataTable({ columns, data, actions, searchKey, title, on
                 <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
                   placeholder="Search…" className="bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2 text-sm w-52 focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
+            )}
+            {statusOptions.length > 0 && (
+              <select value={statusFilter} onChange={e => { onStatusFilterChange?.(e.target.value); setPage(1); }}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                <option value="">All statuses</option>
+                {statusOptions.map((opt, idx) => (
+                  typeof opt === "string" ? (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ) : (
+                    <option key={opt.value ?? idx} value={opt.value}>{opt.label}</option>
+                  )
+                ))}
+              </select>
             )}
             {extraActions}
             {onAdd && (
@@ -60,7 +81,7 @@ export default function DataTable({ columns, data, actions, searchKey, title, on
                 </td>
               </tr>
             ) : paged.map((row, i) => (
-              <tr key={row.id || i} className="hover:bg-gray-50/50 transition-colors">
+              <tr key={row.id || i} className={`hover:bg-gray-50/50 transition-colors ${typeof rowClassName === 'function' ? rowClassName(row) : rowClassName || ''}`}>
                 {columns.map(col => (
                   <td key={col.key} className="px-5 py-3.5 text-sm text-gray-700 whitespace-nowrap">
                     {col.render ? col.render(row[col.key], row) : row[col.key]}

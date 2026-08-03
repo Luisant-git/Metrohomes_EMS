@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Param, Put, Delete, Query, HttpCode, HttpS
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { BookingService } from './booking.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
@@ -96,6 +97,14 @@ export class BookingController {
   @ApiOperation({ summary: 'Resend WhatsApp notification for a receipt' })
   async sendReceiptWhatsApp(@Param('id') id: number) {
     const result = await this.bookingService.sendReceiptWhatsApp(id);
+    return { success: true, data: result };
+  }
+
+  @Post(':id/cancel')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cancel a booking after OTP verification' })
+  async cancel(@Param('id') id: number, @Body() cancelBookingDto: CancelBookingDto, @CurrentUser() currentUser: any) {
+    const result = await this.bookingService.cancelBooking(id, cancelBookingDto, currentUser?.id);
     return { success: true, data: result };
   }
 

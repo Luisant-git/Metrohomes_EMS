@@ -108,6 +108,14 @@ export const booking = {
     });
     return handleResponse(response);
   },
+  async cancel(id, data) {
+    const response = await fetch(`${VITE_API_URL}/bookings/${id}/cancel`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
   async downloadReceiptPdf(receiptId) {
     const response = await fetch(`${VITE_API_URL}/bookings/receipts/${receiptId}/pdf`, {
       method: "GET",

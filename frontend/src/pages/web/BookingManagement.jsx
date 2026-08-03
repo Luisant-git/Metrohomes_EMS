@@ -3,10 +3,12 @@ import { useData } from "../../context/DataContext.jsx";
 import DataTable from "../../components/DataTable.jsx";
 import Modal from "../../components/Modal.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
-import { BookOpen, Eye, Plus, IndianRupee, FileText, MessageSquare, CheckCircle, Bell, Home, Building2, Phone, SquarePen, AlertCircle, Download, MapPin } from "lucide-react";
+import { BookOpen, Eye, Plus, IndianRupee, FileText, MessageSquare, CheckCircle, Bell, Home, Building2, Phone, SquarePen, AlertCircle, Download, MapPin, XCircle } from "lucide-react";
 import { toast } from "react-toastify";
 import { siteVisit } from "../../api/siteVisit.js";
 import { booking as bookingApi } from "../../api/booking.js";
+import { customer as customerApi } from "../../api/customer.js";
+import { formatINR, formatIndianNumber, formatINRShort } from "../../utils/format.js";
 
 const empty = {
   customerId: "", customerName: "", siteId: "", projectId: "",
@@ -32,6 +34,16 @@ export default function BookingManagement() {
   const [successData, setSuccessData] = useState(null);
   const [whatsappRow, setWhatsappRow] = useState(null);
   const [whatsappModalOpen, setWhatsappModalOpen] = useState(false);
+  const [cancelRow, setCancelRow] = useState(null);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('bookings'); // 'bookings' | 'receipts'
+  const [tableProjectFilter, setTableProjectFilter] = useState("");
+  const [tableSiteFilter, setTableSiteFilter] = useState("");
+  const [tableStatusFilter, setTableStatusFilter] = useState("");
+  const [tableSearchResetKey, setTableSearchResetKey] = useState(0);
+  const [cancelForm, setCancelForm] = useState({ mobile: "", otp: "", cancellationReason: "", refundAmount: "" });
+  const [otpSending, setOtpSending] = useState(false);
+  const [canceling, setCanceling] = useState(false);
 
   const handleDownloadPdf = async (row) => {
     try {
@@ -49,25 +61,102 @@ export default function BookingManagement() {
     }
   };
 
+  const openCancelModal = (row) => {
+    setCancelRow(row);
+    setCancelForm({
+      mobile: row.customerPhone || row.customer?.phone || '',
+      otp: '',
+      cancellationReason: '',
+      refundAmount: '0',
+    });
+    setCancelModalOpen(true);
+  };
+
+  const sendCancelOtp = async () => {
+    if (!cancelForm.mobile) {
+      toast.error('Mobile number is required to send OTP');
+      return;
+    }
+    try {
+      setOtpSending(true);
+      const res = await customerApi.requestOtp(cancelForm.mobile);
+      toast.success(res?.message || 'OTP requested successfully');
+    } catch (err) {
+      toast.error(err.message || 'Failed to send OTP');
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const handleCancelBooking = async () => {
+    if (!cancelRow) return;
+    if (!cancelForm.mobile || !cancelForm.otp) {
+      toast.error('Mobile and OTP are required to cancel booking');
+      return;
+    }
+    try {
+      setCanceling(true);
+      const refundAmount = cancelForm.refundAmount ? Number(cancelForm.refundAmount) : 0;
+      const payload = {
+        mobile: cancelForm.mobile,
+        otp: cancelForm.otp,
+        cancellationReason: cancelForm.cancellationReason || undefined,
+        refundAmount: refundAmount > 0 ? Math.abs(refundAmount) : 0,
+      };
+      const rawRes = await bookingApi.cancel(cancelRow.bookingId || cancelRow.booking?.id || cancelRow.id, payload);
+      const res = rawRes && rawRes.data ? rawRes.data : rawRes;
+      toast.success('Booking cancelled successfully');
+      setCancelModalOpen(false);
+      setCancelRow(null);
+      setCancelForm({ mobile: '', otp: '', cancellationReason: '', refundAmount: '' });
+      await refreshBookings();
+    } catch (err) {
+      toast.error(err.message || 'Failed to cancel booking');
+    } finally {
+      setCanceling(false);
+    }
+  };
+
   const readyCustomers = customers.filter(c => c.status === "Ready for Booking");
-  const totalRevenue = bookings.reduce((a, b) => a + (b.paidAmount || 0), 0);
-  const totalPending = bookings.reduce((a, b) => a + (b.remainingAmount || 0), 0);
+  const cancelledCount = bookings.filter(b => b.status === 'Cancelled').length;
+  const activeBookings = bookings.filter(b => b.status !== 'Cancelled');
+  const totalRevenue = activeBookings.reduce((a, b) => a + (b.paidAmount || 0), 0);
+  const totalPending = activeBookings.reduce((a, b) => a + (b.remainingAmount || 0), 0);
 
   useEffect(() => {
     const allReceipts = [];
     bookings.forEach(booking => {
       if (booking.receipts && booking.receipts.length > 0) {
-        booking.receipts.forEach(receipt => {
+        // Sort receipts chronologically to compute running balance
+        const sortedReceipts = [...booking.receipts].sort((a, b) => {
+          const da = new Date(a.paymentDate || 0);
+          const db = new Date(b.paymentDate || 0);
+          if (da - db) return da - db;
+          return (a.id || 0) - (b.id || 0);
+        });
+        const plotPrice = Number(booking.plotPrice || 0);
+        let cumulativePaid = 0;
+        sortedReceipts.forEach(receipt => {
+          const currentPayment = Number(receipt.currentPayment || receipt.amount || 0);
+          cumulativePaid += currentPayment;
+          // Running balance at the time of this receipt
+          const runningBalance = booking.status === 'Cancelled' ? 0 : Math.max(0, plotPrice - cumulativePaid);
           allReceipts.push({
             ...receipt,
             customerName: booking.customerName || booking.customer?.name || '',
-            siteName: booking.siteName || booking.site?.name || '',
+            projectName: booking.projectName || booking.project?.name || '',
+            siteName: booking.siteName || booking.site?.siteNo || booking.site?.name || '',
             customerPhone: booking.customer?.phone || receipt.customerPhone || '',
             mobile: booking.customer?.phone || receipt.mobile || '',
             projectNo: booking.projectNo,
+            projectId: booking.projectId ?? booking.project?.id,
+            siteId: booking.siteId ?? booking.site?.id,
             status: booking.status,
             notes: booking.notes || receipt.notes || '',
             guardianName: booking.guardianName || receipt.guardianName || '',
+            refundAmount: booking.refundAmount ?? 0,
+            balance: runningBalance,
+            totalPaid: cumulativePaid,
           });
         });
       }
@@ -246,7 +335,7 @@ export default function BookingManagement() {
       const res = rawRes && rawRes.data ? rawRes.data : rawRes;
       await updateCustomer(foundCustomer.existingBooking.customerId, { status: "Booked" });
       await refreshBookings();
-      toast.success(`Payment of ₹${amt.toLocaleString("en-IN")} recorded! Receipt generated 📄`);
+      toast.success(`Payment of ${formatINR(amt)} recorded! Receipt generated 📄`);
 
       return {
         type: 'payment',
@@ -271,6 +360,11 @@ export default function BookingManagement() {
   };
 
   const numberToWords = (num) => {
+    // Normalize input and guard against invalid values to avoid infinite recursion
+    if (typeof num !== 'number') num = Number(num);
+    if (!isFinite(num) || isNaN(num)) return '';
+    // Work with non-negative integers
+    num = Math.floor(Math.abs(num));
     if (num === 0) return "Zero";
     const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
     const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
@@ -629,7 +723,7 @@ export default function BookingManagement() {
                 <div class="amount-container">
                   <div class="rupee-pill">
                     <span class="rupee-symbol">₹</span>
-                    <span class="rupee-val">${currentPayment.toLocaleString("en-IN")}/-</span>
+                    <span class="rupee-val">${formatIndianNumber(currentPayment)}/-</span>
                   </div>
                   <div class="realisation-note">*Cheques subject to realisation</div>
                 </div>
@@ -661,10 +755,7 @@ export default function BookingManagement() {
     }
   };
 
-  const formatCurrency = (value) => {
-    const num = Number(value || 0);
-    return `₹${num.toLocaleString("en-US")}`;
-  };
+  const formatCurrency = (value) => formatINR(value);
 
   const modeColors = {
     "Cash": "bg-green-100 text-green-700",
@@ -689,6 +780,62 @@ export default function BookingManagement() {
     { key: "paymentDate", label: "Payment Date" },
   ];
 
+  const bookingColumns = [
+    { key: "bookingId", label: "Booking ID", render: v => <span className="font-mono text-xs text-gray-500">{v}</span> },
+    { key: "customerName", label: "Customer Name" },
+    { key: "projectName", label: "Project" },
+    { key: "siteNo", label: "Site Number" },
+    { key: "plotPrice", label: "Total Plot Price", render: v => <span className="text-amber-700 font-medium">{formatCurrency(v)}</span> },
+    { key: "totalPaid", label: "Total Paid", render: v => <span className="text-green-600 font-medium">{formatCurrency(v)}</span> },
+    { key: "refundAmount", label: "Refund", render: v => <span className={`font-medium ${v > 0 ? 'text-red-500' : 'text-blue-600'}`}>{formatCurrency(v)}</span> },
+    { key: "balance", label: "Balance", render: v => <span className={`font-medium ${v > 0 ? 'text-red-500' : 'text-green-500'}`}>{formatCurrency(v)}</span> },
+    { key: "status", label: "Booking Status", render: v => <StatusBadge status={v} /> },
+  ];
+
+  const bookingsForTable = [...bookings].map(b => {
+    const totalPaid = Array.isArray(b.receipts) ? b.receipts.reduce((s, r) => s + (Number(r.currentPayment || r.amount || 0)), 0) : (b.paidAmount || 0);
+    const plotPrice = Number(b.plotPrice || 0);
+    const balance = b.status === 'Cancelled' ? 0 : plotPrice - totalPaid;
+    return {
+      ...b,
+      bookingId: b.bookingId || b.id,
+      customerName: b.customerName || b.customer?.name || '',
+      projectName: b.projectName || b.project?.name || '',
+      siteNo: b.siteNo || b.site?.siteNo || '',
+      projectId: b.projectId ?? b.project?.id,
+      siteId: b.siteId ?? b.site?.id,
+      refundAmount: Math.abs(b.refundAmount ?? 0),
+      plotPrice,
+      totalPaid,
+      balance,
+    };
+  }).sort((a, b) => (b.bookingDate ? new Date(b.bookingDate) - new Date(a.bookingDate) : (b.id || 0) - (a.id || 0)));
+
+  // Filters for table based on selected project/site
+  const selectedProjectObj = tableProjectFilter ? sites.find(s => String(s.id) === String(tableProjectFilter)) : null;
+  const selectedSiteObj = selectedProjectObj && tableSiteFilter ? (selectedProjectObj.plots || []).find(p => String(p.id) === String(tableSiteFilter)) : null;
+  const filteredBookings = bookingsForTable.filter(b => {
+    if (selectedProjectObj && String(b.projectId) !== String(selectedProjectObj.id)) return false;
+    if (selectedSiteObj && String(b.siteId) !== String(selectedSiteObj.id)) return false;
+    if (tableStatusFilter && b.status !== tableStatusFilter) return false;
+    return true;
+  });
+
+  const filteredReceipts = [...receipts].filter(r => {
+    if (selectedProjectObj) {
+      const byProjectId = r.projectId && String(r.projectId) === String(selectedProjectObj.id);
+      const byProjectNo = r.projectNo && selectedProjectObj.projectNo && String(r.projectNo) === String(selectedProjectObj.projectNo);
+      const byProjectName = r.projectName && selectedProjectObj.name && String(r.projectName) === String(selectedProjectObj.name);
+      if (!(byProjectId || byProjectNo || byProjectName)) return false;
+    }
+    if (selectedSiteObj) {
+      const bySiteId = r.siteId && String(r.siteId) === String(selectedSiteObj.id);
+      const bySiteNo = r.siteNo && selectedSiteObj.siteNo && String(r.siteNo) === String(selectedSiteObj.siteNo);
+      if (!(bySiteId || bySiteNo)) return false;
+    }
+    return true;
+  }).sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate));
+
   return (
     <div className="space-y-6 animate-fadeIn">
       <div className="flex items-center justify-between">
@@ -706,9 +853,9 @@ export default function BookingManagement() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           { label: "Total Bookings", value: bookings.length, color: "text-blue-600" },
-          { label: "Total Revenue", value: `₹${(totalRevenue / 10000000).toFixed(1)}Cr`, color: "text-green-600" },
-          { label: "Pending Amount", value: `₹${(totalPending / 100000).toFixed(0)}L`, color: "text-red-500" },
-          { label: "Ready to Book", value: readyCustomers.length, color: "text-orange-600" },
+          { label: "Total Revenue", value: formatINRShort(totalRevenue, { decimals: 1 }), color: "text-green-600" },
+          { label: "Pending Amount", value: formatINRShort(totalPending, { decimals: 0 }), color: "text-red-500" },
+          { label: "Cancelled Bookings", value: cancelledCount, color: "text-red-600" },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
             <div className={`text-xl font-semibold ${s.color}`}>{s.value}</div>
@@ -731,16 +878,76 @@ export default function BookingManagement() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <DataTable title="All Payment Receipts" columns={columns} data={[...receipts].sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate))} searchKey={["customerName", "siteName", "receiptNo", "projectNo"]}
-          actions={(row) => (
-            <>
-              <button onClick={() => { setSelected(row); setModal("view"); }} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg" title="View"><Eye size={15} /></button>
-              <button onClick={() => handleDownloadPdf(row)} className="p-1.5 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg" title="Download PDF"><Download size={15} /></button>
-              <button onClick={() => { setWhatsappRow(row); setWhatsappModalOpen(true); }} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg" title="WhatsApp"><MessageSquare size={15} /></button>
-            </>
-          )}
-        />
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center space-x-3">
+            <button onClick={() => setActiveTab('bookings')} className={`px-3 py-1 rounded-lg ${activeTab === 'bookings' ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'text-gray-600 hover:bg-gray-50'}`}>Bookings</button>
+            <button onClick={() => setActiveTab('receipts')} className={`px-3 py-1 rounded-lg ${activeTab === 'receipts' ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'text-gray-600 hover:bg-gray-50'}`}>Receipts</button>
+          </div>
+          <div className="text-sm text-gray-500">Showing: {activeTab === 'bookings' ? 'Bookings' : 'Receipts'}</div>
+        </div>
+
+        {activeTab === 'bookings' ? (
+          <DataTable
+            title="Bookings"
+            columns={bookingColumns}
+            data={filteredBookings}
+            searchKey={["bookingId", "customerName", "siteNo", "projectName"]}
+            extraActions={
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3">
+                <select value={tableProjectFilter} onChange={e => { setTableProjectFilter(e.target.value); setTableSiteFilter(''); }} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                  <option value="">All projects</option>
+                  {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+                <select value={tableSiteFilter} onChange={e => setTableSiteFilter(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" disabled={!tableProjectFilter}>
+                  <option value="">All sites</option>
+                  {(sites.find(s => String(s.id) === String(tableProjectFilter))?.plots || []).map(p => <option key={p.id} value={p.id}>{p.siteNo || p.id}</option>)}
+                </select>
+                <button onClick={() => { setTableProjectFilter(''); setTableSiteFilter(''); setTableStatusFilter(''); setTableSearchResetKey(k => k + 1); }} className="btn-secondary px-4 py-2">Clear</button>
+              </div>
+            }
+            resetSearch={tableSearchResetKey}
+            statusOptions={["Initial Payment", "Part Payment", "Full Payment", "Cancelled"]}
+            statusFilter={tableStatusFilter}
+            onStatusFilterChange={setTableStatusFilter}
+            actions={(row) => (
+              <>
+                <button onClick={() => { setSelected(row); setModal("viewBooking"); }} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg" title="View"><Eye size={15} /></button>
+                {row.status !== 'Cancelled' && (
+                  <button onClick={() => openCancelModal(row)} className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg" title="Cancel Booking"><XCircle size={15} /></button>
+                )}
+              </>
+            )}
+          />
+        ) : (
+          <DataTable
+            title="All Payment Receipts"
+            columns={columns}
+            data={filteredReceipts}
+            searchKey={["customerName", "siteName", "receiptNo", "projectNo"]}
+            extraActions={
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3">
+                <select value={tableProjectFilter} onChange={e => { setTableProjectFilter(e.target.value); setTableSiteFilter(''); }} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                  <option value="">All projects</option>
+                  {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+                <select value={tableSiteFilter} onChange={e => setTableSiteFilter(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" disabled={!tableProjectFilter}>
+                  <option value="">All sites</option>
+                  {(sites.find(s => String(s.id) === String(tableProjectFilter))?.plots || []).map(p => <option key={p.id} value={p.id}>{p.siteNo || p.id}</option>)}
+                </select>
+                <button onClick={() => { setTableProjectFilter(''); setTableSiteFilter(''); setTableSearchResetKey(k => k + 1); }} className="btn-secondary px-4 py-2">Clear</button>
+              </div>
+            }
+            resetSearch={tableSearchResetKey}
+            actions={(row) => (
+              <>
+                <button onClick={() => { setSelected(row); setModal("view"); }} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg" title="View"><Eye size={15} /></button>
+                <button onClick={() => handleDownloadPdf(row)} className="p-1.5 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg" title="Download PDF"><Download size={15} /></button>
+                <button onClick={() => { setWhatsappRow(row); setWhatsappModalOpen(true); }} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg" title="WhatsApp"><MessageSquare size={15} /></button>
+              </>
+            )}
+          />
+        )}
       </div>
 
       {/* Add Booking Modal */}
@@ -752,7 +959,7 @@ export default function BookingManagement() {
               Booking Information
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><label className="label">Booking Date</label><input type="date" value={form.bookingDate} onChange={e => setForm(p => ({ ...p, bookingDate: e.target.value }))} className="input-field" /></div>
+              <div><label className="label">Booking Date</label><input type="date" value={form.bookingDate} readOnly className="input-field bg-gray-100 cursor-not-allowed" /></div>
               <div><label className="label">Office ID No.</label><input value={form.officeIdNo} onChange={e => setForm(p => ({ ...p, officeIdNo: e.target.value }))} className="input-field" placeholder="Internal reference" /></div>
             </div>
           </div>
@@ -782,9 +989,9 @@ export default function BookingManagement() {
                       {foundCustomer.existingBooking.siteNo && (
                         <div className="flex justify-between"><span className="text-gray-600">Site No.</span><span className="font-medium text-gray-800">{foundCustomer.existingBooking.siteNo}</span></div>
                       )}
-                      <div className="flex justify-between"><span className="text-gray-600">Plot Price</span><span className="font-medium text-gray-800">₹{Number(foundCustomer.existingBooking.plotPrice).toLocaleString("en-IN")}</span></div>
-                      <div className="flex justify-between border-t border-amber-200 pt-1.5"><span className="text-gray-600 font-medium">Already Paid</span><span className="font-bold text-green-600">₹{Number(foundCustomer.existingBooking.paidAmount || 0).toLocaleString("en-IN")}</span></div>
-                      <div className="flex justify-between"><span className="text-red-600 font-medium">Remaining Balance</span><span className="font-bold text-red-600">₹{Number(foundCustomer.existingBooking.remainingAmount || 0).toLocaleString("en-IN")}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-600">Plot Price</span><span className="font-medium text-gray-800">{formatINR(foundCustomer.existingBooking.plotPrice)}</span></div>
+                      <div className="flex justify-between border-t border-amber-200 pt-1.5"><span className="text-gray-600 font-medium">Already Paid</span><span className="font-bold text-green-600">{formatINR(foundCustomer.existingBooking.paidAmount || 0)}</span></div>
+                      <div className="flex justify-between"><span className="text-red-600 font-medium">Remaining Balance</span><span className="font-bold text-red-600">{formatINR(foundCustomer.existingBooking.remainingAmount || 0)}</span></div>
                     </div>
                   </div>
                 )}
@@ -875,8 +1082,8 @@ export default function BookingManagement() {
                   <div className="bg-white rounded-lg p-3 border border-amber-200"><div className="text-xs text-gray-500 mb-1">Project No.</div><div className="text-sm font-medium text-gray-800">{foundCustomer.existingBooking.projectNo || (foundCustomer.existingBooking.projectId ? `PRJ-${String(foundCustomer.existingBooking.projectId).padStart(3, '0')}` : 'N/A')}</div></div>
                   <div className="bg-white rounded-lg p-3 border border-amber-200"><div className="text-xs text-gray-500 mb-1">Site No.</div><div className="text-sm font-bold text-blue-700">{foundCustomer.existingBooking.siteNo || 'N/A'}</div></div>
                   <div className="bg-white rounded-lg p-3 border border-amber-200"><div className="text-xs text-gray-500 mb-1">Plot Area</div><div className="text-sm font-medium text-gray-800">{foundCustomer.existingBooking.plotArea ? `${foundCustomer.existingBooking.plotArea} sq.ft` : 'N/A'}</div></div>
-                  <div className="bg-white rounded-lg p-3 border border-amber-200"><div className="text-xs text-gray-500 mb-1">Price per sq.ft</div><div className="text-sm font-medium text-gray-800">₹{Number(foundCustomer.existingBooking.pricePerSqft || 0).toLocaleString("en-IN")}</div></div>
-                  <div className="bg-white rounded-lg p-3 border border-amber-200"><div className="text-xs text-gray-500 mb-1">Total Plot Price</div><div className="text-sm font-bold text-amber-700">₹{Number(foundCustomer.existingBooking.plotPrice || 0).toLocaleString("en-IN")}</div></div>
+                  <div className="bg-white rounded-lg p-3 border border-amber-200"><div className="text-xs text-gray-500 mb-1">Price per sq.ft</div><div className="text-sm font-medium text-gray-800">{formatINR(foundCustomer.existingBooking.pricePerSqft || 0)}</div></div>
+                  <div className="bg-white rounded-lg p-3 border border-amber-200"><div className="text-xs text-gray-500 mb-1">Total Plot Price</div><div className="text-sm font-bold text-amber-700">{formatINR(foundCustomer.existingBooking.plotPrice || 0)}</div></div>
                 </div>
               </div>
             ) : (
@@ -938,7 +1145,7 @@ export default function BookingManagement() {
                               <td className="px-3 py-2 text-gray-700">{selectedPlot.eastWest ? `${selectedPlot.eastWest} ft` : '-'}</td>
                               <td className="px-3 py-2 text-gray-700">{selectedPlot.northSouth ? `${selectedPlot.northSouth} ft` : '-'}</td>
                               <td className="px-3 py-2 font-medium text-gray-800">{Number(selectedPlot.totalSqft).toLocaleString("en-IN")}</td>
-                              <td className="px-3 py-2 font-medium text-gray-800">₹{Number(selectedPlot.pricePerSqft).toLocaleString("en-IN")}</td>
+                              <td className="px-3 py-2 font-medium text-gray-800">{formatINR(selectedPlot.pricePerSqft)}</td>
                             </tr>
                           </tbody>
                         </table>
@@ -1016,22 +1223,22 @@ export default function BookingManagement() {
               <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-gray-500">Customer</span><span className="font-medium">{foundCustomer.name}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Project</span><span className="font-medium">{foundCustomer.existingBooking.projectName || foundCustomer.existingBooking.siteName}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Plot Price</span><span className="font-medium">₹{Number(foundCustomer.existingBooking.plotPrice || 0).toLocaleString("en-IN")}</span></div>
-                <div className="flex justify-between border-t border-gray-200 pt-2"><span className="text-gray-500">Previous Paid</span><span className="font-medium text-gray-600">₹{Number(foundCustomer.existingBooking.paidAmount || 0).toLocaleString("en-IN")}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Current Payment</span><span className="font-medium text-blue-600">₹{Number(form.paidAmount || 0).toLocaleString("en-IN")}</span></div>
-                <div className="flex justify-between border-t border-gray-200 pt-2 text-base font-bold"><span>Total Paid</span><span className="text-green-600">₹{Number((foundCustomer.existingBooking.paidAmount || 0) + Number(form.paidAmount || 0)).toLocaleString("en-IN")}</span></div>
-                <div className="flex justify-between"><span className="text-red-500">Remaining</span><span className="text-red-500">₹{Number((foundCustomer.existingBooking.remainingAmount || 0) - Number(form.paidAmount || 0)).toLocaleString("en-IN")}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Plot Price</span><span className="font-medium">{formatINR(foundCustomer.existingBooking.plotPrice || 0)}</span></div>
+                <div className="flex justify-between border-t border-gray-200 pt-2"><span className="text-gray-500">Previous Paid</span><span className="font-medium text-gray-600">{formatINR(foundCustomer.existingBooking.paidAmount || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Current Payment</span><span className="font-medium text-blue-600">{formatINR(form.paidAmount || 0)}</span></div>
+                <div className="flex justify-between border-t border-gray-200 pt-2 text-base font-bold"><span>Total Paid</span><span className="text-green-600">{formatINR((foundCustomer.existingBooking.paidAmount || 0) + Number(form.paidAmount || 0))}</span></div>
+                <div className="flex justify-between"><span className="text-red-500">Remaining</span><span className="text-red-500">{formatINR((foundCustomer.existingBooking.remainingAmount || 0) - Number(form.paidAmount || 0))}</span></div>
               </div>
             ) : (
               <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-gray-500">Customer</span><span className="font-medium">{form.applicantName || foundCustomer?.name}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Project</span><span className="font-medium">{form.projectName}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Site No.</span><span className="font-medium">{form.siteNo || 'N/A'}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Plot Price</span><span className="font-medium">₹{Number(form.plotPrice || 0).toLocaleString("en-IN")}</span></div>
-                <div className="flex justify-between border-t border-gray-200 pt-2"><span className="text-gray-500">Previous Paid</span><span className="font-medium text-gray-600">₹0</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Today's Payment</span><span className="font-medium text-blue-600">₹{Number(form.paidAmount || 0).toLocaleString("en-IN")}</span></div>
-                <div className="flex justify-between border-t border-gray-200 pt-2 text-base font-bold"><span>Total Paid</span><span className="text-green-600">₹{Number(form.paidAmount || 0).toLocaleString("en-IN")}</span></div>
-                <div className="flex justify-between"><span className="text-red-500">Remaining</span><span className="text-red-500">₹{Number((Number(form.plotPrice || 0) - Number(form.paidAmount || 0))).toLocaleString("en-IN")}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Plot Price</span><span className="font-medium">{formatINR(form.plotPrice || 0)}</span></div>
+                <div className="flex justify-between border-t border-gray-200 pt-2"><span className="text-gray-500">Previous Paid</span><span className="font-medium text-gray-600">{formatINR(0)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Today's Payment</span><span className="font-medium text-blue-600">{formatINR(form.paidAmount || 0)}</span></div>
+                <div className="flex justify-between border-t border-gray-200 pt-2 text-base font-bold"><span>Total Paid</span><span className="text-green-600">{formatINR(form.paidAmount || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-red-500">Remaining</span><span className="text-red-500">{formatINR(Number(form.plotPrice || 0) - Number(form.paidAmount || 0))}</span></div>
               </div>
             )}
             <div className="flex gap-3 pt-2">
@@ -1072,6 +1279,49 @@ export default function BookingManagement() {
             </div>
           </div>
         </Modal>
+      </Modal>
+
+      {/* Booking View Modal */}
+      <Modal open={modal === "viewBooking"} onClose={() => { setModal(null); setSelected(null); }} title="Booking Details" size="md">
+        {selected && (
+          <div className="space-y-3">
+            <div className="flex justify-between"><span className="text-gray-500">Booking ID</span><span className="font-medium text-gray-800">{selected.bookingId || selected.id}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Customer</span><span className="font-medium text-gray-800">{selected.customerName || selected.customer?.name}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Project</span><span className="font-medium text-gray-800">{selected.projectName || selected.project?.name}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Site No.</span><span className="font-medium text-gray-800">{selected.siteNo || selected.site?.siteNo}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Plot Price</span><span className="font-medium text-amber-700">{formatCurrency(selected.plotPrice || selected.plotPrice)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Total Paid</span><span className="font-medium text-green-600">{formatCurrency(selected.totalPaid || (selected.paidAmount || 0))}</span></div>
+            {selected.status === 'Cancelled' ? (
+              <>
+                <div className="flex justify-between"><span className="text-gray-500">Refund Amount</span><span className="font-medium text-blue-600">{formatCurrency(selected.refundAmount ?? 0)}</span></div>
+                {selected.cancellationReason && (
+                  <div className="flex justify-between"><span className="text-gray-500">Cancellation Reason</span><span className="font-medium text-gray-800">{selected.cancellationReason}</span></div>
+                )}
+              </>
+            ) : (
+              <div className="flex justify-between"><span className="text-gray-500">Balance</span><span className={`font-medium ${(selected.balance ?? selected.remainingAmount) > 0 ? 'text-red-500' : 'text-green-500'}`}>{formatCurrency(selected.balance ?? selected.remainingAmount ?? 0)}</span></div>
+            )}
+            <div className="flex justify-between"><span className="text-gray-500">Status</span><span className="font-medium"><StatusBadge status={selected.status} /></span></div>
+
+            {Array.isArray(selected.receipts) && selected.receipts.length > 0 && (
+              <div className="mt-3  pt-3">
+                <div className="text-sm text-gray-500 mb-2">Receipts</div>
+                <div className="space-y-2 text-sm">
+                  {selected.receipts.map(r => (
+                    <div key={r.id || r.receiptNo} className="flex justify-between bg-gray-50 p-2 rounded-lg">
+                      <div><div className="font-medium">{r.receiptNo || r.id}</div><div className="text-xs text-gray-500">{r.paymentDate}</div></div>
+                      <div className="text-right"><div className="font-medium text-blue-600">{formatCurrency(r.currentPayment || r.amount || 0)}</div><div className="text-xs text-gray-500">{r.paymentMode}</div></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-3">
+              <button onClick={() => { setModal(null); setSelected(null); }} className="btn-secondary justify-center py-2.5">Close</button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* View Modal - Simple Receipt Details */}
@@ -1123,15 +1373,15 @@ export default function BookingManagement() {
             {/* Amounts */}
             <div className="text-sm border-b border-gray-100 pb-3 mb-3 flex justify-between">
               <span className="text-gray-500">Current Payment</span>
-              <span className="font-semibold text-blue-600">₹{Number(selected.currentPayment).toLocaleString("en-IN")}</span>
+              <span className="font-semibold text-blue-600">{formatINR(selected.currentPayment)}</span>
             </div>
             <div className="text-sm border-b border-gray-100 pb-3 mb-3 flex justify-between">
               <span className="text-gray-500">Total Paid</span>
-              <span className="font-semibold text-green-600">₹{Number(selected.totalPaid).toLocaleString("en-IN")}</span>
+              <span className="font-semibold text-green-600">{formatINR(selected.totalPaid)}</span>
             </div>
             <div className="text-sm border-b border-gray-100 pb-3 mb-3 flex justify-between">
               <span className="text-gray-500">Balance</span>
-              <span className={`font-semibold ${Number(selected.balance) > 0 ? 'text-red-500' : 'text-green-500'}`}>₹{Number(selected.balance).toLocaleString("en-IN")}</span>
+              <span className={`font-semibold ${Number(selected.balance) > 0 ? 'text-red-500' : 'text-green-500'}`}>{formatINR(selected.balance)}</span>
             </div>
 
             {/* Payment Type / Status */}
@@ -1167,7 +1417,7 @@ export default function BookingManagement() {
             <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm border border-gray-100">
               <div className="flex justify-between"><span className="text-gray-500">Customer</span><span className="font-medium text-gray-800">{whatsappRow.customerName}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Project</span><span className="font-medium text-gray-800">{whatsappRow.siteName}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Payment</span><span className="font-medium text-gray-800">₹{Number(whatsappRow.currentPayment || 0).toLocaleString("en-IN")}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Payment</span><span className="font-medium text-gray-800">{formatINR(whatsappRow.currentPayment || 0)}</span></div>
               <div className="flex justify-between border-t border-gray-200 pt-2"><span className="text-gray-500">WhatsApp Number</span><span className="font-mono font-medium text-gray-900">{whatsappRow.customerPhone || whatsappRow.customer?.phone || whatsappRow.phone || whatsappRow.mobile || 'N/A'}</span></div>
             </div>
             <div className="flex gap-3 pt-2">
@@ -1189,6 +1439,52 @@ export default function BookingManagement() {
         )}
       </Modal>
 
+      {/* Cancel Booking Modal */}
+      <Modal open={cancelModalOpen} onClose={() => { setCancelModalOpen(false); setCancelRow(null); }} title="Cancel Booking" size="sm">
+        {cancelRow && (
+          <div className="space-y-4">
+            <div className="bg-red-50 rounded-xl p-3 border border-red-100 text-sm">
+              <div className="flex justify-between mb-1"><span className="text-gray-500">Booking</span><span className="font-medium">{cancelRow.bookingId || cancelRow.id}</span></div>
+              <div className="flex justify-between mb-1"><span className="text-gray-500">Customer</span><span className="font-medium">{cancelRow.customerName || cancelRow.customer?.name}</span></div>
+              <div className="flex justify-between mb-1"><span className="text-gray-500">Project</span><span className="font-medium">{cancelRow.projectName || cancelRow.project?.name}</span></div>
+              <div className="flex justify-between mb-1"><span className="text-gray-500">Site No.</span><span className="font-medium">{cancelRow.siteNo || cancelRow.site?.siteNo}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Total Paid</span><span className="font-medium text-green-600">{formatCurrency(cancelRow.totalPaid ?? (Array.isArray(cancelRow.receipts) ? cancelRow.receipts.reduce((s, r) => s + (Number(r.currentPayment || r.amount || 0)), 0) : (cancelRow.paidAmount || 0)))}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Total Refunded</span><span className="font-medium text-blue-600">{formatCurrency(cancelRow.refundAmount ?? 0)}</span></div>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="label">Mobile number</label>
+                <input type="tel" value={cancelForm.mobile} onChange={e => setCancelForm(p => ({ ...p, mobile: e.target.value }))} className="input-field" placeholder="Customer mobile" maxLength={10} />
+              </div>
+              <div className="flex items-end gap-3">
+                <div className="flex-1">
+                  <label className="label">OTP</label>
+                  <input type="text" value={cancelForm.otp} onChange={e => setCancelForm(p => ({ ...p, otp: e.target.value }))} className="input-field" placeholder="Enter OTP" maxLength={6} />
+                </div>
+                <button onClick={sendCancelOtp} disabled={otpSending} className="btn-secondary h-12 mt-6">
+                  {otpSending ? 'Sending...' : 'Send OTP'}
+                </button>
+              </div>
+              <div>
+                <label className="label">Cancellation Reason</label>
+                <textarea value={cancelForm.cancellationReason} onChange={e => setCancelForm(p => ({ ...p, cancellationReason: e.target.value }))} className="input-field h-24 resize-none" placeholder="Reason for cancellation" />
+              </div>
+              <div>
+                <label className="label">Refund Amount (₹)</label>
+                <input type="number" value={cancelForm.refundAmount} onChange={e => setCancelForm(p => ({ ...p, refundAmount: e.target.value }))} className="input-field" placeholder="0" min="0" />
+                <p className="text-xs text-gray-500 mt-1">Enter the refund amount as a positive value.</p>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button onClick={handleCancelBooking} disabled={canceling} className="btn-primary flex-1 justify-center py-2.5">
+                {canceling ? 'Cancelling...' : 'Confirm Cancel'}
+              </button>
+              <button onClick={() => { setCancelModalOpen(false); setCancelRow(null); }} disabled={canceling} className="btn-secondary flex-1 justify-center py-2.5">Close</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       {/* Success Confirmation Modal */}
       <Modal open={modal === "success"} onClose={() => { setModal(null); setSuccessData(null); }} title="Payment Successful" size="sm">
         {successData && (
@@ -1203,7 +1499,7 @@ export default function BookingManagement() {
               <p className="text-sm text-gray-500 mt-1">
                 {successData.type === "booking"
                   ? `Booking for ${successData.customerName} at ${successData.siteName} has been successfully completed.`
-                  : `Payment of ₹${successData.receipt?.currentPayment?.toLocaleString("en-IN")} from ${successData.customerName} has been successfully recorded.`}
+                  : `Payment of ${formatINR(successData.receipt?.currentPayment)} from ${successData.customerName} has been successfully recorded.`}
               </p>
             </div>
             
@@ -1212,9 +1508,9 @@ export default function BookingManagement() {
               <div className="flex justify-between"><span className="text-gray-500">Date:</span><span className="font-medium text-gray-800">{successData.receipt?.paymentDate || '—'}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Project:</span><span className="font-medium text-gray-800">{successData.siteName || successData.receipt?.siteName || '—'}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Site No.:</span><span className="font-medium text-gray-800">{successData.siteNo || successData.receipt?.siteNo || '—'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Amount Paid:</span><span className="font-bold text-green-600">₹{Number(successData.receipt?.currentPayment || successData.receipt?.amount || 0).toLocaleString("en-IN")}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Total Paid:</span><span className="font-bold text-blue-600">₹{Number(successData.receipt?.totalPaid || successData.receipt?.currentPayment || 0).toLocaleString("en-IN")}</span></div>
-              <div className="flex justify-between border-t border-gray-200 pt-1.5"><span className="text-gray-500">Remaining Balance:</span><span className="font-bold text-red-500">₹{Number(successData.receipt?.balance || 0).toLocaleString("en-IN")}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Amount Paid:</span><span className="font-bold text-green-600">{formatINR(successData.receipt?.currentPayment || successData.receipt?.amount || 0)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Total Paid:</span><span className="font-bold text-blue-600">{formatINR(successData.receipt?.totalPaid || successData.receipt?.currentPayment || 0)}</span></div>
+              <div className="flex justify-between border-t border-gray-200 pt-1.5"><span className="text-gray-500">Remaining Balance:</span><span className="font-bold text-red-500">{formatINR(successData.receipt?.balance || 0)}</span></div>
             </div>
 
            

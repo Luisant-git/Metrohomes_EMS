@@ -50,6 +50,7 @@ model User {
   assignedVisits        SiteVisit[] @relation("AssignedUser")
   createdBookings       Booking[] @relation("CreatedBookings")
   assignedBookings      Booking[] @relation("AssignedBookings")
+  cancelledBookings     Booking[] @relation("CancelledByBookings")
   createdProjects       Project[] @relation("CreatedProjects")
 
   @@map("users")
@@ -215,6 +216,12 @@ model Booking {
 
   siteVisitId    Int?
   siteVisit      SiteVisit? @relation(fields: [siteVisitId], references: [id], onDelete: SetNull)
+
+  cancelledBy    Int?
+  cancelledByUser User? @relation("CancelledByBookings", fields: [cancelledBy], references: [id], onDelete: SetNull)
+  cancellationReason String?
+  refundAmount   Float?  
+  cancelledAt    DateTime?
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

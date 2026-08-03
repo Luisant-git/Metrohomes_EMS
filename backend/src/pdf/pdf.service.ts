@@ -57,6 +57,23 @@ export class PdfService {
     }
   }
 
+  private formatIndianNumber(num: number): string {
+    if (num === null || num === undefined || isNaN(num)) return '0';
+    const isNegative = num < 0;
+    const absNum = Math.abs(Math.round(num));
+    const numStr = String(absNum);
+    let formatted: string;
+    if (numStr.length <= 3) {
+      formatted = numStr;
+    } else {
+      const last3 = numStr.slice(-3);
+      const rest = numStr.slice(0, -3);
+      const restFormatted = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',');
+      formatted = restFormatted + ',' + last3;
+    }
+    return (isNegative ? '-' : '') + formatted;
+  }
+
   private numberToWords(num: number): string {
     if (num === 0) return 'Zero';
     const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
@@ -243,7 +260,7 @@ export class PdfService {
         doc.roundedRect(margin + 12, yPos, 215, 32, 6).lineWidth(2).stroke('#0f172a');
         doc.fillColor('#f8fafc').roundedRect(margin + 13, yPos + 1, 213, 30, 5).fill();
         doc.fillColor('#1e3a8a').fontSize(13).font('Helvetica-Bold').text('Rs.', margin + 20, yPos + 10);
-        doc.fillColor('#000').fontSize(15).font('Courier-Bold').text(`${data.paidAmount.toLocaleString('en-IN')}/-`, margin + 46, yPos + 8);
+        doc.fillColor('#000').fontSize(15).font('Courier-Bold').text(`${this.formatIndianNumber(data.paidAmount)}/-`, margin + 46, yPos + 8);
 
         doc.fillColor('#1e293b').fontSize(12).font('Helvetica-Bold').text('For Metro Homes', signX, yPos + 2, { width: 165, align: 'center' });
         yPos += 22;
@@ -404,7 +421,7 @@ export class PdfService {
         doc.roundedRect(margin + 12, yPos, 215, 32, 6).lineWidth(2).stroke('#0f172a');
         doc.fillColor('#f8fafc').roundedRect(margin + 13, yPos + 1, 213, 30, 5).fill();
         doc.fillColor('#1e3a8a').fontSize(13).font('Helvetica-Bold').text('Rs.', margin + 20, yPos + 10);
-        doc.fillColor('#000').fontSize(15).font('Courier-Bold').text(`${data.currentPayment.toLocaleString('en-IN')}/-`, margin + 46, yPos + 8);
+        doc.fillColor('#000').fontSize(15).font('Courier-Bold').text(`${this.formatIndianNumber(data.currentPayment)}/-`, margin + 46, yPos + 8);
 
         doc.fillColor('#1e293b').fontSize(12).font('Helvetica-Bold').text('For Metro Homes', signX, yPos + 2, { width: 165, align: 'center' });
         yPos += 22;
