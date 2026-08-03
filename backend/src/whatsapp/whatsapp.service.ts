@@ -79,7 +79,7 @@ export class WhatsappService {
           to: formattedNumber,
           type: 'template',
           template: {
-            name: 'employeea_registration_success_v2',
+            name: 'employeea_registration_success_v3',
             language: { code: 'en' },
             components: [
               {
