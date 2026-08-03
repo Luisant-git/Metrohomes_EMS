@@ -174,7 +174,14 @@ export default function BookingManagement() {
     try {
       const data = await siteVisit.getByCustomer(customerId);
       const visits = Array.isArray(data) ? data : (data.siteVisits || data.data || []);
-      setCustomerVisits(visits);
+      // Filter out visits for sites that already have an active (non-cancelled) booking
+      const bookedSiteIds = new Set(
+        bookings
+          .filter(b => b.status !== 'Cancelled')
+          .map(b => String(b.siteId))
+      );
+      const availableVisits = visits.filter(v => !bookedSiteIds.has(String(v.siteId)));
+      setCustomerVisits(availableVisits);
     } catch (err) {
       console.error("Failed to fetch customer visits:", err);
       setCustomerVisits([]);
@@ -185,7 +192,7 @@ export default function BookingManagement() {
     const c = customers.find(x => x.id === +cid);
     if (c) {
       await fetchCustomerVisits(c.id);
-      const existingBooking = bookings.find(b => b.customerId === c.id && b.remainingAmount > 0);
+      const existingBooking = bookings.find(b => b.customerId === c.id && b.status !== 'Cancelled' && b.remainingAmount > 0);
       const pricePerSqft = 5000;
       setForm(p => ({
         ...p,
@@ -213,7 +220,7 @@ export default function BookingManagement() {
       const c = customers.find(x => x.mobile === mobile);
       if (c) {
         await fetchCustomerVisits(c.id);
-        const existingBooking = bookings.find(b => b.customerId === c.id && b.remainingAmount > 0);
+        const existingBooking = bookings.find(b => b.customerId === c.id && b.status !== 'Cancelled' && b.remainingAmount > 0);
         setFoundCustomer({ ...c, existingBooking: existingBooking || null });
         const pricePerSqft = 5000;
         setForm(p => ({
@@ -1107,7 +1114,17 @@ export default function BookingManagement() {
                     setForm(p => ({ ...p, siteId: e.target.value, siteNo, pricePerSqft, plotArea: area, plotPrice: area ? area * pricePerSqft : "" }));
                   }} className="input-field" disabled={!form.projectId}>
                     <option value="">Select site…</option>
-                    {sites.find(s => s.id === +form.projectId)?.plots?.filter(p => p.status === 'Active').map(p => <option key={p.id} value={p.id}>{p.siteNo} {p.totalSqft ? `(${p.totalSqft} sqft)` : ''}</option>)}
+                    {(() => {
+                      const projectPlots = sites.find(s => s.id === +form.projectId)?.plots || [];
+                      const bookedPlotIds = new Set(
+                        bookings
+                          .filter(b => b.status !== 'Cancelled' && b.projectId === +form.projectId)
+                          .map(b => String(b.siteId))
+                      );
+                      return projectPlots
+                        .filter(p => ['Active', 'Available'].includes(p.status) && !bookedPlotIds.has(String(p.id)))
+                        .map(p => <option key={p.id} value={p.id}>{p.siteNo} {p.totalSqft ? `(${p.totalSqft} sqft)` : ''}</option>);
+                    })()}
                   </select>
                 </div>
                 {form.siteId && (() => {
