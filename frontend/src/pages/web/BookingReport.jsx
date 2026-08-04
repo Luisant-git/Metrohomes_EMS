@@ -95,21 +95,21 @@ function SearchableSelect({ value, onChange, options, placeholder = "Select...",
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between gap-2"
+        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between gap-2"
       >
         <span className="truncate">{selected ? selected.label : placeholder}</span>
-        <ChevronDown size={12} className={`text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={14} className={`text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
         <div className="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden flex flex-col">
           <div className="p-1 border-b border-slate-100 flex items-center gap-1">
-            <Search size={12} className="text-slate-400 ml-1 flex-shrink-0" />
+            <Search size={14} className="text-slate-400 ml-1 flex-shrink-0" />
             <input
               autoFocus
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search..."
-              className="w-full py-1 px-1 text-[11px] text-slate-700 outline-none bg-transparent"
+              className="w-full py-1 px-1 text-sm text-slate-700 outline-none bg-transparent"
             />
           </div>
           <div className="overflow-y-auto max-h-48">
@@ -118,13 +118,13 @@ function SearchableSelect({ value, onChange, options, placeholder = "Select...",
                 key={String(o.value)}
                 type="button"
                 onClick={() => { onChange(o.value); setOpen(false); setQ(""); }}
-                className={`w-full text-left px-3 py-1.5 text-[11px] hover:bg-indigo-50 transition-colors ${String(o.value) === String(value) ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-slate-600"}`}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 transition-colors ${String(o.value) === String(value) ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-slate-600"}`}
               >
                 {o.label}
               </button>
             ))}
             {filtered.length === 0 && (
-              <div className="px-3 py-2 text-[11px] text-slate-400">No options found</div>
+              <div className="px-3 py-2 text-sm text-slate-400">No options found</div>
             )}
           </div>
         </div>
@@ -533,6 +533,7 @@ export default function BookingReport() {
 
       return {
         id: b.id,
+        bookingId: b.bookingId || b.id,
         bookingDate: b.bookingDate || (b.createdAt ? new Date(b.createdAt).toLocaleDateString("en-IN") : "Recent"),
         customerName: b.customerName || cust.name || "N/A",
         customerMobile: cust.mobile || cust.phone || b.customerPhone || "N/A",
@@ -657,8 +658,8 @@ export default function BookingReport() {
 
       {/* Section 1 – Business Summary */}
       <div>
-        <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-          <BarChart3 size={12} /> Business Summary
+        <div className="mb-3">
+          <h2 className="text-base font text-slate-800 leading-tight">Business Summary</h2>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 w-full">
           <StatCard icon={Building2} label="Total Projects" value={stats.totalProjects} color="blue" />
@@ -670,8 +671,8 @@ export default function BookingReport() {
 
       {/* Section 2 – Site Summary */}
       <div>
-        <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-          <Layers size={12} /> Site Summary
+        <div className="mb-3">
+          <h2 className="text-base font text-slate-800 leading-tight">Site Summary</h2>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 w-full">
           <StatCard icon={Layers} label="Total Sites" value={stats.totalSites} color="indigo" />
@@ -811,26 +812,26 @@ export default function BookingReport() {
 
           {/* Booked date range + project/site filters */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-1 text-[11px] font-medium text-slate-500">
-              <Filter size={12} /> Booked Date:
+            <span className="flex items-center gap-1 text-sm font-medium text-slate-500">
+              <Filter size={14} /> Booked Date:
             </span>
             <input
               type="date"
               value={salesFromDate}
               onChange={(e) => { setSalesFromDate(e.target.value); setProjectPage(1); }}
-              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-            <span className="text-[11px] text-slate-400">to</span>
+            <span className="text-sm text-slate-400">to</span>
             <input
               type="date"
               value={salesToDate}
               onChange={(e) => { setSalesToDate(e.target.value); setProjectPage(1); }}
-              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <select
               value={salesProjectFilter}
               onChange={(e) => { setSalesProjectFilter(e.target.value); setSalesSiteFilter(""); setProjectPage(1); }}
-              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">All Projects</option>
               {projectOptions.map((p) => (
@@ -841,7 +842,7 @@ export default function BookingReport() {
               value={salesSiteFilter}
               onChange={(e) => { setSalesSiteFilter(e.target.value); setProjectPage(1); }}
               disabled={!salesProjectFilter}
-              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <option value="">All Sites</option>
               {selectedProjectSites.map((s) => (
@@ -851,7 +852,7 @@ export default function BookingReport() {
             <select
               value={salesStatusFilter}
               onChange={(e) => { setSalesStatusFilter(e.target.value); setProjectPage(1); }}
-              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">Site Status: All</option>
               {["Booked", "Sold"].map((s) => (
@@ -861,7 +862,7 @@ export default function BookingReport() {
             {(salesFromDate || salesToDate || salesProjectFilter || salesSiteFilter || salesStatusFilter) && (
               <button
                 onClick={() => { setSalesFromDate(""); setSalesToDate(""); setSalesProjectFilter(""); setSalesSiteFilter(""); setSalesStatusFilter(""); setProjectPage(1); }}
-                className="flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-red-500 px-2 py-1 rounded-lg hover:bg-red-50"
+                className="flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-50"
               >
                 <X size={12} /> Clear
               </button>
@@ -973,26 +974,26 @@ export default function BookingReport() {
 
           {/* Date Range Filter */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-1 text-[11px] font-medium text-slate-500">
-              <Filter size={12} /> Date Range:
+            <span className="flex items-center gap-1 text-sm font-medium text-slate-500">
+              <Filter size={14} /> Date Range:
             </span>
             <input
               type="date"
               value={fromDate}
               onChange={(e) => { setFromDate(e.target.value); setCustomerPage(1); }}
-              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-            <span className="text-[11px] text-slate-400">to</span>
+            <span className="text-sm text-slate-400">to</span>
             <input
               type="date"
               value={toDate}
               onChange={(e) => { setToDate(e.target.value); setCustomerPage(1); }}
-              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             {(fromDate || toDate) && (
               <button
                 onClick={() => { setFromDate(""); setToDate(""); setCustomerPage(1); }}
-                className="flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-red-500 px-2 py-1 rounded-lg hover:bg-red-50"
+                className="flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-50"
               >
                 <X size={12} /> Clear
               </button>
@@ -1001,13 +1002,13 @@ export default function BookingReport() {
 
           {/* Project / Site / Created By Filters */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-1 text-[11px] font-medium text-slate-500">
-              <Filter size={12} /> Filters:
+            <span className="flex items-center gap-1 text-sm font-medium text-slate-500">
+              <Filter size={14} /> Filters:
             </span>
             <select
               value={customerProjectFilter}
               onChange={(e) => { setCustomerProjectFilter(e.target.value); setCustomerSiteFilter(""); setCustomerPage(1); }}
-              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">All Projects</option>
               {projectOptions.map((p) => (
@@ -1018,7 +1019,7 @@ export default function BookingReport() {
               value={customerSiteFilter}
               onChange={(e) => { setCustomerSiteFilter(e.target.value); setCustomerPage(1); }}
               disabled={!customerProjectFilter}
-              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <option value="">All Sites</option>
               {customerSites.map((s) => (
@@ -1028,7 +1029,7 @@ export default function BookingReport() {
             <select
               value={customerStatusFilter}
               onChange={(e) => { setCustomerStatusFilter(e.target.value); setCustomerPage(1); }}
-              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">All Status</option>
               {["Booked", "Initial Payment", "Part Payment", "Full Payment", "Cancelled"].map((s) => (
@@ -1046,7 +1047,7 @@ export default function BookingReport() {
             {(customerProjectFilter || customerSiteFilter || customerCreatedByFilter || customerStatusFilter) && (
               <button
                 onClick={() => { setCustomerProjectFilter(""); setCustomerSiteFilter(""); setCustomerCreatedByFilter(""); setCustomerStatusFilter(""); setCustomerPage(1); }}
-                className="flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-red-500 px-2 py-1 rounded-lg hover:bg-red-50"
+                className="flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-50"
               >
                 <X size={12} /> Clear
               </button>
@@ -1058,6 +1059,7 @@ export default function BookingReport() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-100 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="px-3.5 py-3">Booking ID</th>
                 <th className="px-3.5 py-3">Customer Name</th>
                 <th className="px-3.5 py-3">Mobile</th>
                 <th className="px-3.5 py-3">Project / Site</th>
@@ -1071,6 +1073,13 @@ export default function BookingReport() {
               {paginatedBookedCustomers.length > 0 ? (
                 paginatedBookedCustomers.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
+                    {/* Booking ID */}
+                    <td className="px-3.5 py-3">
+                      <span className="inline-flex items-center text-xs font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg font-mono">
+                        {item.bookingId}
+                      </span>
+                    </td>
+
                     {/* Customer Name */}
                     <td className="px-3.5 py-3">
                       <div className="font-medium text-slate-800 text-sm">{item.customerName}</div>
@@ -1120,7 +1129,7 @@ export default function BookingReport() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-slate-400 text-xs">
+                  <td colSpan={8} className="text-center py-8 text-slate-400 text-xs">
                     No booked customers found.
                   </td>
                 </tr>
