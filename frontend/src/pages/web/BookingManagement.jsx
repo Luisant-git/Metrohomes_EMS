@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useData } from "../../context/DataContext.jsx";
+import StatCard from "../../components/StatCard.jsx";
 import DataTable from "../../components/DataTable.jsx";
 import Modal from "../../components/Modal.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
@@ -8,7 +9,7 @@ import { toast } from "react-toastify";
 import { siteVisit } from "../../api/siteVisit.js";
 import { booking as bookingApi } from "../../api/booking.js";
 import { customer as customerApi } from "../../api/customer.js";
-import { formatINR, formatIndianNumber, formatINRShort } from "../../utils/format.js";
+import { formatINR, formatIndianNumber } from "../../utils/format.js";
 
 const empty = {
   customerId: "", customerName: "", siteId: "", projectId: "",
@@ -857,18 +858,11 @@ export default function BookingManagement() {
         }} className="btn-primary"><Plus size={16} />New Booking</button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { label: "Total Bookings", value: bookings.length, color: "text-blue-600" },
-          { label: "Total Revenue", value: formatINRShort(totalRevenue, { decimals: 1 }), color: "text-green-600" },
-          { label: "Pending Amount", value: formatINRShort(totalPending, { decimals: 0 }), color: "text-red-500" },
-          { label: "Cancelled Bookings", value: cancelledCount, color: "text-red-600" },
-        ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-            <div className={`text-xl font-semibold ${s.color}`}>{s.value}</div>
-            <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 w-full">
+        <StatCard icon={BookOpen} label="Total Bookings" value={bookings.length} color="blue" />
+        <StatCard icon={IndianRupee} label="Total Revenue" value={totalRevenue} prefix="₹" color="green" />
+        <StatCard icon={AlertCircle} label="Pending Amount" value={totalPending} prefix="₹" color="red" />
+        <StatCard icon={XCircle} label="Cancelled Bookings" value={cancelledCount} color="orange" />
       </div>
 
       {readyCustomers.length > 0 && (
