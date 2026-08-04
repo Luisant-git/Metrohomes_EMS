@@ -474,7 +474,7 @@ export default function CustomerRegistration() {
       />
       <div>
         <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2">
-          <User size={24} /> Site Visit Registration
+          <User size={24} className="text-purple-600 flex-shrink-0" /> Site Visit Registration
         </h1>
         <p className="text-gray-400 text-sm mt-1">Register new customer and schedule site visit</p>
       </div>

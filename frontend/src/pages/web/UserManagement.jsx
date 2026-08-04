@@ -1188,7 +1188,7 @@ export default function UserManagement() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2">
-            <Users size={22} /> User Management
+            <Users size={22} className="text-indigo-600 flex-shrink-0" /> User Management
           </h1>
         </div>
         <div className="flex items-center gap-2">

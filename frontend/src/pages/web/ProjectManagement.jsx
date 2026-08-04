@@ -216,7 +216,7 @@ export default function ProjectManagement() {
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
-        <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2"><Building2 size={22} />Project Master</h1>
+        <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2"><Building2 size={22} className="text-blue-600 flex-shrink-0" />Project Master</h1>
         <p className="text-gray-400 text-sm mt-0.5">{sites.length} total projects</p>
       </div>
 

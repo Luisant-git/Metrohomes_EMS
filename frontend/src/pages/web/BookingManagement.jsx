@@ -847,7 +847,7 @@ export default function BookingManagement() {
   return (
     <div className="space-y-6 animate-fadeIn">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2"><BookOpen size={22} />Booking Management</h1></div>
+        <div><h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2"><BookOpen size={22} className="text-blue-600 flex-shrink-0" />Booking Management</h1></div>
         <button onClick={() => {
           const today = new Date().toISOString().split("T")[0];
           setForm({ ...empty, bookingDate: today });
