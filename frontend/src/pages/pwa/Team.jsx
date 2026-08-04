@@ -172,12 +172,14 @@ export default function TeamPage() {
   };
 
   const getMemberStats = (member) => {
-    const memberCustomers = customers.filter((c) => c.createdById === member.id);
+    const memberCustomers = customers.filter((c) =>
+      c.createdById === member.id || c.createdBy === member.id || c.assignedTo === member.id
+    );
+    const memberCustomerIds = new Set(memberCustomers.map((c) => c.id));
     const memberBookings = bookings.filter((b) => {
       // Count bookings where the booking's creator OR the customer's creator matches the member
-      if ((b.createdById || b.createdBy) === member.id) return true;
-      const customer = customers.find((c) => c.id === b.customerId);
-      return customer && customer.createdById === member.id;
+      if (b.createdById === member.id || b.createdBy === member.id || b.assignedTo === member.id) return true;
+      return memberCustomerIds.has(b.customerId);
     });
     return { customers: memberCustomers.length, bookings: memberBookings.length };
   };
@@ -199,21 +201,19 @@ export default function TeamPage() {
     return result;
   };
 
-  // Total customers and bookings across entire downline
+  // Total customers and bookings across the whole team (self + downline)
   const summary = useMemo(() => {
-    const downlineUsers = users.filter((u) => downlineUserIds.includes(u.id));
-    const customersCount = downlineUsers.reduce((sum, u) => {
-      return sum + customers.filter((c) => c.createdById === u.id).length;
-    }, 0);
-    const bookingsCount = downlineUsers.reduce((sum, u) => {
-      return sum + bookings.filter((b) => {
-        if ((b.createdById || b.createdBy) === u.id) return true;
-        const customer = customers.find((c) => c.id === b.customerId);
-        return customer && customer.createdById === u.id;
-      }).length;
-    }, 0);
-    return { customers: customersCount, bookings: bookingsCount };
-  }, [users, downlineUserIds, customers, bookings]);
+    const teamIds = new Set([...(downlineUserIds), user?.id].filter(Boolean));
+    const isTeamCustomer = (c) => teamIds.has(c.createdById) || teamIds.has(c.createdBy) || teamIds.has(c.assignedTo);
+    const teamCustomers = customers.filter(isTeamCustomer);
+    const teamCustomerIds = new Set(teamCustomers.map((c) => c.id));
+    const teamBookings = bookings.filter((b) => {
+      if (b.status === "Cancelled") return false;
+      if (teamIds.has(b.createdById) || teamIds.has(b.createdBy) || teamIds.has(b.assignedTo)) return true;
+      return teamCustomerIds.has(b.customerId);
+    });
+    return { customers: teamCustomers.length, bookings: teamBookings.length };
+  }, [users, downlineUserIds, customers, bookings, user?.id]);
 
   return (
     <div className="pb-24">
@@ -258,24 +258,22 @@ export default function TeamPage() {
       )}
 
       {/* Total Customers & Total Bookings summary */}
-      {!selectedRole && (
-        <div className="px-4 grid grid-cols-2 gap-3 mb-4">
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-            <div className="w-9 h-9 bg-purple-50 rounded-xl flex items-center justify-center mb-2">
-              <Users size={18} className="text-purple-600" />
-            </div>
-            <div className="text-xl font-bold text-purple-600">{summary.customers}</div>
-            <div className="text-[10px] text-gray-400 mt-0.5">Total Customers</div>
+      <div className="px-4 grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <div className="w-9 h-9 bg-purple-50 rounded-xl flex items-center justify-center mb-2">
+            <Users size={18} className="text-purple-600" />
           </div>
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-            <div className="w-9 h-9 bg-orange-50 rounded-xl flex items-center justify-center mb-2">
-              <TrendingUp size={18} className="text-orange-600" />
-            </div>
-            <div className="text-xl font-bold text-orange-600">{summary.bookings}</div>
-            <div className="text-[10px] text-gray-400 mt-0.5">Total Bookings</div>
-          </div>
+          <div className="text-xl font-bold text-purple-600">{summary.customers}</div>
+          <div className="text-[10px] text-gray-400 mt-0.5">Total Customers</div>
         </div>
-      )}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <div className="w-9 h-9 bg-orange-50 rounded-xl flex items-center justify-center mb-2">
+            <TrendingUp size={18} className="text-orange-600" />
+          </div>
+          <div className="text-xl font-bold text-orange-600">{summary.bookings}</div>
+          <div className="text-[10px] text-gray-400 mt-0.5">Total Bookings</div>
+        </div>
+      </div>
 
       {/* Search Bar */}
       {filteredMembers.length > 0 && (

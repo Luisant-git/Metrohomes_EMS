@@ -101,7 +101,6 @@ export default function PWASites() {
               )}
               {/* Plots summary */}
               <div className="flex gap-3 mt-2 text-xs text-gray-500">
-                <span>Total: <strong className="text-gray-700">{project.totalPlots}</strong></span>
                 <span>Available: <strong className="text-green-600">{project.availablePlots}</strong></span>
               </div>
               {/* View Details */}
