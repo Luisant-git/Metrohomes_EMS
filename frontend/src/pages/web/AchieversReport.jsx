@@ -1,139 +1,244 @@
-import { useState, useMemo } from "react";
-import { Trophy, Download, Medal, Star, Crown, Calendar, Award, CheckCircle, FileSpreadsheet } from "lucide-react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { Trophy, Download, Medal, Star, Crown, Calendar, CheckCircle, FileSpreadsheet, Search, X, ChevronDown, Building2, UserRound, Eye, User, MapPin, Phone, Ruler } from "lucide-react";
 import { toast } from "react-toastify";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { useData } from "../../context/DataContext.jsx";
+import StatusBadge from "../../components/StatusBadge.jsx";
 
-// ── Rich 2026 Mock Database ──
-const AGENTS = [
-  { id: 1, name: "Priya Sen", role: "Sales Manager", avatar: "PS" },
-  { id: 2, name: "Anjali Verma", role: "Sales Manager", avatar: "AV" },
-  { id: 3, name: "Neha Mishra", role: "Sales Manager", avatar: "NM" },
-  { id: 4, name: "Rahul Das", role: "Sales Manager", avatar: "RD" },
-  { id: 5, name: "Arun Kumar", role: "Sales Manager", avatar: "AK" },
-  { id: 6, name: "Sanjay Singhal", role: "Sales Executive", avatar: "SS" },
-  { id: 7, name: "Vikram Malhotra", role: "Sales Manager", avatar: "VM" },
-  { id: 8, name: "Pooja Hegde", role: "Sales Executive", avatar: "PH" },
-];
+const today = new Date();
 
-const SALES_RECORDS = [
-  // Priya Sen (14 sales)
-  { agentId: 1, date: "2026-01-15" },
-  { agentId: 1, date: "2026-01-28" },
-  { agentId: 1, date: "2026-02-12" },
-  { agentId: 1, date: "2026-02-25" },
-  { agentId: 1, date: "2026-03-10" },
-  { agentId: 1, date: "2026-04-05" },
-  { agentId: 1, date: "2026-04-20" },
-  { agentId: 1, date: "2026-05-08" },
-  { agentId: 1, date: "2026-05-22" },
-  { agentId: 1, date: "2026-06-11" },
-  { agentId: 1, date: "2026-06-25" },
-  { agentId: 1, date: "2026-07-02" },
-  { agentId: 1, date: "2026-07-14" },
-  { agentId: 1, date: "2026-07-20" },
+function AvatarCircle({ person, className = "", textClassName = "" }) {
+  const { avatar, avatarUrl, name } = person;
+  const isImg =
+    avatarUrl &&
+    (avatarUrl.startsWith("http") ||
+      avatarUrl.startsWith("data:") ||
+      avatarUrl.includes("/"));
 
-  // Anjali Verma (12 sales)
-  { agentId: 2, date: "2026-01-18" },
-  { agentId: 2, date: "2026-02-15" },
-  { agentId: 2, date: "2026-02-28" },
-  { agentId: 2, date: "2026-03-15" },
-  { agentId: 2, date: "2026-03-29" },
-  { agentId: 2, date: "2026-04-10" },
-  { agentId: 2, date: "2026-05-05" },
-  { agentId: 2, date: "2026-05-20" },
-  { agentId: 2, date: "2026-06-08" },
-  { agentId: 2, date: "2026-06-22" },
-  { agentId: 2, date: "2026-07-05" },
-  { agentId: 2, date: "2026-07-19" },
+  return (
+    <div className={`rounded-full overflow-hidden flex items-center justify-center ${className}`}>
+      {isImg ? (
+        <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+      ) : (
+        <span className={`w-full h-full flex items-center justify-center ${textClassName}`}>
+          {avatar}
+        </span>
+      )}
+    </div>
+  );
+}
 
-  // Neha Mishra (11 sales)
-  { agentId: 3, date: "2026-01-20" },
-  { agentId: 3, date: "2026-02-18" },
-  { agentId: 3, date: "2026-03-12" },
-  { agentId: 3, date: "2026-03-25" },
-  { agentId: 3, date: "2026-04-15" },
-  { agentId: 3, date: "2026-05-12" },
-  { agentId: 3, date: "2026-05-28" },
-  { agentId: 3, date: "2026-06-15" },
-  { agentId: 3, date: "2026-06-30" },
-  { agentId: 3, date: "2026-07-10" },
-  { agentId: 3, date: "2026-07-18" },
+function SearchableSelect({ value, onChange, options, placeholder = "Select...", className = "" }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const ref = useRef(null);
 
-  // Rahul Das (9 sales)
-  { agentId: 4, date: "2026-01-25" },
-  { agentId: 4, date: "2026-02-20" },
-  { agentId: 4, date: "2026-03-18" },
-  { agentId: 4, date: "2026-04-18" },
-  { agentId: 4, date: "2026-05-15" },
-  { agentId: 4, date: "2026-06-10" },
-  { agentId: 4, date: "2026-06-28" },
-  { agentId: 4, date: "2026-07-08" },
-  { agentId: 4, date: "2026-07-16" },
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
-  // Arun Kumar (7 sales)
-  { agentId: 5, date: "2026-01-30" },
-  { agentId: 5, date: "2026-02-22" },
-  { agentId: 5, date: "2026-03-22" },
-  { agentId: 5, date: "2026-04-22" },
-  { agentId: 5, date: "2026-05-25" },
-  { agentId: 5, date: "2026-06-18" },
-  { agentId: 5, date: "2026-07-12" },
+  const selected = options.find((o) => String(o.value) === String(value));
+  const filtered = options.filter((o) => o.label.toLowerCase().includes(q.toLowerCase()));
 
-  // Sanjay Singhal (6 sales)
-  { agentId: 6, date: "2026-01-05" },
-  { agentId: 6, date: "2026-02-08" },
-  { agentId: 6, date: "2026-03-12" },
-  { agentId: 6, date: "2026-04-14" },
-  { agentId: 6, date: "2026-05-19" },
-  { agentId: 6, date: "2026-06-24" },
+  return (
+    <div ref={ref} className={`relative ${className}`}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between gap-2"
+      >
+        <span className="truncate">{selected ? selected.label : placeholder}</span>
+        <ChevronDown size={14} className={`text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden flex flex-col">
+          <div className="p-1 border-b border-slate-100 flex items-center gap-1">
+            <Search size={14} className="text-slate-400 ml-1 flex-shrink-0" />
+            <input
+              autoFocus
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search..."
+              className="w-full py-1 px-1 text-sm text-slate-700 outline-none bg-transparent"
+            />
+          </div>
+          <div className="overflow-y-auto max-h-48">
+            {filtered.length > 0 ? (
+              filtered.map((o) => (
+                <button
+                  key={String(o.value)}
+                  type="button"
+                  onClick={() => { onChange(o.value); setOpen(false); setQ(""); }}
+                  className={`w-full px-3 py-2 text-sm text-left hover:bg-slate-50 ${String(o.value) === String(value) ? "bg-blue-50 text-blue-700 font-medium" : "text-slate-700"}`}
+                >
+                  {o.label}
+                </button>
+              ))
+            ) : (
+              <div className="px-3 py-4 text-center text-sm text-slate-400">No options found</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
-  // Vikram Malhotra (5 sales)
-  { agentId: 7, date: "2026-02-14" },
-  { agentId: 7, date: "2026-03-24" },
-  { agentId: 7, date: "2026-04-28" },
-  { agentId: 7, date: "2026-05-30" },
-  { agentId: 7, date: "2026-07-05" },
-
-  // Pooja Hegde (5 sales)
-  { agentId: 8, date: "2026-03-01" },
-  { agentId: 8, date: "2026-04-02" },
-  { agentId: 8, date: "2026-05-03" },
-  { agentId: 8, date: "2026-06-04" },
-  { agentId: 8, date: "2026-07-05" },
-];
+function RoleBadge({ role }) {
+  const styles = {
+    Admin: "bg-purple-100 text-purple-700 border-purple-200",
+    Director: "bg-indigo-100 text-indigo-700 border-indigo-200",
+    "Regional Manager": "bg-blue-100 text-blue-700 border-blue-200",
+    "Branch Manager": "bg-teal-100 text-teal-700 border-teal-200",
+    BDM: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    "Sales Manager": "bg-amber-100 text-amber-700 border-amber-200",
+    "Sales Executive": "bg-cyan-100 text-cyan-700 border-cyan-200",
+  };
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border whitespace-nowrap ${styles[role] || "bg-gray-100 text-gray-700 border-gray-200"}`}>
+      {role || "—"}
+    </span>
+  );
+}
 
 export default function AchieversReport() {
-  // ── States ──
-  const [startDate, setStartDate] = useState("2026-01-01");
-  const [endDate, setEndDate] = useState("2026-07-31");
+  const { users = [], bookings = [], customers = [], sites = [] } = useData();
+
+  // ── Filter States ──
+  const [searchQuery, setSearchQuery] = useState("");
+  const [fromDate, setFromDate] = useState(`${today.getFullYear()}-01-01`);
+  const [toDate, setToDate] = useState(today.toISOString().split("T")[0]);
+  const [projectFilter, setProjectFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [viewAchiever, setViewAchiever] = useState(null);
+
+  // ── Filter Options ──
+  const projectOptions = useMemo(() => {
+    const seen = new Map();
+    sites.forEach((s) => {
+      if (s.id != null && !seen.has(String(s.id))) {
+        seen.set(String(s.id), { value: s.id, label: s.name || `Project #${s.id}` });
+      }
+    });
+    bookings.forEach((b) => {
+      const pId = b.projectId ?? b.project?.id;
+      if (pId != null && !seen.has(String(pId))) {
+        seen.set(String(pId), { value: pId, label: b.projectName || b.project?.name || `Project #${pId}` });
+      }
+    });
+    return Array.from(seen.values());
+  }, [sites, bookings]);
+
+  const roleOptions = useMemo(() => {
+    const set = new Set(users.map((u) => u.role).filter(Boolean));
+    return Array.from(set).map((r) => ({ value: r, label: r }));
+  }, [users]);
+
+  const defaultFrom = `${today.getFullYear()}-01-01`;
+  const defaultTo = today.toISOString().split("T")[0];
+
+  const hasFilters =
+    searchQuery || fromDate !== defaultFrom || toDate !== defaultTo || projectFilter || roleFilter;
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setFromDate(defaultFrom);
+    setToDate(defaultTo);
+    setProjectFilter("");
+    setRoleFilter("");
+  };
 
   // ── Dynamic Filter & Aggregate Logic ──
   const calculatedAchievers = useMemo(() => {
-    // 1. Filter sales records in selected date range
-    const recordsInRange = SALES_RECORDS.filter(
-      (r) => r.date >= startDate && r.date <= endDate
+    const q = searchQuery.trim().toLowerCase();
+
+    // 1. Restrict achievers pool by search + role
+    const eligibleUsers = users.filter((u) => {
+      if (roleFilter && u.role !== roleFilter) return false;
+      if (q) {
+        const name = (u.name || "").toLowerCase();
+        const role = (u.role || "").toLowerCase();
+        if (!name.includes(q) && !role.includes(q)) return false;
+      }
+      return true;
+    });
+
+    // 2. Filter bookings in selected range (exclude cancelled)
+    const recordsInRange = bookings.filter((b) => {
+      if (b.status === "Cancelled") return false;
+      const dateStr = (b.bookingDate || b.createdAt || "").toString().split("T")[0];
+      if (!dateStr) return false;
+      if (dateStr < fromDate || dateStr > toDate) return false;
+      if (projectFilter && String(b.projectId ?? b.project?.id) !== String(projectFilter)) return false;
+      return true;
+    });
+
+    // 3. Aggregate booking count by the user who created/completed them
+    const agentMap = new Map();
+    eligibleUsers.forEach((u) => {
+      const name = u.name || "Unknown";
+      const avatar = name
+        .split(" ")
+        .map((w) => w.charAt(0))
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
+      agentMap.set(String(u.id), {
+        id: u.id,
+        name,
+        role: u.role || "Sales Executive",
+        avatarUrl: u.avatar || null,
+        avatar: avatar || "U",
+        mobile: u.mobile || "",
+        employeeCode: u.employeeCode || "",
+        parentUserId: u.parentUserId ?? u.parent?.id ?? "",
+        parentName: u.parent?.name || "",
+        parentCode: (u.parentUserId ?? u.parent?.id ?? "")
+          ? users.find((p) => String(p.id) === String(u.parentUserId ?? u.parent?.id))?.employeeCode || ""
+          : "",
+        parentAvatar: (() => {
+          const p = users.find((x) => String(x.id) === String(u.parentUserId ?? u.parent?.id));
+          if (!p) return "";
+          const pn = p.name || "?";
+          return pn
+            .split(" ")
+            .map((w) => w.charAt(0))
+            .join("")
+            .slice(0, 2)
+            .toUpperCase();
+        })(),
+        parentAvatarUrl: (() => {
+          const p = users.find((x) => String(x.id) === String(u.parentUserId ?? u.parent?.id));
+          return p?.avatar || null;
+        })(),
+        sales: 0,
+      });
+    });
+
+    const customerCreatorMap = new Map(
+      customers.map((c) => [String(c.id), String(c.createdById || c.createdBy || "")])
     );
 
-    // 2. Aggregate sales count by agent
-    const agentMap = {};
-    AGENTS.forEach((agent) => {
-      agentMap[agent.id] = {
-        ...agent,
-        sales: 0,
-      };
+    recordsInRange.forEach((b) => {
+      // Achiever = the user who created the booking's customer
+      const creatorId =
+        customerCreatorMap.get(String(b.customerId)) ||
+        b.createdById ||
+        b.createdBy ||
+        b.assignedTo;
+      const entry = agentMap.get(String(creatorId));
+      if (entry) entry.sales += 1;
     });
 
-    recordsInRange.forEach((record) => {
-      if (agentMap[record.agentId]) {
-        agentMap[record.agentId].sales += 1;
-      }
-    });
+    // 4. Convert to array and assign ranks/badges
+    const rawList = Array.from(agentMap.values());
 
-    // 3. Convert to array and assign ranks/badges
-    const rawList = Object.values(agentMap);
-    
     // Sort by sales descending
     rawList.sort((a, b) => b.sales - a.sales);
 
@@ -160,37 +265,45 @@ export default function AchieversReport() {
           badge,
         };
       })
-      .filter((a) => a.sales > 0); // Only list active agents
-  }, [startDate, endDate]);
+      .filter((a) => a.sales > 0); // Only list achievers with completed bookings
+  }, [bookings, users, customers, sites, searchQuery, fromDate, toDate, projectFilter, roleFilter]);
 
-  // ── Date Preset Handler ──
-  const applyPreset = (preset) => {
-    switch (preset) {
-      case "FY26":
-        setStartDate("2026-01-01");
-        setEndDate("2026-12-31");
-        break;
-      case "Q1":
-        setStartDate("2026-01-01");
-        setEndDate("2026-03-31");
-        break;
-      case "Q2":
-        setStartDate("2026-04-01");
-        setEndDate("2026-06-30");
-        break;
-      case "Q3":
-        setStartDate("2026-07-01");
-        setEndDate("2026-09-30");
-        break;
-      case "JULY":
-        setStartDate("2026-07-01");
-        setEndDate("2026-07-31");
-        break;
-      default:
-        break;
-    }
-    toast.info(`Applied Preset: ${preset}`);
-  };
+  // ── Bookings for the selected achiever (view modal) ──
+  const getProject = (b) => sites.find((s) => String(s.id) === String(b.projectId ?? b.project?.id));
+
+  const achieverBookings = useMemo(() => {
+    if (!viewAchiever) return [];
+    const id = String(viewAchiever.id);
+    const customerCreatorMap = new Map(
+      customers.map((c) => [String(c.id), String(c.createdById || c.createdBy || "")])
+    );
+    return bookings
+      .filter((b) => {
+        if (b.status === "Cancelled") return false;
+        const dateStr = (b.bookingDate || b.createdAt || "").toString().split("T")[0];
+        if (!dateStr) return false;
+        if (dateStr < fromDate || dateStr > toDate) return false;
+        if (projectFilter && String(b.projectId ?? b.project?.id) !== String(projectFilter)) return false;
+        const creatorId =
+          customerCreatorMap.get(String(b.customerId)) ||
+          b.createdById ||
+          b.createdBy ||
+          b.assignedTo;
+        return String(creatorId) === id;
+      })
+      .sort((a, b) => (b.bookingDate || "").localeCompare(a.bookingDate || ""));
+  }, [viewAchiever, bookings, customers, fromDate, toDate, projectFilter]);
+
+  const modalStats = useMemo(() => {
+    const siteNos = new Set();
+    let totalSqft = 0;
+    achieverBookings.forEach((b) => {
+      const sn = b.siteNo || b.site?.siteNo;
+      if (sn) siteNos.add(String(sn));
+      totalSqft += Number(b.plotArea || 0);
+    });
+    return { siteCount: siteNos.size, totalSqft };
+  }, [achieverBookings]);
 
   // ── Summary Metrics ──
   const summaryMetrics = useMemo(() => {
@@ -245,8 +358,8 @@ export default function AchieversReport() {
         heightLeft -= pageHeight;
       }
 
-      const formattedStart = startDate.replaceAll("-", "");
-      const formattedEnd = endDate.replaceAll("-", "");
+      const formattedStart = fromDate.replaceAll("-", "");
+      const formattedEnd = toDate.replaceAll("-", "");
       pdf.save(`Achievers_Report_${formattedStart}_${formattedEnd}.pdf`);
       
       toast.update(toastId, {
@@ -279,7 +392,7 @@ export default function AchieversReport() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Achievers_Report_${startDate}_to_${endDate}.csv`);
+    link.setAttribute("download", `Achievers_Report_${fromDate}_to_${toDate}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -322,73 +435,88 @@ export default function AchieversReport() {
         </div>
       </div>
 
-      {/* ── Interactive Date Range Filters Panel ── */}
-      <div className="card p-5 bg-white border border-gray-100 shadow-sm space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            2026 Range Presets:
-          </span>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {[
-              { id: "FY26", label: "Full Year 2026" },
-              { id: "Q1", label: "Q1 (Jan-Mar)" },
-              { id: "Q2", label: "Q2 (Apr-Jun)" },
-              { id: "Q3", label: "Q3 (Jul-Sep)" },
-              { id: "JULY", label: "July 2026" },
-            ].map((p) => {
-              const isSelected =
-                (p.id === "FY26" && startDate === "2026-01-01" && endDate === "2026-12-31") ||
-                (p.id === "Q1" && startDate === "2026-01-01" && endDate === "2026-03-31") ||
-                (p.id === "Q2" && startDate === "2026-04-01" && endDate === "2026-06-30") ||
-                (p.id === "Q3" && startDate === "2026-07-01" && endDate === "2026-09-30") ||
-                (p.id === "JULY" && startDate === "2026-07-01" && endDate === "2026-07-31");
+      {/* ── Neat Filter Toolbar ── */}
+      <div className="card bg-white border border-gray-100 shadow-sm rounded-2xl p-4">
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
+          <div className="flex flex-wrap items-end gap-3">
+            {/* Search bar */}
+            <div className="w-full sm:w-52">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                <Search size={13} className="text-blue-500" /> Search
+              </label>
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search achiever..."
+                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+              />
+            </div>
 
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => applyPreset(p.id)}
-                  className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all ${
-                    isSelected
-                      ? "bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-200"
-                      : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  {p.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+            {/* From Date */}
+            <div className="w-full sm:w-40">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                <Calendar size={12} className="text-blue-500" /> From Date
+              </label>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+              />
+            </div>
 
-        {/* Custom date range controls */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-50">
-          <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1 mb-1.5">
-              <Calendar size={12} className="text-blue-500" /> Start Date
-            </label>
-            <input
-              type="date"
-              value={startDate}
-              min="2026-01-01"
-              max="2026-12-31"
-              onChange={(e) => setStartDate(e.target.value)}
-              className="input-field py-2 text-xs"
-            />
+            {/* To Date */}
+            <div className="w-full sm:w-40">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                <Calendar size={12} className="text-blue-500" /> To Date
+              </label>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+              />
+            </div>
+
+            {/* Project dropdown */}
+            <div className="w-full sm:w-44">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                <Building2 size={12} className="text-blue-500" /> Project
+              </label>
+              <select
+                value={projectFilter}
+                onChange={(e) => setProjectFilter(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+              >
+                <option value="">All Projects</option>
+                {projectOptions.map((p) => (
+                  <option key={String(p.value)} value={p.value}>{p.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* User Role searchable dropdown */}
+            <div className="w-full sm:w-44">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                <UserRound size={12} className="text-blue-500" /> User Role
+              </label>
+              <SearchableSelect
+                value={roleFilter}
+                onChange={setRoleFilter}
+                options={roleOptions}
+                placeholder="All Roles"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1 mb-1.5">
-              <Calendar size={12} className="text-blue-500" /> End Date
-            </label>
-            <input
-              type="date"
-              value={endDate}
-              min="2026-01-01"
-              max="2026-12-31"
-              onChange={(e) => setEndDate(e.target.value)}
-              className="input-field py-2 text-xs"
-            />
-          </div>
+          {hasFilters && (
+            <button
+              onClick={clearFilters}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-red-600 bg-gray-50 hover:bg-red-50 border border-gray-200 px-3 py-2 rounded-lg transition-colors self-start lg:self-end"
+            >
+              <X size={13} /> Clear Filters
+            </button>
+          )}
         </div>
       </div>
 
@@ -408,7 +536,7 @@ export default function AchieversReport() {
                 Performance Leaderboard
               </h2>
               <p className="text-blue-100 text-xs font-medium">
-                Showing results from {new Date(startDate).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' })} to {new Date(endDate).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' })}
+                Showing results from {new Date(fromDate).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' })} to {new Date(toDate).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' })}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -432,7 +560,7 @@ export default function AchieversReport() {
             </div>
             <div>
               <div className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Total Sales</div>
-              <div className="text-lg font-bold text-gray-800 mt-0.5">{summaryMetrics.totalSales} units</div>
+              <div className="text-lg font-bold text-gray-800 mt-0.5">{summaryMetrics.totalSales} sales</div>
               <div className="text-xs text-gray-400 font-medium mt-0.5">Closed deals count</div>
             </div>
           </div>
@@ -468,7 +596,7 @@ export default function AchieversReport() {
             <div>
               <div className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Champion Quota</div>
               <div className="text-lg font-bold text-gray-800 mt-0.5">
-                {summaryMetrics.gold ? `${summaryMetrics.gold.sales} units` : "0 units"}
+                {summaryMetrics.gold ? `${summaryMetrics.gold.sales} sales` : "0 sales"}
               </div>
               <div className="text-xs text-amber-600 font-semibold mt-0.5">Highest individual volume</div>
             </div>
@@ -494,9 +622,11 @@ export default function AchieversReport() {
               <div className="w-44 flex flex-col items-center order-2 md:order-1">
                 {/* Floating Avatar */}
                 <div className="relative mb-3 group">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-slate-200 to-slate-100 border-2 border-white flex items-center justify-center font-bold text-lg text-slate-700 shadow-md transition-transform duration-300 group-hover:scale-105">
-                    {summaryMetrics.silver.avatar}
-                  </div>
+                  <AvatarCircle
+                    person={summaryMetrics.silver}
+                    className="w-16 h-16 border-2 border-white bg-gradient-to-br from-slate-200 to-slate-100 shadow-md transition-transform duration-300 group-hover:scale-105"
+                    textClassName="font-bold text-lg text-slate-700"
+                  />
                   <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-slate-300 text-slate-800 border border-white flex items-center justify-center text-xs font-black shadow-sm">
                     🥈
                   </div>
@@ -505,7 +635,7 @@ export default function AchieversReport() {
                 {/* Pedestal */}
                 <div className="w-full h-24 bg-gradient-to-b from-slate-100 to-slate-50 border border-slate-200 border-b-0 rounded-t-2xl flex flex-col items-center justify-center p-3 shadow-[0_-4px_12px_rgba(148,163,184,0.04)]">
                   <div className="text-2xl font-black text-slate-400">2</div>
-                  <div className="text-xs font-bold text-slate-700 mt-0.5">{summaryMetrics.silver.sales} units</div>
+                  <div className="text-xs font-bold text-slate-700 mt-0.5">{summaryMetrics.silver.sales} sales</div>
                 </div>
                 
                 {/* Identity */}
@@ -526,9 +656,11 @@ export default function AchieversReport() {
                   <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-yellow-500 animate-bounce">
                     <Crown size={20} className="fill-amber-400 text-amber-500" />
                   </div>
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-200 to-yellow-100 border-4 border-amber-300 flex items-center justify-center font-black text-2xl text-amber-800 shadow-lg transition-transform duration-300 group-hover:scale-105">
-                    {summaryMetrics.gold.avatar}
-                  </div>
+                  <AvatarCircle
+                    person={summaryMetrics.gold}
+                    className="w-20 h-20 border-4 border-amber-300 bg-gradient-to-br from-amber-200 to-yellow-100 shadow-lg transition-transform duration-300 group-hover:scale-105"
+                    textClassName="font-black text-2xl text-amber-800"
+                  />
                   <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-amber-400 text-white border-2 border-white flex items-center justify-center text-xs font-black shadow-md">
                     🥇
                   </div>
@@ -537,7 +669,7 @@ export default function AchieversReport() {
                 {/* Pedestal */}
                 <div className="w-full h-32 bg-gradient-to-b from-amber-100 to-amber-50/50 border-2 border-amber-300 border-b-0 rounded-t-2xl flex flex-col items-center justify-center p-3 shadow-[0_-6px_20px_rgba(245,158,11,0.08)] relative">
                   <div className="text-3xl font-black text-amber-500">1</div>
-                  <div className="text-sm font-bold text-amber-700 mt-0.5">{summaryMetrics.gold.sales} units</div>
+                  <div className="text-sm font-bold text-amber-700 mt-0.5">{summaryMetrics.gold.sales} sales</div>
                   <span className="absolute bottom-2 text-[8px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white uppercase tracking-wider scale-90">
                     {summaryMetrics.gold.badge}
                   </span>
@@ -558,9 +690,11 @@ export default function AchieversReport() {
               <div className="w-44 flex flex-col items-center order-3">
                 {/* Floating Avatar */}
                 <div className="relative mb-3 group">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-100 to-amber-50 border-2 border-white flex items-center justify-center font-bold text-lg text-orange-950/80 shadow-md transition-transform duration-300 group-hover:scale-105">
-                    {summaryMetrics.bronze.avatar}
-                  </div>
+                  <AvatarCircle
+                    person={summaryMetrics.bronze}
+                    className="w-16 h-16 border-2 border-white bg-gradient-to-br from-orange-100 to-amber-50 shadow-md transition-transform duration-300 group-hover:scale-105"
+                    textClassName="font-bold text-lg text-orange-950/80"
+                  />
                   <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-orange-300 text-orange-850 border border-white flex items-center justify-center text-xs font-black shadow-sm">
                     🥉
                   </div>
@@ -569,7 +703,7 @@ export default function AchieversReport() {
                 {/* Pedestal */}
                 <div className="w-full h-18 bg-gradient-to-b from-orange-100/50 to-orange-50/20 border border-orange-200/60 border-b-0 rounded-t-2xl flex flex-col items-center justify-center p-3 shadow-[0_-4px_12px_rgba(234,88,12,0.02)]">
                   <div className="text-xl font-black text-orange-400/80">3</div>
-                  <div className="text-xs font-bold text-orange-850/80 mt-0.5">{summaryMetrics.bronze.sales} units</div>
+                  <div className="text-xs font-bold text-orange-850/80 mt-0.5">{summaryMetrics.bronze.sales} sales</div>
                 </div>
 
                 {/* Identity */}
@@ -585,11 +719,14 @@ export default function AchieversReport() {
           </div>
         </div>
 
-        {/* ── Complete Rankings Table (Redesigned to be Ultra Clean) ── */}
+        {/* ── Complete Rankings Table ── */}
         <div className="card overflow-hidden bg-white border border-gray-100 shadow-sm rounded-2xl">
           <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
             <div>
-              <h3 className="font-bold text-gray-800 text-sm">Leaderboard Rankings</h3>
+              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-2.5 py-1 rounded-lg">
+                Full Leaderboard
+              </span>
+              <h3 className="font-bold text-gray-900 text-sm mt-1.5">Rankings Breakdown</h3>
               <p className="text-xs text-gray-400 mt-0.5">
                 Sorted by sales count performance
               </p>
@@ -602,68 +739,104 @@ export default function AchieversReport() {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="bg-gray-50/40 border-b border-gray-100">
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider w-20">
+                <tr className="bg-slate-50 border-b border-slate-100">
+                  <th className="px-6 py-3.5 text-left text-[11px] font-medium text-slate-600 uppercase tracking-widest w-20">
                     Rank
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    Sales Manager
+                  <th className="px-6 py-3.5 text-left text-[11px] font-medium text-slate-600 uppercase tracking-widest">
+                    Achiever
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-bold text-gray-400 uppercase tracking-wider w-44">
+                  <th className="px-6 py-3.5 text-left text-[11px] font-medium text-slate-600 uppercase tracking-widest">
+                    Role
+                  </th>
+                  <th className="px-6 py-3.5 text-left text-[11px] font-medium text-slate-600 uppercase tracking-widest">
+                    ID
+                  </th>
+                  <th className="px-6 py-3.5 text-center text-[11px] font-medium text-slate-600 uppercase tracking-widest w-52">
                     Sales Closed
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-bold text-gray-400 uppercase tracking-wider w-48">
+                  <th className="px-6 py-3.5 text-center text-[11px] font-medium text-slate-600 uppercase tracking-widest w-52">
                     Badge Awarded
+                  </th>
+                  <th className="px-6 py-3.5 text-center text-[11px] font-medium text-slate-600 uppercase tracking-widest w-20">
+                    Action
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-slate-100">
                 {calculatedAchievers.length > 0 ? (
                   calculatedAchievers.map((a) => {
-                    const rankBadge =
+                    const leader = calculatedAchievers[0]?.sales || 1;
+                    const progressWidth = Math.max(Math.round((a.sales / leader) * 100), a.sales > 0 ? 8 : 0);
+                    const rankChip =
                       a.rank === 1
                         ? "bg-amber-100 text-amber-800"
                         : a.rank === 2
                         ? "bg-slate-100 text-slate-800"
                         : a.rank === 3
-                        ? "bg-orange-50 text-orange-850"
+                        ? "bg-orange-50 text-orange-800"
                         : "bg-gray-50 text-gray-400";
 
                     return (
-                      <tr key={a.id} className="hover:bg-gray-50/20 transition-all">
+                      <tr key={a.id} className="hover:bg-slate-50/60 transition-colors">
                         {/* Rank */}
-                        <td className="px-6 py-3.5">
-                          <div className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold ${rankBadge}`}>
-                            {a.rank}
-                          </div>
+                        <td className="px-6 py-4">
+                          {a.rank <= 3 ? (
+                            <span className="text-lg leading-none" title={a.badge}>
+                              {a.rank === 1 ? "🥇" : a.rank === 2 ? "🥈" : "🥉"}
+                            </span>
+                          ) : (
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${rankChip}`}>
+                              {a.rank}
+                            </div>
+                          )}
                         </td>
 
                         {/* Name & Avatar */}
-                        <td className="px-6 py-3.5">
+                        <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700 text-xs font-bold">
-                              {a.avatar}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-sm text-gray-800">
-                                {a.name}
-                              </div>
-                              <div className="text-[10px] text-gray-400">{a.role}</div>
+                            <AvatarCircle
+                              person={a}
+                              className="w-9 h-9 bg-blue-50 border border-blue-100"
+                              textClassName="text-blue-700 text-xs font-bold"
+                            />
+                            <div className="font-semibold text-sm text-gray-800">
+                              {a.name}
                             </div>
                           </div>
                         </td>
 
-                        {/* Sales units */}
-                        <td className="px-6 py-3.5 text-center">
-                          <span className="inline-flex items-center justify-center px-2.5 py-1 text-xs font-bold text-blue-700 bg-blue-50/70 border border-blue-100/50 rounded-lg">
-                            {a.sales} units
+                        {/* Role */}
+                        <td className="px-6 py-4">
+                          <RoleBadge role={a.role} />
+                        </td>
+
+                        {/* ID */}
+                        <td className="px-6 py-4">
+                          <span className="font-mono text-sm font-semibold text-slate-700">
+                            {a.employeeCode || a.id}
                           </span>
                         </td>
 
+                        {/* Sales count + progress */}
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col items-center gap-1.5">
+                            <span className="inline-flex items-center justify-center px-2.5 py-1 text-xs font-bold text-blue-700 bg-blue-50/70 border border-blue-100/50 rounded-lg tabular-nums">
+                              {a.sales} sales
+                            </span>
+                            <div className="w-24 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500"
+                                style={{ width: `${progressWidth}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+
                         {/* Badge Awarded */}
-                        <td className="px-6 py-3.5 text-center">
+                        <td className="px-6 py-4 text-center">
                           <span
-                            className={`inline-block text-[10px] font-semibold px-2.5 py-0.5 rounded-full ${
+                            className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-3 py-1 rounded-full ${
                               a.rank === 1
                                 ? "bg-amber-100 text-amber-800"
                                 : a.rank === 2
@@ -673,16 +846,39 @@ export default function AchieversReport() {
                                 : "bg-gray-50 text-gray-500"
                             }`}
                           >
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              a.rank === 1
+                                ? "bg-amber-500"
+                                : a.rank === 2
+                                ? "bg-slate-500"
+                                : a.rank === 3
+                                ? "bg-orange-500"
+                                : "bg-gray-400"
+                            }`} />
                             {a.badge}
                           </span>
+                        </td>
+
+                        {/* View action */}
+                        <td className="px-6 py-4 text-center">
+                          <button
+                            onClick={() => setViewAchiever(a)}
+                            className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                            title="View booked sites & customers"
+                          >
+                            <Eye size={15} />
+                          </button>
                         </td>
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-gray-400">
-                      No active achiever records found in selected criteria.
+                    <td colSpan={7} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <Trophy size={28} className="text-gray-300" />
+                        <span className="text-sm text-gray-400">No active achiever records found in selected criteria.</span>
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -691,6 +887,177 @@ export default function AchieversReport() {
           </div>
         </div>
       </div>
+
+      {/* ── Achiever Details Modal ── */}
+      {viewAchiever && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+          onClick={() => setViewAchiever(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 sticky top-0 bg-white z-10">
+              <div className="flex items-center gap-3.5">
+                <AvatarCircle
+                  person={viewAchiever}
+                  className="w-12 h-12 ring-2 ring-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 shadow-sm"
+                  textClassName="text-blue-700 text-sm font-bold"
+                />
+                <div>
+                  <h3 className="font-bold text-slate-900 text-lg leading-tight">
+                    {viewAchiever.name}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 text-[11px] font-semibold">
+                      {viewAchiever.role}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 font-mono">
+                      <Phone size={11} className="text-slate-400" /> {viewAchiever.mobile || "—"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold shadow-sm shadow-amber-500/30">
+                  <Trophy size={13} /> {viewAchiever.sales} sales
+                </span>
+                <button
+                  onClick={() => setViewAchiever(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="px-6 py-4">
+              {/* Summary stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4 text-center">
+                  <div className="w-9 h-9 mx-auto rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md shadow-blue-500/20 flex items-center justify-center mb-2">
+                    <Calendar size={16} className="text-white" />
+                  </div>
+                  <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Bookings</div>
+                  <div className="text-xl font-bold text-slate-800 mt-0.5 tabular-nums">{achieverBookings.length}</div>
+                </div>
+                
+                <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4 text-center">
+                  <div className="w-9 h-9 mx-auto rounded-lg bg-gradient-to-br from-purple-500 to-fuchsia-600 shadow-md shadow-purple-500/20 flex items-center justify-center mb-2">
+                    <Ruler size={16} className="text-white" />
+                  </div>
+                  <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Sq.ft</div>
+                  <div className="text-xl font-bold text-slate-800 mt-0.5 tabular-nums">{modalStats.totalSqft.toLocaleString()}</div>
+                </div>
+              </div>
+
+              {/* Referred By */}
+              <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3.5 mb-6 flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  <UserRound size={12} /> Referred By
+                </div>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <AvatarCircle
+                    person={{
+                      name: viewAchiever.parentName || "?",
+                      avatar: viewAchiever.parentAvatar,
+                      avatarUrl: viewAchiever.parentAvatarUrl,
+                    }}
+                    className="w-8 h-8 ring-1 ring-slate-200 bg-gradient-to-br from-indigo-500 to-purple-600"
+                    textClassName="text-white text-[10px] font-bold"
+                  />
+                  <span className="text-sm font-semibold text-slate-800">{viewAchiever.parentName || "—"}</span>
+                  <span className="font-mono text-[11px] font-semibold text-slate-500">{viewAchiever.parentCode || "—"}</span>
+                </div>
+              </div>
+
+              {/* Bookings table */}
+              <div className="text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-md bg-indigo-50 flex items-center justify-center">
+                  <Building2 size={12} className="text-indigo-600" />
+                </span>
+                Booked Sites & Customers
+              </div>
+
+              {achieverBookings.length > 0 ? (
+                <div className="overflow-x-auto border border-slate-100 rounded-xl">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-100">
+                        <th className="px-3 py-2.5 text-left text-[10px] font-medium text-slate-600 uppercase tracking-wider">Booking ID</th>
+                        <th className="px-3 py-2.5 text-left text-[10px] font-medium text-slate-600 uppercase tracking-wider">Customer</th>
+                        <th className="px-3 py-2.5 text-left text-[10px] font-medium text-slate-600 uppercase tracking-wider">Project</th>
+                        <th className="px-3 py-2.5 text-left text-[10px] font-medium text-slate-600 uppercase tracking-wider">Site</th>
+                        <th className="px-3 py-2.5 text-left text-[10px] font-medium text-slate-600 uppercase tracking-wider">Booking Date</th>
+                        <th className="px-3 py-2.5 text-center text-[10px] font-medium text-slate-600 uppercase tracking-wider">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-sm">
+                      {achieverBookings.map((b) => {
+                        const proj = getProject(b);
+                        const projectName = b.projectName || b.project?.name || proj?.name || "—";
+                        const projectNo = b.projectNo || proj?.projectNo || "";
+                        const siteNo = b.siteNo || b.site?.siteNo || "—";
+                        return (
+                          <tr key={b.id} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="px-3 py-3">
+                              <span className="inline-flex items-center font-mono text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-lg">
+                                {b.bookingId || b.id}
+                              </span>
+                            </td>
+                            <td className="px-3 py-3">
+                              <div className="flex items-center gap-2">
+                              
+                                <div>
+                                  <div className="font-medium text-slate-800">{b.customerName || "—"}</div>
+                                  <div className="text-[11px] text-slate-400">{b.customerMobile || b.mobile || ""}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-3 py-3">
+                              <div className="text-slate-800">{projectName}</div>
+                              <div className="text-[11px] text-slate-400">{projectNo}</div>
+                            </td>
+                            <td className="px-3 py-3">
+                              <div className="flex items-center gap-1.5 text-slate-700">
+                                <MapPin size={12} className="text-slate-400 flex-shrink-0" />
+                                {siteNo}
+                              </div>
+                              <div className="text-[11px] text-slate-400">
+                                {b.plotArea ? `${Number(b.plotArea).toLocaleString()} sq.ft` : ""}
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 text-slate-600">{b.bookingDate || "—"}</td>
+                            <td className="px-3 py-3 text-center">
+                              <StatusBadge status={b.status} />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center text-sm text-slate-400 py-8">
+                  No bookings found for this achiever in the selected criteria.
+                </div>
+              )}
+            </div>
+
+            {/* Modal footer */}
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/40 flex justify-end">
+              <button
+                onClick={() => setViewAchiever(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
