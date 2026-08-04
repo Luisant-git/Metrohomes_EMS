@@ -28,6 +28,7 @@ export default function WebDashboard() {
 
   const teamBookings = useMemo(() => {
     return bookings.filter(b => {
+      if (b.status === "Cancelled") return false;
       // Match bookings where the booking's creator OR the customer's creator is in the team
       if (teamUserIds.includes(b.createdById || b.createdBy)) return true;
       const customer = customers.find(c => c.id === b.customerId);
