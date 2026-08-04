@@ -5,6 +5,7 @@ import { useData } from "../../context/DataContext.jsx";
 import DataTable from "../../components/DataTable.jsx";
 import Modal from "../../components/Modal.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
+import StatCard from "../../components/StatCard.jsx";
 import { siteVisit } from "../../api/siteVisit.js";
 import {
   Eye,
@@ -17,6 +18,12 @@ import {
   Search,
   X,
   Calendar,
+  Users,
+  Sparkles,
+  CalendarCheck,
+  CheckCircle2,
+  BookOpen,
+  Wallet,
 } from "lucide-react";
 import { toast } from "react-toastify";
 
@@ -28,6 +35,14 @@ const STATUSES = [
   "Payment Done",
 ];
 const DIRECTOR_STATUSES = ["Interested", "Visit Scheduled", "Visit Completed"];
+
+const statusConfig = {
+  Interested: { icon: Sparkles, color: "purple" },
+  "Visit Scheduled": { icon: CalendarCheck, color: "orange" },
+  "Visit Completed": { icon: CheckCircle2, color: "teal" },
+  Booked: { icon: BookOpen, color: "green" },
+  "Payment Done": { icon: Wallet, color: "yellow" },
+};
 
 export default function WebCustomers() {
   const navigate = useNavigate();
@@ -198,20 +213,19 @@ export default function WebCustomers() {
         </p>
       </div>
 
-      {/* Status filter chips */}
-      <div className="flex flex-wrap gap-2">
-        {["All", ...availableStatuses].map((s) => (
-          <button
-            key={s}
-            onClick={() => setFilterStatus(s)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${filterStatus === s ? "bg-blue-600 text-white shadow-sm" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"}`}
-          >
-            {s}{" "}
-            {s === "All"
-              ? `(${siteVisits.length})`
-              : `(${siteVisits.filter((v) => v.status === s).length})`}
-          </button>
-        ))}
+      {/* Status stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-3 lg:gap-4 w-full">
+        <button onClick={() => setFilterStatus("All")} className={`text-left rounded-2xl transition-all ${filterStatus === "All" ? "ring-2 ring-blue-500" : "hover:opacity-90"}`}>
+          <StatCard icon={Users} label="Total Visits" value={siteVisits.length} color="blue" />
+        </button>
+        {availableStatuses.map((s) => {
+          const config = statusConfig[s] || { icon: Users, color: "blue" };
+          return (
+            <button key={s} onClick={() => setFilterStatus(s)} className={`text-left rounded-2xl transition-all ${filterStatus === s ? "ring-2 ring-blue-500" : "hover:opacity-90"}`}>
+              <StatCard icon={config.icon} label={s} value={siteVisits.filter((v) => v.status === s).length} color={config.color} />
+            </button>
+          );
+        })}
       </div>
 
       {/* Filters */}
