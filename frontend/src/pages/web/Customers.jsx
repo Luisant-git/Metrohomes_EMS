@@ -19,7 +19,7 @@ import {
   X,
   Calendar,
   Users,
-  Sparkles,
+  ThumbsUp,
   CalendarCheck,
   CheckCircle2,
   BookOpen,
@@ -37,7 +37,7 @@ const STATUSES = [
 const DIRECTOR_STATUSES = ["Interested", "Visit Scheduled", "Visit Completed"];
 
 const statusConfig = {
-  Interested: { icon: Sparkles, color: "purple" },
+  Interested: { icon: ThumbsUp, color: "purple" },
   "Visit Scheduled": { icon: CalendarCheck, color: "orange" },
   "Visit Completed": { icon: CheckCircle2, color: "teal" },
   Booked: { icon: BookOpen, color: "green" },
@@ -215,14 +215,14 @@ export default function WebCustomers() {
 
       {/* Status stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-3 lg:gap-4 w-full">
-        <button onClick={() => setFilterStatus("All")} className={`text-left rounded-2xl transition-all ${filterStatus === "All" ? "ring-2 ring-blue-500" : "hover:opacity-90"}`}>
-          <StatCard icon={Users} label="Total Visits" value={siteVisits.length} color="blue" />
+        <button onClick={() => setFilterStatus("All")} className="text-left min-w-0">
+          <StatCard icon={Users} label="Total Visits" value={siteVisits.length} color="blue" active={filterStatus === "All"} />
         </button>
         {availableStatuses.map((s) => {
           const config = statusConfig[s] || { icon: Users, color: "blue" };
           return (
-            <button key={s} onClick={() => setFilterStatus(s)} className={`text-left rounded-2xl transition-all ${filterStatus === s ? "ring-2 ring-blue-500" : "hover:opacity-90"}`}>
-              <StatCard icon={config.icon} label={s} value={siteVisits.filter((v) => v.status === s).length} color={config.color} />
+            <button key={s} onClick={() => setFilterStatus(s)} className="text-left min-w-0">
+              <StatCard icon={config.icon} label={s} value={siteVisits.filter((v) => v.status === s).length} color={config.color} active={filterStatus === s} />
             </button>
           );
         })}
