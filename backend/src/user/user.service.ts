@@ -122,6 +122,7 @@ const employeeCode = await this.generateEmployeeCode(createUserDto.role);
         mobile: createUserDto.mobile,
         pin: hashedPin,
         role: createUserDto.role,
+        jobType: createUserDto.jobType,
         fatherHusbandName: createUserDto.fatherHusbandName,
         address: createUserDto.address,
         dob: createUserDto.dob ? new Date(createUserDto.dob) : undefined,

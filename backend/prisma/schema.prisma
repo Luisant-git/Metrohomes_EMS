@@ -19,6 +19,7 @@ model User {
   pinExpiresAt          DateTime?
   pinAttempts           Int      @default(0)
   role                  String               // Admin, Director, Regional Manager, etc.
+  jobType               String?              // Part Time, Full Time
   status                String   @default("Active")
   
   // Personal Information

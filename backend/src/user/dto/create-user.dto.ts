@@ -28,6 +28,11 @@ export enum UserStatus {
   INACTIVE = 'Inactive',
 }
 
+export enum JobType {
+  PART_TIME = 'Part Time',
+  FULL_TIME = 'Full Time',
+}
+
 export class CreateUserDto {
   @ApiProperty({
     description: 'Full name of the user',
@@ -82,6 +87,15 @@ export class CreateUserDto {
   @IsEnum(UserRole)
   @IsNotEmpty()
   role: UserRole;
+
+  @ApiPropertyOptional({
+    description: 'Type of job (Part Time or Full Time)',
+    enum: JobType,
+    example: JobType.FULL_TIME,
+  })
+  @IsOptional()
+  @IsEnum(JobType)
+  jobType?: JobType;
 
   @ApiPropertyOptional({
     description: "Father's or Husband's name",

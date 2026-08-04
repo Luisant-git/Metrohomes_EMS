@@ -20,6 +20,7 @@ const emptyForm = {
   email: "",
   mobile: "",
   role: "Sales Manager",
+  jobType: "Full Time",
 
   fatherHusbandName: "",
   address: "",
@@ -103,6 +104,12 @@ function SuccessModal({ isOpen, onClose, userData }) {
               <span className="text-sm text-gray-500">Role</span>
               <StatusBadge status={userData.role} />
             </div>
+            {userData.jobType && (
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-500">Employment Type</span>
+                <span className="text-sm text-gray-900">{userData.jobType}</span>
+              </div>
+            )}
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-500">Email</span>
               <span className="text-sm text-gray-900">{userData.email || '—'}</span>
@@ -198,6 +205,10 @@ function AddUserModal({
 
     if (!form.role?.trim()) {
       newErrors.role = "Selected Role is mandatory";
+    }
+
+    if (!form.jobType?.trim()) {
+      newErrors.jobType = "Employment Type is mandatory";
     }
 
     const panError = validatePanNo(form.panNo);
@@ -482,6 +493,12 @@ function AddUserModal({
                     <p className="text-xs text-gray-500 font-medium">Role</p>
                     <StatusBadge status={verifiedManager.role} />
                   </div>
+                  {verifiedManager.jobType && (
+                    <div>
+                      <p className="text-xs text-gray-500 font-medium">Employment Type</p>
+                      <p className="font-medium text-gray-900 text-sm">{verifiedManager.jobType}</p>
+                    </div>
+                  )}
                   <div>
                     <p className="text-xs text-gray-500 font-medium">Mobile</p>
                     <p className="font-medium text-gray-900 text-sm flex items-center gap-1">
@@ -530,6 +547,18 @@ function AddUserModal({
                   placeholder="Enter father's name"
                   autoComplete="off"
                 />
+              </FormField>
+              <FormField label="Employment Type" required>
+                <select
+                  value={form.jobType}
+                  onChange={e => setForm(p => ({ ...p, jobType: e.target.value }))}
+                  className={`input-field ${errors.jobType ? "border-red-500 focus:ring-red-500" : ""}`}
+                >
+                  <option value="">Select Employment Type</option>
+                  <option value="Part Time">Part Time</option>
+                  <option value="Full Time">Full Time</option>
+                </select>
+                {errors.jobType && <p className="text-red-500 text-xs mt-1">{errors.jobType}</p>}
               </FormField>
               <FormField label="Email" required>
                 <input
@@ -844,6 +873,7 @@ export default function UserManagement() {
   const [createdUser, setCreatedUser] = useState(null);
   const [treeSearch, setTreeSearch] = useState("");
   const [filterRole, setFilterRole] = useState("");
+  const [filterJobType, setFilterJobType] = useState("");
   const [viewingTeamId, setViewingTeamId] = useState(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
@@ -906,6 +936,9 @@ export default function UserManagement() {
     if (filterRole) {
       result = result.filter(u => u.role === filterRole);
     }
+    if (filterJobType) {
+      result = result.filter(u => u.jobType === filterJobType);
+    }
     if (dateFrom) {
       const fromDate = new Date(dateFrom);
       result = result.filter(u => {
@@ -924,7 +957,7 @@ export default function UserManagement() {
       });
     }
     return result;
-  }, [visibleUsers, treeSearch, filterRole, dateFrom, dateTo, viewingTeamId, users]);
+  }, [visibleUsers, treeSearch, filterRole, filterJobType, dateFrom, dateTo, viewingTeamId, users]);
 
   const treeRoots = useMemo(() => {
     return users.filter(u => !u.parentUserId).sort((a, b) => {
@@ -963,6 +996,7 @@ export default function UserManagement() {
       email: u.email || "",
       mobile: u.mobile || "",
       role: u.role || "",
+      jobType: u.jobType || "",
       // pin field removed
       fatherHusbandName: u.fatherHusbandName || "",
       address: u.address || "",
@@ -1010,6 +1044,7 @@ export default function UserManagement() {
           email: form.email,
           mobile: cleanMobile,
           role: form.role,
+          jobType: form.jobType,
           // pin field removed
           parentUserId: Number(form.parentUserId) || Number(user?.id),
           createdBy: Number(user?.id),
@@ -1048,6 +1083,7 @@ export default function UserManagement() {
           email: form.email,
           mobile: cleanMobile,
           role: form.role,
+          jobType: form.jobType,
           fatherHusbandName: form.fatherHusbandName,
           address: form.address,
           dob: form.dob,
@@ -1122,6 +1158,7 @@ export default function UserManagement() {
       )
     },
     { key: "role", label: "Designation", render: v => <StatusBadge status={v} /> },
+    { key: "jobType", label: "Employment Type", render: v => v ? <span className="text-sm text-gray-600">{v}</span> : <span className="text-sm text-gray-400">—</span> },
     { key: "mobile", label: "Mobile" },
     {
       key: "parentUserId", label: "Referred By", render: (v) => {
@@ -1358,6 +1395,18 @@ export default function UserManagement() {
                 </select>
               </div>
 
+              <div className="min-w-[150px]">
+                <select
+                  value={filterJobType}
+                  onChange={e => setFilterJobType(e.target.value)}
+                  className="input-field"
+                >
+                  <option value="">All Employment Types</option>
+                  <option value="Part Time">Part Time</option>
+                  <option value="Full Time">Full Time</option>
+                </select>
+              </div>
+
               <div>
                 <input
                   type="date"
@@ -1378,11 +1427,12 @@ export default function UserManagement() {
                 />
               </div>
 
-              {(treeSearch || filterRole || dateFrom || dateTo) && (
+              {(treeSearch || filterRole || filterJobType || dateFrom || dateTo) && (
                 <button
                   onClick={() => {
                     setTreeSearch("");
                     setFilterRole("");
+                    setFilterJobType("");
                     setDateFrom("");
                     setDateTo("");
                   }}
@@ -1505,6 +1555,17 @@ export default function UserManagement() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FormField label="Designation">
                 <input value={form.role} className="input-field bg-gray-50" disabled />
+              </FormField>
+              <FormField label="Employment Type" required>
+                <select
+                  value={form.jobType}
+                  onChange={e => setForm(p => ({ ...p, jobType: e.target.value }))}
+                  className="input-field"
+                >
+                  <option value="">Select Employment Type</option>
+                  <option value="Part Time">Part Time</option>
+                  <option value="Full Time">Full Time</option>
+                </select>
               </FormField>
               <FormField label="User ID">
                 <input value={form.employeeCode || ""} className="input-field bg-gray-50" disabled />
@@ -1657,6 +1718,7 @@ export default function UserManagement() {
                   {[
                     ["User ID", selected.employeeCode || "—"],
                     ["Role", selected.role],
+                    ["Employment Type", selected.jobType || "—"],
                     ...(selected.role !== "Admin" ? [["Referred By", (() => { const p = users.find(u => u.id === selected.parentUserId); return p ? `${p.name} (${p.role})` : "—"; })()]] : []),
                     ["Status", selected.status],
                     ["Joined", selected.createdAt ? new Date(selected.createdAt).toLocaleDateString('en-GB') : "—"],
