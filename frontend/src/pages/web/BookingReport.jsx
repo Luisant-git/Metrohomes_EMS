@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useData } from "../../context/DataContext.jsx";
 import StatCard from "../../components/StatCard.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
@@ -33,8 +33,12 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   X,
   Filter,
+  XCircle,
+  DollarSign,
+  CheckCircle,
 } from "lucide-react";
 import { formatINR, formatChartAxis } from "../../utils/format.js";
 
@@ -70,6 +74,65 @@ function UserRoleBadge({ role }) {
   );
 }
 
+function SearchableSelect({ value, onChange, options, placeholder = "Select...", className = "" }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const selected = options.find((o) => String(o.value) === String(value));
+  const filtered = options.filter((o) => o.label.toLowerCase().includes(q.toLowerCase()));
+
+  return (
+    <div ref={ref} className={`relative ${className}`}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between gap-2"
+      >
+        <span className="truncate">{selected ? selected.label : placeholder}</span>
+        <ChevronDown size={12} className={`text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden flex flex-col">
+          <div className="p-1 border-b border-slate-100 flex items-center gap-1">
+            <Search size={12} className="text-slate-400 ml-1 flex-shrink-0" />
+            <input
+              autoFocus
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search..."
+              className="w-full py-1 px-1 text-[11px] text-slate-700 outline-none bg-transparent"
+            />
+          </div>
+          <div className="overflow-y-auto max-h-48">
+            {filtered.map((o) => (
+              <button
+                key={String(o.value)}
+                type="button"
+                onClick={() => { onChange(o.value); setOpen(false); setQ(""); }}
+                className={`w-full text-left px-3 py-1.5 text-[11px] hover:bg-indigo-50 transition-colors ${String(o.value) === String(value) ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-slate-600"}`}
+              >
+                {o.label}
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <div className="px-3 py-2 text-[11px] text-slate-400">No options found</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function BookingReport() {
   const { customers = [], bookings = [], sites = [], users = [] } = useData();
   const [searchTerm, setSearchTerm] = useState("");
@@ -81,6 +144,15 @@ export default function BookingReport() {
   const [toDate, setToDate] = useState("");
   const [viewBooking, setViewBooking] = useState(null);
   const [viewProject, setViewProject] = useState(null);
+  const [salesFromDate, setSalesFromDate] = useState("");
+  const [salesToDate, setSalesToDate] = useState("");
+  const [salesProjectFilter, setSalesProjectFilter] = useState("");
+  const [salesSiteFilter, setSalesSiteFilter] = useState("");
+  const [salesStatusFilter, setSalesStatusFilter] = useState("");
+  const [customerProjectFilter, setCustomerProjectFilter] = useState("");
+  const [customerSiteFilter, setCustomerSiteFilter] = useState("");
+  const [customerCreatedByFilter, setCustomerCreatedByFilter] = useState("");
+  const [customerStatusFilter, setCustomerStatusFilter] = useState("");
   const pageSize = 5;
 
   // User Map for quick fallback resolution of Created User (role, name, employeeCode)
@@ -125,15 +197,27 @@ export default function BookingReport() {
     });
     const bookedCustomers = bookedCustomerIds.size || bookings.length;
 
-    const fullPaymentCount = bookings.filter(
+    const activeBookings = bookings.filter((b) => b.status !== "Cancelled");
+
+    const fullPaymentCount = activeBookings.filter(
       (b) => b.status === "Full Payment" || b.remainingAmount === 0
     ).length;
-    const partPaymentCount = bookings.filter(
+    const partPaymentCount = activeBookings.filter(
       (b) => b.status === "Part Payment" || (b.paidAmount > 0 && b.remainingAmount > 0)
     ).length;
-    const initialPaymentCount = bookings.filter(
+    const initialPaymentCount = activeBookings.filter(
       (b) => b.status === "Initial Payment" || b.status === "Booked"
     ).length;
+    const cancelledCount = bookings.filter((b) => b.status === "Cancelled").length;
+    const soldSites = sites.reduce((sum, s) => sum + (s.plots || []).filter(p => p.status === "Sold" || p.status === "Full Payment").length, 0);
+    const bookedSites = sites.reduce((sum, s) => sum + (s.plots || []).filter(p => p.status === "Booked").length, 0);
+    const availableSites = sites.reduce((sum, s) => sum + (s.plots || []).filter(p => p.status === "Active" || p.status === "Available").length, 0);
+    const bookedProjectIds = new Set();
+    bookings.forEach((b) => {
+      const pId = b.projectId ?? b.project?.id;
+      if (pId != null) bookedProjectIds.add(String(pId));
+    });
+    const bookedProjects = bookedProjectIds.size;
 
     return {
       totalRevenue,
@@ -146,6 +230,12 @@ export default function BookingReport() {
       fullPaymentCount,
       partPaymentCount,
       initialPaymentCount,
+      cancelledCount,
+      soldSites,
+      bookedSites,
+      availableSites,
+      bookedProjects,
+      activeBookingCount: activeBookings.length,
     };
   }, [bookings, sites, customers]);
 
@@ -204,73 +294,199 @@ export default function BookingReport() {
     return map;
   }, [sites]);
 
-  // Project Sales Section Data - Booked Projects Alone (Project No, Project Name, Site No, Facing, Feet, Total Sqft)
+  // All site details for the selected project in the View modal
+  const projectSites = useMemo(() => {
+    const proj = viewProject?.projSite;
+    if (proj && Array.isArray(proj.plots) && proj.plots.length > 0) {
+      return proj.plots.map((p) => ({
+        id: p.id ?? p._id ?? p.siteNo,
+        siteNo: p.siteNo || `Site ${p.id}`,
+        facing: p.facing || "—",
+        eastWest: p.eastWest,
+        northSouth: p.northSouth,
+        totalSqft: p.totalSqft || 0,
+        pricePerSqft: p.pricePerSqft || 0,
+        status: p.status || "Active",
+      }));
+    }
+    const pId = viewProject?.item?.id;
+    const seen = new Map();
+    bookings.forEach((b) => {
+      if (String(b.projectId ?? b.project?.id) === String(pId)) {
+        const siteId = b.siteId ?? b.site?.id;
+        if (!seen.has(String(siteId))) {
+          seen.set(String(siteId), {
+            id: siteId,
+            siteNo: b.siteNo || b.site?.siteNo || (siteId != null ? `Site ${siteId}` : "—"),
+            facing: b.site?.facing || "—",
+            eastWest: b.site?.eastWest,
+            northSouth: b.site?.northSouth,
+            totalSqft: b.plotArea || b.site?.totalSqft || 0,
+            pricePerSqft: b.pricePerSqft || b.site?.pricePerSqft || 0,
+            status: b.status || "Booked",
+          });
+        }
+      }
+    });
+    return Array.from(seen.values());
+  }, [viewProject, bookings]);
+
+  // Resolve the underlying site (plot) status for a booking
+  const getBookingSiteStatus = (b) => {
+    const proj = sites.find((s) => String(s.id) === String(b.projectId ?? b.project?.id));
+    const plot = proj?.plots?.find((p) => String(p.id) === String(b.siteId ?? b.site?.id));
+    if (plot?.status) {
+      return plot.status === "Available" ? "Active" : plot.status;
+    }
+    if (b.status === "Cancelled") return "Active";
+    if (b.status === "Sold" || b.status === "Full Payment") return "Sold";
+    return "Booked";
+  };
+
+  // Project Sales Section Data - one row per project (aggregated from bookings)
   const projectSalesList = useMemo(() => {
-    // Collect booked project sales directly from bookings & booked sites
-    const list = bookings.map((b) => {
-      const pId = b.projectId || 1;
-      const projectNo = b.projectNo || `PRJ-${String(pId).padStart(3, "0")}`;
-      const projectName = b.projectName || b.project?.name || `Project #${pId}`;
-      const siteNo = b.siteNo ? `Site ${b.siteNo}` : (b.site?.siteNo ? `Site ${b.site.siteNo}` : "Site 1");
-
-      const siteObj = sites.find((s) => s.id === b.siteId) || b.site || {};
-      const facing = siteObj.facing || b.site?.facing || "East";
-      const feet =
-        siteObj.eastWest && siteObj.northSouth
-          ? `${siteObj.eastWest} x ${siteObj.northSouth}`
-          : b.site?.eastWest && b.site?.northSouth
-            ? `${b.site.eastWest} x ${b.site.northSouth}`
-            : "30 x 40";
-      const totalSqft = b.plotArea || siteObj.totalSqft || b.site?.totalSqft || 1200;
-      const status = b.status || siteObj.status || "Booked";
-
-      return {
-        id: b.id,
-        projectNo,
-        projectName,
-        siteNo,
-        facing,
-        feet,
-        totalSqft,
-        status,
-        pricePerSqft: b.pricePerSqft || siteObj.pricePerSqft || 0,
-      };
+    const filtered = bookings.filter((b) => {
+      if (salesProjectFilter && String(b.projectId ?? b.project?.id) !== String(salesProjectFilter)) return false;
+      if (salesSiteFilter && String(b.siteId ?? b.site?.id) !== String(salesSiteFilter)) return false;
+      if (salesStatusFilter && getBookingSiteStatus(b) !== salesStatusFilter) return false;
+      if (salesFromDate) {
+        const bd = b.bookingDate ? new Date(b.bookingDate) : null;
+        if (bd && !isNaN(bd.getTime()) && bd < new Date(salesFromDate)) return false;
+      }
+      if (salesToDate) {
+        const bd = b.bookingDate ? new Date(b.bookingDate) : null;
+        const toEnd = new Date(salesToDate);
+        toEnd.setHours(23, 59, 59, 999);
+        if (bd && !isNaN(bd.getTime()) && bd > toEnd) return false;
+      }
+      return true;
     });
 
-    // Fallback: if bookings array is empty, include non-Available (booked/sold) sites
-    if (list.length === 0) {
-      sites
-        .filter((s) => s.status && s.status !== "Available")
-        .forEach((s) => {
-          const pId = s.projectId || 1;
-          list.push({
-            id: s.id,
-            projectNo: s.projectNo || `PRJ-${String(pId).padStart(3, "0")}`,
-            projectName: s.project?.name || s.projectName || `Project #${pId}`,
-            siteNo: s.siteNo ? `Site ${s.siteNo}` : "Site 1",
-            facing: s.facing || "N/A",
-            feet:
-              s.eastWest && s.northSouth
-                ? `${s.eastWest} x ${s.northSouth}`
-                : "N/A",
-            totalSqft: s.totalSqft || 0,
-            status: s.status || "Booked",
-            pricePerSqft: s.pricePerSqft || 0,
-          });
+    const map = new Map();
+    filtered.forEach((b) => {
+      const pId = b.projectId ?? b.project?.id ?? 1;
+      if (!map.has(String(pId))) {
+        map.set(String(pId), {
+          id: pId,
+          projectNo: b.projectNo || `PRJ-${String(pId).padStart(3, "0")}`,
+          projectName: b.projectName || b.project?.name || `Project #${pId}`,
+          siteIds: new Set(),
+          totalSqft: 0,
+          firstDate: null,
+          lastDate: null,
         });
-    }
+      }
+      const entry = map.get(String(pId));
+      const siteId = b.siteId ?? b.site?.id;
+      if (siteId != null) entry.siteIds.add(String(siteId));
+      entry.totalSqft += Number(b.plotArea || 0);
+      if (b.bookingDate) {
+        if (!entry.firstDate || b.bookingDate < entry.firstDate) entry.firstDate = b.bookingDate;
+        if (!entry.lastDate || b.bookingDate > entry.lastDate) entry.lastDate = b.bookingDate;
+      }
+    });
+
+    const list = Array.from(map.values()).map((e) => ({
+      id: e.id,
+      projectNo: e.projectNo,
+      projectName: e.projectName,
+      siteCount: e.siteIds.size,
+      totalSqft: e.totalSqft,
+      firstDate: e.firstDate,
+      lastDate: e.lastDate,
+    }));
 
     return list.filter((item) => {
       if (!projectSearch) return true;
       const q = projectSearch.toLowerCase();
       return (
         item.projectNo.toLowerCase().includes(q) ||
-        item.projectName.toLowerCase().includes(q) ||
-        item.siteNo.toLowerCase().includes(q) ||
-        item.facing.toLowerCase().includes(q)
+        item.projectName.toLowerCase().includes(q)
       );
     });
-  }, [bookings, sites, projectSearch]);
+  }, [bookings, projectSearch, salesProjectFilter, salesSiteFilter, salesStatusFilter, salesFromDate, salesToDate]);
+
+  // Project options for the dropdown
+  const projectOptions = useMemo(() => {
+    const seen = new Map();
+    sites.forEach((s) => {
+      if (s.id != null && !seen.has(String(s.id))) {
+        seen.set(String(s.id), { id: s.id, name: s.name || `Project #${s.id}`, projectNo: s.projectNo || "" });
+      }
+    });
+    bookings.forEach((b) => {
+      const pId = b.projectId ?? b.project?.id;
+      if (pId != null && !seen.has(String(pId))) {
+        seen.set(String(pId), {
+          id: pId,
+          name: b.projectName || b.project?.name || `Project #${pId}`,
+          projectNo: b.projectNo || "",
+        });
+      }
+    });
+    return Array.from(seen.values());
+  }, [sites, bookings]);
+
+  // Sites belonging to the selected project (for the dependent site dropdown)
+  const selectedProjectSites = useMemo(() => {
+    const proj = sites.find((s) => String(s.id) === String(salesProjectFilter));
+    if (proj && Array.isArray(proj.plots)) {
+      return proj.plots.map((p) => ({ id: p.id, siteNo: p.siteNo || `Site ${p.id}`, name: p.name || `Site ${p.siteNo || p.id}` }));
+    }
+    const seen = new Map();
+    bookings.forEach((b) => {
+      if (String(b.projectId ?? b.project?.id) === String(salesProjectFilter)) {
+        const siteId = b.siteId ?? b.site?.id;
+        const siteNo = b.siteNo || b.site?.siteNo || (siteId != null ? `Site ${siteId}` : "");
+        if (siteId != null && !seen.has(String(siteId))) {
+          seen.set(String(siteId), { id: siteId, siteNo, name: siteNo });
+        }
+      }
+    });
+    return Array.from(seen.values());
+  }, [sites, bookings, salesProjectFilter]);
+
+  const formatDate = (d) => (d ? new Date(d).toLocaleDateString("en-IN") : "—");
+
+  // Sites for the selected project in the Booked Customer section
+  const customerSites = useMemo(() => {
+    const proj = sites.find((s) => String(s.id) === String(customerProjectFilter));
+    if (proj && Array.isArray(proj.plots)) {
+      return proj.plots.map((p) => ({ value: p.id, label: p.siteNo || `Site ${p.id}` }));
+    }
+    const seen = new Map();
+    bookings.forEach((b) => {
+      if (String(b.projectId ?? b.project?.id) === String(customerProjectFilter)) {
+        const siteId = b.siteId ?? b.site?.id;
+        const siteNo = b.siteNo || b.site?.siteNo || (siteId != null ? `Site ${siteId}` : "");
+        if (siteId != null && !seen.has(String(siteId))) {
+          seen.set(String(siteId), { value: siteId, label: siteNo || `Site ${siteId}` });
+        }
+      }
+    });
+    return Array.from(seen.values());
+  }, [sites, bookings, customerProjectFilter]);
+
+  // Unique "Created By" names for the searchable dropdown
+  const createdByOptions = useMemo(() => {
+    const set = new Set();
+    bookings.forEach((b) => {
+      const cust = customers.find((c) => c.id === b.customerId) || b.customer || {};
+      const creatorId = b.createdById || b.createdBy || cust.createdById || cust.createdBy;
+      const creatorFromMap = creatorId ? userMap.get(creatorId) : null;
+      const name =
+        b.creatorName ||
+        b.creator?.name ||
+        b.createdUser?.name ||
+        cust.createdByName ||
+        cust.createdUser?.name ||
+        cust.user?.name ||
+        creatorFromMap?.name ||
+        "System Admin";
+      set.add(name);
+    });
+    return Array.from(set).sort().map((name) => ({ value: name, label: name }));
+  }, [bookings, customers, userMap]);
 
   // Recently Booked Customer Details List with Created User details
   const recentlyBookedCustomers = useMemo(() => {
@@ -325,11 +541,15 @@ export default function BookingReport() {
         siteNo,
         projectSiteDisplay,
         location,
+        projectId: b.projectId ?? b.project?.id,
+        siteId: b.siteId ?? b.site?.id,
         plotArea: b.plotArea || b.site?.totalSqft || 0,
         plotPrice: b.plotPrice || 0,
         paidAmount: b.paidAmount || 0,
         remainingAmount: b.remainingAmount ?? (b.plotPrice ? b.plotPrice - (b.paidAmount || 0) : 0),
         status: b.status || "Booked",
+        refundAmount: b.refundAmount ?? 0,
+        cancellationReason: b.cancellationReason || "",
         paymentMode: b.paymentMode || "Cash",
         createdByName,
         createdByRole,
@@ -359,6 +579,22 @@ export default function BookingReport() {
         );
       })
       .filter((item) => {
+        if (customerProjectFilter && String(item.projectId) !== String(customerProjectFilter)) return false;
+        return true;
+      })
+      .filter((item) => {
+        if (customerSiteFilter && String(item.siteId) !== String(customerSiteFilter)) return false;
+        return true;
+      })
+      .filter((item) => {
+        if (customerCreatedByFilter && item.createdByName !== customerCreatedByFilter) return false;
+        return true;
+      })
+      .filter((item) => {
+        if (customerStatusFilter && item.status !== customerStatusFilter) return false;
+        return true;
+      })
+      .filter((item) => {
         if (!fromDate && !toDate) return true;
         const bookingTime = new Date(item.bookingDate);
         if (isNaN(bookingTime.getTime())) return true;
@@ -370,7 +606,7 @@ export default function BookingReport() {
         }
         return true;
       });
-  }, [bookings, customers, userMap, selectedFilter, searchTerm, fromDate, toDate]);
+  }, [bookings, customers, userMap, selectedFilter, searchTerm, fromDate, toDate, customerProjectFilter, customerSiteFilter, customerCreatedByFilter, customerStatusFilter]);
 
   // Paginated slices
   const projectPageCount = Math.max(1, Math.ceil(projectSalesList.length / pageSize));
@@ -419,31 +655,30 @@ export default function BookingReport() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 w-full">
-        <StatCard
-          icon={Building2}
-          label="Total Project"
-          value={stats.totalProjects}
-          color="blue"
-        />
-        <StatCard
-          icon={MapPin}
-          label="Total Site"
-          value={stats.totalSites}
-          color="orange"
-        />
-        <StatCard
-          icon={Users}
-          label="Total Customer"
-          value={stats.totalCustomers}
-          color="purple"
-        />
-        <StatCard
-          icon={UserCheck}
-          label="Booked Customer"
-          value={stats.bookedCustomers}
-          color="yellow"
-        />
+      {/* Section 1 – Business Summary */}
+      <div>
+        <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <BarChart3 size={12} /> Business Summary
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 w-full">
+          <StatCard icon={Building2} label="Total Projects" value={stats.totalProjects} color="blue" />
+          <StatCard icon={Users} label="Total Customers" value={stats.totalCustomers} color="purple" />
+          <StatCard icon={CheckCircle} label="Active Bookings" value={stats.activeBookingCount} color="teal" />
+          <StatCard icon={XCircle} label="Cancelled Bookings" value={stats.cancelledCount} color="red" />
+        </div>
+      </div>
+
+      {/* Section 2 – Site Summary */}
+      <div>
+        <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <Layers size={12} /> Site Summary
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 w-full">
+          <StatCard icon={Layers} label="Total Sites" value={stats.totalSites} color="indigo" />
+          <StatCard icon={CheckCircle} label="Available Sites" value={stats.availableSites} color="green" />
+          <StatCard icon={MapPin} label="Booked Sites" value={stats.bookedSites} color="orange" />
+          <StatCard icon={DollarSign} label="Sold Sites" value={stats.soldSites} color="yellow" />
+        </div>
       </div>
 
 
@@ -522,7 +757,7 @@ export default function BookingReport() {
             </PieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-xl font-bold text-slate-800">{bookings.length}</span>
+            <span className="text-xl font-bold text-slate-800">{stats.activeBookingCount}</span>
             <span className="text-[10px] text-slate-400 font-medium uppercase">Bookings</span>
           </div>
         </div>
@@ -554,23 +789,83 @@ export default function BookingReport() {
     {/* Project Sales Section Table */}
     <div className="card bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between">
       <div>
-        <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h3 className="font-semibold text-slate-800 text-base flex items-center gap-2">
-              <Building2 size={18} className="text-indigo-600" /> Project Sales Section
-            </h3>
-           
+        <div className="p-5 border-b border-slate-100 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-slate-800 text-base flex items-center gap-2">
+                <Building2 size={18} className="text-indigo-600" /> Project Sales Section
+              </h3>
+            </div>
+
+            <div className="relative w-full sm:w-48">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={projectSearch}
+                onChange={(e) => setProjectSearch(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+              />
+            </div>
           </div>
 
-          <div className="relative w-full sm:w-48">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          {/* Booked date range + project/site filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex items-center gap-1 text-[11px] font-medium text-slate-500">
+              <Filter size={12} /> Booked Date:
+            </span>
             <input
-              type="text"
-              placeholder="Search..."
-              value={projectSearch}
-              onChange={(e) => setProjectSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+              type="date"
+              value={salesFromDate}
+              onChange={(e) => { setSalesFromDate(e.target.value); setProjectPage(1); }}
+              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
+            <span className="text-[11px] text-slate-400">to</span>
+            <input
+              type="date"
+              value={salesToDate}
+              onChange={(e) => { setSalesToDate(e.target.value); setProjectPage(1); }}
+              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <select
+              value={salesProjectFilter}
+              onChange={(e) => { setSalesProjectFilter(e.target.value); setSalesSiteFilter(""); setProjectPage(1); }}
+              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">All Projects</option>
+              {projectOptions.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <select
+              value={salesSiteFilter}
+              onChange={(e) => { setSalesSiteFilter(e.target.value); setProjectPage(1); }}
+              disabled={!salesProjectFilter}
+              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <option value="">All Sites</option>
+              {selectedProjectSites.map((s) => (
+                <option key={s.id} value={s.id}>{s.siteNo}</option>
+              ))}
+            </select>
+            <select
+              value={salesStatusFilter}
+              onChange={(e) => { setSalesStatusFilter(e.target.value); setProjectPage(1); }}
+              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">Site Status: All</option>
+              {["Booked", "Sold"].map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            {(salesFromDate || salesToDate || salesProjectFilter || salesSiteFilter || salesStatusFilter) && (
+              <button
+                onClick={() => { setSalesFromDate(""); setSalesToDate(""); setSalesProjectFilter(""); setSalesSiteFilter(""); setSalesStatusFilter(""); setProjectPage(1); }}
+                className="flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-red-500 px-2 py-1 rounded-lg hover:bg-red-50"
+              >
+                <X size={12} /> Clear
+              </button>
+            )}
           </div>
         </div>
 
@@ -580,10 +875,8 @@ export default function BookingReport() {
               <tr className="bg-slate-50/80 border-b border-slate-100 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
                 <th className="px-3.5 py-3">Project No</th>
                 <th className="px-3.5 py-3">Project Name</th>
-                <th className="px-3.5 py-3">Site No</th>
-                <th className="px-3.5 py-3">Facing</th>
-                <th className="px-3.5 py-3">Feet</th>
-                <th className="px-3.5 py-3">Total Sqft</th>
+                <th className="px-3.5 py-3">Booked Sites</th>
+                <th className="px-3.5 py-3">Booked Date</th>
                 <th className="px-3.5 py-3 text-right">View</th>
               </tr>
             </thead>
@@ -595,16 +888,16 @@ export default function BookingReport() {
                     <td className="px-3.5 py-3 font-medium text-slate-700">{item.projectName}</td>
                     <td className="px-3.5 py-3">
                       <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 text-xs font-medium px-2 py-0.5 rounded-md border border-indigo-100">
-                        <MapPin size={11} /> {item.siteNo}
+                        <MapPin size={11} /> {item.siteCount} sites
                       </span>
                     </td>
-                    <td className="px-3.5 py-3 text-slate-600">{item.facing}</td>
-                    <td className="px-3.5 py-3 text-slate-500">{item.feet}</td>
-                    <td className="px-3.5 py-3 font-medium text-slate-800">{item.totalSqft} sq.ft</td>
+                    <td className="px-3.5 py-3 text-slate-600">
+                      {item.lastDate ? formatDate(item.lastDate) : "—"}
+                    </td>
                     <td className="px-3.5 py-3 text-right">
                       <button
                         onClick={() => {
-                          const projSite = sites.find((s) => s.id === item.projectId || s.name === item.projectName);
+                          const projSite = sites.find((s) => String(s.id) === String(item.id));
                           setViewProject({ item, stats: projSite ? projectStatsMap.get(projSite.id) : null, projSite });
                         }}
                         className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 px-2 py-1 rounded-lg transition-colors"
@@ -617,7 +910,7 @@ export default function BookingReport() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} className="text-center py-8 text-slate-400 text-sm">
+                  <td colSpan={5} className="text-center py-8 text-slate-400 text-sm">
                     No project sales found.
                   </td>
                 </tr>
@@ -705,6 +998,60 @@ export default function BookingReport() {
               </button>
             )}
           </div>
+
+          {/* Project / Site / Created By Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex items-center gap-1 text-[11px] font-medium text-slate-500">
+              <Filter size={12} /> Filters:
+            </span>
+            <select
+              value={customerProjectFilter}
+              onChange={(e) => { setCustomerProjectFilter(e.target.value); setCustomerSiteFilter(""); setCustomerPage(1); }}
+              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">All Projects</option>
+              {projectOptions.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <select
+              value={customerSiteFilter}
+              onChange={(e) => { setCustomerSiteFilter(e.target.value); setCustomerPage(1); }}
+              disabled={!customerProjectFilter}
+              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <option value="">All Sites</option>
+              {customerSites.map((s) => (
+                <option key={String(s.value)} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+            <select
+              value={customerStatusFilter}
+              onChange={(e) => { setCustomerStatusFilter(e.target.value); setCustomerPage(1); }}
+              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">All Status</option>
+              {["Booked", "Initial Payment", "Part Payment", "Full Payment", "Cancelled"].map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <div className="w-44">
+              <SearchableSelect
+                value={customerCreatedByFilter}
+                onChange={(v) => { setCustomerCreatedByFilter(v); setCustomerPage(1); }}
+                options={createdByOptions}
+                placeholder="Created By (Search)"
+              />
+            </div>
+            {(customerProjectFilter || customerSiteFilter || customerCreatedByFilter || customerStatusFilter) && (
+              <button
+                onClick={() => { setCustomerProjectFilter(""); setCustomerSiteFilter(""); setCustomerCreatedByFilter(""); setCustomerStatusFilter(""); setCustomerPage(1); }}
+                className="flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-red-500 px-2 py-1 rounded-lg hover:bg-red-50"
+              >
+                <X size={12} /> Clear
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -714,6 +1061,7 @@ export default function BookingReport() {
                 <th className="px-3.5 py-3">Customer Name</th>
                 <th className="px-3.5 py-3">Mobile</th>
                 <th className="px-3.5 py-3">Project / Site</th>
+                <th className="px-3.5 py-3">Status</th>
                 <th className="px-3.5 py-3">Created By</th>
                 <th className="px-3.5 py-3">Created ID</th>
                 <th className="px-3.5 py-3 text-right">View</th>
@@ -742,6 +1090,11 @@ export default function BookingReport() {
                       </div>
                     </td>
 
+                    {/* Status */}
+                    <td className="px-3.5 py-3">
+                      <StatusBadge status={item.status} />
+                    </td>
+
                     {/* Created By */}
                     <td className="px-3.5 py-3">
                       <div className="font-medium text-slate-800 text-sm">{item.createdByName}</div>
@@ -767,7 +1120,7 @@ export default function BookingReport() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-slate-400 text-xs">
+                  <td colSpan={7} className="text-center py-8 text-slate-400 text-xs">
                     No booked customers found.
                   </td>
                 </tr>
@@ -810,24 +1163,24 @@ export default function BookingReport() {
       {/* ── Project Stats Modal ── */}
       {viewProject && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onClick={() => setViewProject(null)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
               <h3 className="font-semibold text-slate-800 text-base flex items-center gap-2">
-                <Building2 size={16} className="text-indigo-600" /> Project Site Stats
+                <Building2 size={16} className="text-indigo-600" /> Project Site Details
               </h3>
               <button onClick={() => setViewProject(null)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
                 <X size={18} />
               </button>
             </div>
-            <div className="px-6 py-5 space-y-4">
+            <div className="px-6 py-5 space-y-4 overflow-y-auto">
               <div>
                 <div className="text-xs font-semibold text-indigo-500 uppercase tracking-wider mb-1">Project</div>
                 <div className="text-sm font-semibold text-slate-800">{viewProject.item.projectName}</div>
                 <div className="text-xs text-slate-400 mt-0.5">{viewProject.projSite?.location || viewProject.item.projectNo}</div>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-4 gap-3">
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
-                  <div className="text-2xl font-bold text-blue-700">{viewProject.stats?.total ?? viewProject.projSite?.plots?.length ?? "—"}</div>
+                  <div className="text-2xl font-bold text-blue-700">{viewProject.stats?.total ?? viewProject.projSite?.plots?.length ?? projectSites.length}</div>
                   <div className="text-[11px] font-medium text-blue-500 mt-0.5">Total Sites</div>
                 </div>
                 <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-center">
@@ -844,13 +1197,64 @@ export default function BookingReport() {
                   </div>
                   <div className="text-[11px] font-medium text-emerald-500 mt-0.5">Sold</div>
                 </div>
+                {viewProject.stats?.available !== undefined ? (
+                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-center">
+                    <div className="text-2xl font-bold text-slate-700">{viewProject.stats.available}</div>
+                    <div className="text-[11px] font-medium text-slate-500 mt-0.5">Available</div>
+                  </div>
+                ) : (
+                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-center">
+                    <div className="text-2xl font-bold text-slate-700">—</div>
+                    <div className="text-[11px] font-medium text-slate-500 mt-0.5">Available</div>
+                  </div>
+                )}
               </div>
-              {viewProject.stats?.available !== undefined && (
-                <div className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-500">Available Sites</span>
-                  <span className="text-sm font-bold text-slate-700">{viewProject.stats.available}</span>
+
+              {/* All related sites details */}
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <Layers size={14} className="text-indigo-600" /> All Sites Details
+                  </h4>
+                  <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">{projectSites.length} sites</span>
                 </div>
-              )}
+                <div className="overflow-x-auto max-h-72 overflow-y-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="bg-slate-50/80 border-b border-slate-100 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                        <th className="px-3 py-2">S.No</th>
+                        <th className="px-3 py-2">Site</th>
+                        <th className="px-3 py-2">Facing</th>
+                        <th className="px-3 py-2">East West</th>
+                        <th className="px-3 py-2">North South</th>
+                        <th className="px-3 py-2">Sqft</th>
+                        <th className="px-3 py-2">Price/sqft</th>
+                        <th className="px-3 py-2">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-xs">
+                      {projectSites.length > 0 ? (
+                        projectSites.map((p, idx) => (
+                          <tr key={p.id ?? idx} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="px-3 py-2 text-slate-500 font-medium">{idx + 1}</td>
+                            <td className="px-3 py-2 font-semibold text-slate-800">{p.siteNo}</td>
+                            <td className="px-3 py-2 text-slate-600">{p.facing}</td>
+                            <td className="px-3 py-2 text-slate-600">{p.eastWest ? `${p.eastWest} ft` : "-"}</td>
+                            <td className="px-3 py-2 text-slate-600">{p.northSouth ? `${p.northSouth} ft` : "-"}</td>
+                            <td className="px-3 py-2 font-medium text-slate-800">{Number(p.totalSqft || 0).toLocaleString("en-IN")}</td>
+                            <td className="px-3 py-2 text-slate-600">{p.pricePerSqft ? formatINR(p.pricePerSqft) : "-"}</td>
+                            <td className="px-3 py-2"><StatusBadge status={p.status || "Active"} /></td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={8} className="text-center py-6 text-slate-400 text-xs">No site details found.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
             <div className="px-6 py-3 border-t border-slate-100 flex justify-end">
               <button onClick={() => setViewProject(null)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors">Close</button>
@@ -949,6 +1353,25 @@ export default function BookingReport() {
                   <StatusBadge status={viewBooking.status} />
                 </div>
               </div>
+
+              {/* Cancellation / Refund Section */}
+              {viewBooking.status === "Cancelled" && (
+                <div>
+                  <div className="text-[11px] font-semibold text-red-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <XCircle size={12} /> Cancellation Details
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-[11px] font-medium text-slate-600">Refund Amount</div>
+                      <div className="text-sm font-medium text-red-600">{formatINR(viewBooking.refundAmount)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-medium text-slate-600">Cancellation Reason</div>
+                      <div className="text-sm text-slate-900">{viewBooking.cancellationReason || "—"}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Created By Section */}
               <div>

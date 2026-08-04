@@ -858,8 +858,9 @@ export default function BookingManagement() {
         }} className="btn-primary"><Plus size={16} />New Booking</button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3 lg:gap-4 w-full">
         <StatCard icon={BookOpen} label="Total Bookings" value={bookings.length} color="blue" />
+        <StatCard icon={CheckCircle} label="Active Bookings" value={activeBookings.length} color="teal" />
         <StatCard icon={IndianRupee} label="Total Revenue" value={totalRevenue} prefix="₹" color="green" />
         <StatCard icon={AlertCircle} label="Pending Amount" value={totalPending} prefix="₹" color="red" />
         <StatCard icon={XCircle} label="Cancelled Bookings" value={cancelledCount} color="orange" />
