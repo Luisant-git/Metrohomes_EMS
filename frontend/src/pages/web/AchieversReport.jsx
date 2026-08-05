@@ -1,15 +1,16 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Trophy, Download, Medal, Star, Crown, Calendar, CheckCircle, FileSpreadsheet, Search, X, ChevronDown, Building2, UserRound, Eye, User, MapPin, Phone, Ruler } from "lucide-react";
 import { toast } from "react-toastify";
-import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useData } from "../../context/DataContext.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
+import logoUrl from "../../assests/logo 1.png";
+import userProfUrl from "../../assests/userprof.png";
 
 const today = new Date();
 
-function AvatarCircle({ person, className = "", textClassName = "" }) {
-  const { avatar, avatarUrl, name } = person;
+function AvatarCircle({ person, className = "" }) {
+  const { avatarUrl, name } = person;
   const isImg =
     avatarUrl &&
     (avatarUrl.startsWith("http") ||
@@ -18,13 +19,11 @@ function AvatarCircle({ person, className = "", textClassName = "" }) {
 
   return (
     <div className={`rounded-full overflow-hidden flex items-center justify-center ${className}`}>
-      {isImg ? (
-        <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
-      ) : (
-        <span className={`w-full h-full flex items-center justify-center ${textClassName}`}>
-          {avatar}
-        </span>
-      )}
+      <img
+        src={isImg ? avatarUrl : userProfUrl}
+        alt={name}
+        className="w-full h-full object-cover"
+      />
     </div>
   );
 }
@@ -111,8 +110,8 @@ export default function AchieversReport() {
 
   // ── Filter States ──
   const [searchQuery, setSearchQuery] = useState("");
-  const [fromDate, setFromDate] = useState(`${today.getFullYear()}-01-01`);
-  const [toDate, setToDate] = useState(today.toISOString().split("T")[0]);
+  const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+  const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
   const [projectFilter, setProjectFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [isExporting, setIsExporting] = useState(false);
@@ -140,16 +139,25 @@ export default function AchieversReport() {
     return Array.from(set).map((r) => ({ value: r, label: r }));
   }, [users]);
 
-  const defaultFrom = `${today.getFullYear()}-01-01`;
-  const defaultTo = today.toISOString().split("T")[0];
+  const monthRange = useMemo(() => {
+    const [y, m] = selectedMonth.split("-").map(Number);
+    const from = new Date(y, m - 1, 1);
+    const to = new Date(y, m, 0);
+    return {
+      year: y,
+      month: m,
+      monthName: from.toLocaleDateString("en-IN", { month: "long" }),
+      fromDate: `${y}-${String(m).padStart(2, "0")}-01`,
+      toDate: `${y}-${String(m).padStart(2, "0")}-${String(to.getDate()).padStart(2, "0")}`,
+    };
+  }, [selectedMonth]);
 
   const hasFilters =
-    searchQuery || fromDate !== defaultFrom || toDate !== defaultTo || projectFilter || roleFilter;
+    searchQuery || selectedMonth !== defaultMonth || projectFilter || roleFilter;
 
   const clearFilters = () => {
     setSearchQuery("");
-    setFromDate(defaultFrom);
-    setToDate(defaultTo);
+    setSelectedMonth(defaultMonth);
     setProjectFilter("");
     setRoleFilter("");
   };
@@ -174,7 +182,7 @@ export default function AchieversReport() {
       if (b.status === "Cancelled") return false;
       const dateStr = (b.bookingDate || b.createdAt || "").toString().split("T")[0];
       if (!dateStr) return false;
-      if (dateStr < fromDate || dateStr > toDate) return false;
+      if (dateStr < monthRange.fromDate || dateStr > monthRange.toDate) return false;
       if (projectFilter && String(b.projectId ?? b.project?.id) !== String(projectFilter)) return false;
       return true;
     });
@@ -236,37 +244,20 @@ export default function AchieversReport() {
       if (entry) entry.sales += 1;
     });
 
-    // 4. Convert to array and assign ranks/badges
+    // 4. Convert to array and assign ranks
     const rawList = Array.from(agentMap.values());
 
     // Sort by sales descending
     rawList.sort((a, b) => b.sales - a.sales);
 
-    // Assign rank and badge names
+    // Assign rank and list only achievers with completed bookings
     return rawList
-      .map((item, idx) => {
-        const rank = idx + 1;
-        let badge = "✨ Rising Star";
-        if (item.sales === 0) {
-          badge = "💤 No Activity";
-        } else if (rank === 1) {
-          badge = "🥇 Gold Champion";
-        } else if (rank === 2) {
-          badge = "🥈 Silver Achiever";
-        } else if (rank === 3) {
-          badge = "🥉 Bronze Achiever";
-        } else if (item.sales >= 8) {
-          badge = "⭐ Star Performer";
-        }
-
-        return {
-          ...item,
-          rank,
-          badge,
-        };
-      })
-      .filter((a) => a.sales > 0); // Only list achievers with completed bookings
-  }, [bookings, users, customers, sites, searchQuery, fromDate, toDate, projectFilter, roleFilter]);
+      .map((item, idx) => ({
+        ...item,
+        rank: idx + 1,
+      }))
+      .filter((a) => a.sales > 0);
+  }, [bookings, users, customers, sites, searchQuery, monthRange.fromDate, monthRange.toDate, projectFilter, roleFilter]);
 
   // ── Bookings for the selected achiever (view modal) ──
   const getProject = (b) => sites.find((s) => String(s.id) === String(b.projectId ?? b.project?.id));
@@ -282,7 +273,7 @@ export default function AchieversReport() {
         if (b.status === "Cancelled") return false;
         const dateStr = (b.bookingDate || b.createdAt || "").toString().split("T")[0];
         if (!dateStr) return false;
-        if (dateStr < fromDate || dateStr > toDate) return false;
+        if (dateStr < monthRange.fromDate || dateStr > monthRange.toDate) return false;
         if (projectFilter && String(b.projectId ?? b.project?.id) !== String(projectFilter)) return false;
         const creatorId =
           customerCreatorMap.get(String(b.customerId)) ||
@@ -292,7 +283,7 @@ export default function AchieversReport() {
         return String(creatorId) === id;
       })
       .sort((a, b) => (b.bookingDate || "").localeCompare(a.bookingDate || ""));
-  }, [viewAchiever, bookings, customers, fromDate, toDate, projectFilter]);
+  }, [viewAchiever, bookings, customers, monthRange.fromDate, monthRange.toDate, projectFilter]);
 
   const modalStats = useMemo(() => {
     const siteNos = new Set();
@@ -326,42 +317,167 @@ export default function AchieversReport() {
   }, [calculatedAchievers]);
 
   // ── PDF Export Routine ──
+  const loadImageAsDataUrl = (url) =>
+    new Promise((resolve) => {
+      if (!url) return resolve(null);
+      fetch(url)
+        .then((res) => res.blob())
+        .then(
+          (blob) =>
+            new Promise((res2) => {
+              const reader = new FileReader();
+              reader.onloadend = () => res2(reader.result);
+              reader.onerror = () => res2(null);
+              reader.readAsDataURL(blob);
+            })
+        )
+        .then((dataUrl) => resolve(dataUrl))
+        .catch(() => resolve(null));
+    });
+
   const handleDownloadPDF = async () => {
-    const element = document.getElementById("achievers-report-print-area");
-    if (!element) return;
+    if (calculatedAchievers.length === 0) {
+      toast.error("No achievers to export for the selected month");
+      return;
+    }
     setIsExporting(true);
     const toastId = toast.loading("Generating PDF Report...");
 
     try {
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#f9fafb",
+      const logoData = await loadImageAsDataUrl(logoUrl);
+      const userProfData = await loadImageAsDataUrl(userProfUrl);
+
+      const avatarCache = new Map();
+      const avatarUrls = [
+        ...new Set(calculatedAchievers.map((a) => a.avatarUrl || userProfUrl).filter(Boolean)),
+      ];
+      await Promise.all(
+        avatarUrls.map(async (u) => {
+          avatarCache.set(u, await loadImageAsDataUrl(u));
+        })
+      );
+
+      // 15-inch landscape poster sheet (381mm x 279mm)
+      const PDF_W = 381;
+      const PDF_H = 279;
+      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: [PDF_W, PDF_H] });
+
+      const margin = 15;
+      const contentW = PDF_W - margin * 2;
+      const rowH = 13;
+
+      const colDefs = [
+        { key: "rank", label: "Rank", x: margin, w: 26 },
+        { key: "name", label: "Achiever", x: margin + 26, w: 155 },
+        { key: "role", label: "Role", x: margin + 181, w: 90 },
+        { key: "id", label: "ID", x: margin + 271, w: 50 },
+        { key: "sales", label: "Sales", x: margin + 321, w: 30 },
+      ];
+
+      const renderHeader = (pageNumber) => {
+        if (logoData) {
+          pdf.addImage(logoData, "PNG", margin, margin, 34, 26, undefined, "FAST");
+        }
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(32);
+        pdf.setTextColor(17, 24, 39);
+        pdf.text("Achievers of the Month", PDF_W / 2, margin + 17, { align: "center" });
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(16);
+        pdf.setTextColor(29, 111, 185);
+        pdf.text(`${monthRange.monthName} ${monthRange.year}`, PDF_W / 2, margin + 30, { align: "center" });
+        pdf.setFontSize(10);
+        pdf.setTextColor(107, 114, 128);
+        pdf.text(
+          `Total Sales: ${summaryMetrics.totalSales}   |   Achievers: ${calculatedAchievers.length}`,
+          PDF_W / 2,
+          margin + 40,
+          { align: "center" }
+        );
+        pdf.setDrawColor(29, 111, 185);
+        pdf.setLineWidth(0.9);
+        pdf.line(margin, margin + 46, PDF_W - margin, margin + 46);
+        if (pageNumber > 1) {
+          pdf.setFontSize(9);
+          pdf.setTextColor(150, 150, 150);
+          pdf.text(`Page ${pageNumber}`, PDF_W - margin, PDF_H - 8, { align: "right" });
+        }
+      };
+
+      const drawTableHeader = (top) => {
+        pdf.setFillColor(29, 111, 185);
+        pdf.rect(margin, top, contentW, rowH, "F");
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(11);
+        pdf.setTextColor(255, 255, 255);
+        colDefs.forEach((c) => {
+          const centered = c.key === "rank" || c.key === "sales";
+          const tx = centered ? c.x + c.w / 2 : c.x + (c.key === "name" ? 14 : 4);
+          pdf.text(c.label, tx, top + rowH / 2 + 1.2, centered ? { align: "center" } : undefined);
+        });
+      };
+
+      const drawRow = (a, top, idx) => {
+        pdf.setFillColor(idx % 2 === 0 ? 248 : 255, idx % 2 === 0 ? 250 : 255, idx % 2 === 0 ? 252 : 255);
+        pdf.rect(margin, top, contentW, rowH, "F");
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(12);
+        pdf.setTextColor(30, 64, 175);
+        pdf.text(String(a.rank), colDefs[0].x + colDefs[0].w / 2, top + rowH / 2 + 1.2, { align: "center" });
+
+        const avatarData = avatarCache.get(a.avatarUrl || userProfUrl);
+        const imgSize = 9;
+        if (avatarData) {
+          pdf.addImage(
+            avatarData,
+            "PNG",
+            colDefs[1].x + 2,
+            top + (rowH - imgSize) / 2,
+            imgSize,
+            imgSize,
+            undefined,
+            "FAST"
+          );
+        }
+        pdf.setTextColor(17, 24, 39);
+        pdf.text(a.name, colDefs[1].x + 14, top + rowH / 2 + 1.2);
+
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(11);
+        pdf.setTextColor(71, 85, 105);
+        pdf.text(a.role, colDefs[2].x + 4, top + rowH / 2 + 1.2);
+
+        pdf.setFont("courier", "normal");
+        pdf.setTextColor(100, 116, 139);
+        pdf.text(String(a.employeeCode || a.id), colDefs[3].x + 4, top + rowH / 2 + 1.2);
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(29, 111, 185);
+        pdf.text(String(a.sales), colDefs[4].x + colDefs[4].w / 2, top + rowH / 2 + 1.2, { align: "center" });
+      };
+
+      renderHeader(1);
+      const tableTop = margin + 52;
+      drawTableHeader(tableTop);
+      let y = tableTop + rowH;
+      let page = 1;
+
+      calculatedAchievers.forEach((a, idx) => {
+        if (y + rowH > PDF_H - 12) {
+          pdf.addPage([PDF_W, PDF_H], "landscape");
+          page += 1;
+          renderHeader(page);
+          drawTableHeader(tableTop);
+          y = tableTop + rowH;
+        }
+        drawRow(a, y, idx);
+        y += rowH;
       });
 
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const imgWidth = 210;
-      const pageHeight = 297;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
+      const formattedMonth = `${monthRange.year}${String(monthRange.month).padStart(2, "0")}`;
+      pdf.save(`Achievers_Report_${formattedMonth}.pdf`);
 
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      const formattedStart = fromDate.replaceAll("-", "");
-      const formattedEnd = toDate.replaceAll("-", "");
-      pdf.save(`Achievers_Report_${formattedStart}_${formattedEnd}.pdf`);
-      
       toast.update(toastId, {
         render: "PDF report downloaded successfully! 📄",
         type: "success",
@@ -384,19 +500,19 @@ export default function AchieversReport() {
   // ── CSV Export Routine ──
   const handleDownloadCSV = () => {
     let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Rank,Name,Role,Sales,Badge\n";
+    csvContent += "Rank,Name,Role,Sales\n";
     calculatedAchievers.forEach((a) => {
-      csvContent += `${a.rank},"${a.name}","${a.role}",${a.sales},"${a.badge}"\n`;
+      csvContent += `${a.rank},"${a.name}","${a.role}",${a.sales}\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Achievers_Report_${fromDate}_to_${toDate}.csv`);
+    link.setAttribute("download", `Achievers_Report_${monthRange.year}_${String(monthRange.month).padStart(2, "0")}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success("CSV spreadsheet exported successfully! 📊");
+    toast.success("CSV spreadsheet exported successfully!");
   };
 
   return (
@@ -409,7 +525,7 @@ export default function AchieversReport() {
             Achievers Report
           </h1>
           <p className="text-gray-400 text-sm mt-0.5">
-            Realestate ERP Performance Dashboard • Year 2026
+            Realestate ERP Performance Dashboard • {monthRange.monthName} {monthRange.year}
           </p>
         </div>
 
@@ -452,28 +568,15 @@ export default function AchieversReport() {
               />
             </div>
 
-            {/* From Date */}
-            <div className="w-full sm:w-40">
+            {/* Month */}
+            <div className="w-full sm:w-44">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
-                <Calendar size={12} className="text-blue-500" /> From Date
+                <Calendar size={12} className="text-blue-500" /> Month
               </label>
               <input
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-              />
-            </div>
-
-            {/* To Date */}
-            <div className="w-full sm:w-40">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
-                <Calendar size={12} className="text-blue-500" /> To Date
-              </label>
-              <input
-                type="date"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
               />
             </div>
@@ -536,7 +639,7 @@ export default function AchieversReport() {
                 Performance Leaderboard
               </h2>
               <p className="text-blue-100 text-xs font-medium">
-                Showing results from {new Date(fromDate).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' })} to {new Date(toDate).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' })}
+                Showing results for {monthRange.monthName} {monthRange.year}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -670,9 +773,6 @@ export default function AchieversReport() {
                 <div className="w-full h-32 bg-gradient-to-b from-amber-100 to-amber-50/50 border-2 border-amber-300 border-b-0 rounded-t-2xl flex flex-col items-center justify-center p-3 shadow-[0_-6px_20px_rgba(245,158,11,0.08)] relative">
                   <div className="text-3xl font-black text-amber-500">1</div>
                   <div className="text-sm font-bold text-amber-700 mt-0.5">{summaryMetrics.gold.sales} sales</div>
-                  <span className="absolute bottom-2 text-[8px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white uppercase tracking-wider scale-90">
-                    {summaryMetrics.gold.badge}
-                  </span>
                 </div>
 
                 {/* Identity */}
@@ -755,9 +855,6 @@ export default function AchieversReport() {
                   <th className="px-6 py-3.5 text-center text-[11px] font-medium text-slate-600 uppercase tracking-widest w-52">
                     Sales Closed
                   </th>
-                  <th className="px-6 py-3.5 text-center text-[11px] font-medium text-slate-600 uppercase tracking-widest w-52">
-                    Badge Awarded
-                  </th>
                   <th className="px-6 py-3.5 text-center text-[11px] font-medium text-slate-600 uppercase tracking-widest w-20">
                     Action
                   </th>
@@ -782,7 +879,7 @@ export default function AchieversReport() {
                         {/* Rank */}
                         <td className="px-6 py-4">
                           {a.rank <= 3 ? (
-                            <span className="text-lg leading-none" title={a.badge}>
+                            <span className="text-lg leading-none">
                               {a.rank === 1 ? "🥇" : a.rank === 2 ? "🥈" : "🥉"}
                             </span>
                           ) : (
@@ -833,32 +930,6 @@ export default function AchieversReport() {
                           </div>
                         </td>
 
-                        {/* Badge Awarded */}
-                        <td className="px-6 py-4 text-center">
-                          <span
-                            className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-3 py-1 rounded-full ${
-                              a.rank === 1
-                                ? "bg-amber-100 text-amber-800"
-                                : a.rank === 2
-                                ? "bg-slate-100 text-slate-800"
-                                : a.rank === 3
-                                ? "bg-orange-50 text-orange-800"
-                                : "bg-gray-50 text-gray-500"
-                            }`}
-                          >
-                            <span className={`w-1.5 h-1.5 rounded-full ${
-                              a.rank === 1
-                                ? "bg-amber-500"
-                                : a.rank === 2
-                                ? "bg-slate-500"
-                                : a.rank === 3
-                                ? "bg-orange-500"
-                                : "bg-gray-400"
-                            }`} />
-                            {a.badge}
-                          </span>
-                        </td>
-
                         {/* View action */}
                         <td className="px-6 py-4 text-center">
                           <button
@@ -874,7 +945,7 @@ export default function AchieversReport() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center">
+                    <td colSpan={6} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <Trophy size={28} className="text-gray-300" />
                         <span className="text-sm text-gray-400">No active achiever records found in selected criteria.</span>
