@@ -1,7 +1,7 @@
 import { registerSW } from 'virtual:pwa-register';
 
 export function registerPWAIfNeeded(user) {
-  const pwaRoles = ['Regional Manager', 'Branch Manager', 'BDM', 'Sales Manager'];
+  const pwaRoles = ['Director','Regional Manager', 'Branch Manager', 'BDM', 'Sales Manager'];
   
   if (user && pwaRoles.includes(user.role)) {
     const updateSW = registerSW({

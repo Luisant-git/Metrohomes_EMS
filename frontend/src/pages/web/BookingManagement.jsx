@@ -4,12 +4,13 @@ import StatCard from "../../components/StatCard.jsx";
 import DataTable from "../../components/DataTable.jsx";
 import Modal from "../../components/Modal.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
-import { BookOpen, Eye, Plus, IndianRupee, FileText, MessageSquare, CheckCircle, Bell, Home, Building2, Phone, SquarePen, AlertCircle, Download, MapPin, XCircle } from "lucide-react";
+import { BookOpen, Eye, Plus, IndianRupee, FileText, MessageSquare, CheckCircle, Bell, Home, Building2, Phone, SquarePen, AlertCircle, Download, MapPin, XCircle, FileSpreadsheet } from "lucide-react";
 import { toast } from "react-toastify";
 import { siteVisit } from "../../api/siteVisit.js";
 import { booking as bookingApi } from "../../api/booking.js";
 import { customer as customerApi } from "../../api/customer.js";
 import { formatINR, formatIndianNumber } from "../../utils/format.js";
+import { exportBookingToExcel } from "../../utils/excel.js";
 
 const empty = {
   customerId: "", customerName: "", siteId: "", projectId: "",
@@ -915,6 +916,7 @@ export default function BookingManagement() {
             actions={(row) => (
               <>
                 <button onClick={() => { setSelected(row); setModal("viewBooking"); }} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg" title="View"><Eye size={15} /></button>
+                <button onClick={() => exportBookingToExcel(row)} className="p-1.5 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg" title="Export to Excel"><FileSpreadsheet size={15} /></button>
                 {row.status !== 'Cancelled' && (
                   <button onClick={() => openCancelModal(row)} className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg" title="Cancel Booking"><XCircle size={15} /></button>
                 )}
