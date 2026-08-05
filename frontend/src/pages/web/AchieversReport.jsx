@@ -163,6 +163,30 @@ export default function AchieversReport() {
   };
 
   // ── Dynamic Filter & Aggregate Logic ──
+  // The achiever of a booking = the user who actually booked it (assignedTo), falling back
+  // to the customer's site-visit assigned user, then the customer creator (stale data).
+  const getBookingAchieverId = (b, map) => {
+    const cust = customers.find((c) => String(c.id) === String(b.customerId));
+    const visit = cust?.visits?.[0];
+    const visitorId = visit?.registeredById;
+    const custCreatorId = cust?.createdById || cust?.createdBy;
+    const stale =
+      b.assignedTo &&
+      custCreatorId &&
+      String(b.assignedTo) === String(custCreatorId) &&
+      visitorId &&
+      String(visitorId) !== String(custCreatorId);
+    const assignedId = stale ? null : b.assignedTo;
+    return String(
+      assignedId ||
+        visitorId ||
+        (map && map.get(String(b.customerId))) ||
+        b.createdById ||
+        b.createdBy ||
+        ""
+    );
+  };
+
   const calculatedAchievers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
 
@@ -234,12 +258,8 @@ export default function AchieversReport() {
     );
 
     recordsInRange.forEach((b) => {
-      // Achiever = the user who created the booking's customer
-      const creatorId =
-        customerCreatorMap.get(String(b.customerId)) ||
-        b.createdById ||
-        b.createdBy ||
-        b.assignedTo;
+      // Achiever = the user who actually booked the plot
+      const creatorId = getBookingAchieverId(b, customerCreatorMap);
       const entry = agentMap.get(String(creatorId));
       if (entry) entry.sales += 1;
     });
@@ -275,11 +295,7 @@ export default function AchieversReport() {
         if (!dateStr) return false;
         if (dateStr < monthRange.fromDate || dateStr > monthRange.toDate) return false;
         if (projectFilter && String(b.projectId ?? b.project?.id) !== String(projectFilter)) return false;
-        const creatorId =
-          customerCreatorMap.get(String(b.customerId)) ||
-          b.createdById ||
-          b.createdBy ||
-          b.assignedTo;
+        const creatorId = getBookingAchieverId(b, customerCreatorMap);
         return String(creatorId) === id;
       })
       .sort((a, b) => (b.bookingDate || "").localeCompare(a.bookingDate || ""));

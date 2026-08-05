@@ -198,15 +198,45 @@ export default function BookingManagement() {
     }
   };
 
+  const resolveRowUser = (row) => {
+    const cust = customers.find(x => x.id === row.customerId);
+    const visit = cust?.visits?.[0];
+    const assignedId = row.assignedTo;
+    const creatorId = cust?.createdById || cust?.createdBy;
+    const visitUserId = visit?.registeredById;
+    const stale = assignedId && creatorId && Number(assignedId) === Number(creatorId) && visitUserId && Number(visitUserId) !== Number(creatorId);
+    const emp = stale ? null : (row.assignedToUser || row.creator);
+    const name = emp?.name || visit?.registeredBy || row.salesManagerName || "—";
+    const code = emp?.employeeCode || visit?.registeredByRole || "";
+    return { name, code };
+  };
+
+  const getCustomerAssignedUser = (c) => {
+    const existingBooking = bookings.find(b => b.customerId === c.id && b.status !== 'Cancelled' && b.remainingAmount > 0);
+    let id = existingBooking?.assignedTo || "";
+    let name = existingBooking?.assignedToUser?.name || "";
+    let code = existingBooking?.assignedToUser?.employeeCode || "";
+    if (!id) {
+      const visit = c.visits?.[0];
+      id = visit?.registeredById || "";
+      if (!name) name = visit?.registeredBy || "";
+      if (!code) code = visit?.registeredByRole || "";
+    }
+    if (!id) id = c.createdById || c.createdBy || "";
+    const emp = id ? users.find(u => u.id === Number(id)) : null;
+    if (emp) {
+      if (!name) name = emp.name || "";
+      if (!code) code = emp.employeeCode || "";
+    }
+    return { id: String(id), name, code };
+  };
+
   const handleCustomerSelect = async (cid) => {
     const c = customers.find(x => x.id === +cid);
     if (c) {
       await fetchCustomerVisits(c.id);
-      const latestVisit = c.visits?.[0];
-      const visitUser = latestVisit?.registeredBy;
-      const visitUserCode = latestVisit?.registeredByRole;
-      const visitUserId = latestVisit?.registeredById;
       const existingBooking = bookings.find(b => b.customerId === c.id && b.status !== 'Cancelled' && b.remainingAmount > 0);
+      const au = getCustomerAssignedUser(c);
       const pricePerSqft = 5000;
       setForm(p => ({
         ...p,
@@ -219,9 +249,9 @@ export default function BookingManagement() {
         pinCode: c.pinCode || "",
         mobile: c.mobile || "",
         email: c.email || "",
-        salesManagerName: visitUser ? `${visitUser}${visitUserCode ? ` (${visitUserCode})` : ''}` : c.salesManagerName,
-        employeeCode: "",
-        assignedTo: visitUserId || c.createdById || c.createdBy || "",
+        salesManagerName: au.name ? `${au.name}${au.code ? ` (${au.code})` : ''}` : c.salesManagerName,
+        employeeCode: au.code,
+        assignedTo: au.id,
         pricePerSqft,
         plotPrice: p.plotArea ? p.plotArea * pricePerSqft : ""
       }));
@@ -237,11 +267,8 @@ export default function BookingManagement() {
       if (c) {
         setIsNewCustomer(false);
         await fetchCustomerVisits(c.id);
-        const latestVisit = c.visits?.[0];
-        const visitUser = latestVisit?.registeredBy;
-        const visitUserCode = latestVisit?.registeredByRole;
-        const visitUserId = latestVisit?.registeredById;
         const existingBooking = bookings.find(b => b.customerId === c.id && b.status !== 'Cancelled' && b.remainingAmount > 0);
+        const au = getCustomerAssignedUser(c);
         setFoundCustomer({ ...c, existingBooking: existingBooking || null });
         const pricePerSqft = 5000;
         setForm(p => ({
@@ -255,9 +282,9 @@ export default function BookingManagement() {
           pinCode: c.pinCode || "",
           mobile: c.mobile || "",
           email: c.email || "",
-          salesManagerName: visitUser ? `${visitUser}${visitUserCode ? ` (${visitUserCode})` : ''}` : c.salesManagerName,
-          employeeCode: "",
-          assignedTo: visitUserId || c.createdById || c.createdBy || "",
+          salesManagerName: au.name ? `${au.name}${au.code ? ` (${au.code})` : ''}` : c.salesManagerName,
+          employeeCode: au.code,
+          assignedTo: au.id,
           pricePerSqft,
           plotPrice: p.plotArea ? p.plotArea * pricePerSqft : ""
         }));
@@ -318,17 +345,20 @@ export default function BookingManagement() {
       return;
     }
     let assignedEmployee = null;
-    if (isDirectBooking) {
+    if (form.customerId || isNewCustomer) {
       const code = (form.employeeCode || "").trim();
-      if (!code) {
-        setEmployeeCodeError("Employee Code is required for direct bookings");
-        toast.error("Employee Code is required for direct bookings");
-        return;
-      }
-      assignedEmployee = resolveEmployee(code);
-      if (!assignedEmployee) {
-        setEmployeeCodeError("Invalid Employee Code");
-        toast.error("Invalid Employee Code. Please enter a valid employee code.");
+      if (code) {
+        assignedEmployee = resolveEmployee(code);
+        if (!assignedEmployee) {
+          setEmployeeCodeError("Invalid Employee Code");
+          toast.error("Invalid Employee Code. Please enter a valid employee code.");
+          return;
+        }
+      } else if (form.assignedTo) {
+        assignedEmployee = users.find(u => u.id === Number(form.assignedTo)) || null;
+      } else {
+        setEmployeeCodeError("Employee Code is required");
+        toast.error("Employee Code is required");
         return;
       }
     }
@@ -886,10 +916,7 @@ export default function BookingManagement() {
     { key: "bookingId", label: "Booking ID", render: v => <span className="font-mono text-xs text-gray-500">{v}</span> },
     { key: "customerName", label: "Customer Name" },
     { key: "salesManagerName", label: "User", render: (v, row) => {
-      const cust = customers.find(x => x.id === row.customerId);
-      const visit = cust?.visits?.[0];
-      const name = visit?.registeredBy || v || row.assignedToUser?.name || row.creator?.name || "—";
-      const code = visit?.registeredByRole || row.assignedToUser?.employeeCode || row.creator?.employeeCode || "";
+      const { name, code } = resolveRowUser(row);
       return (
         <div>
           <div className="text-gray-700">{name}</div>
@@ -1173,7 +1200,7 @@ export default function BookingManagement() {
                   </div>
                 )}
 
-                {isDirectBooking && (
+                {(form.customerId || isNewCustomer) && (
                   <div>
                     <label className="label">Employee Code <span className="text-red-500">*</span></label>
                     <input
@@ -1451,7 +1478,7 @@ export default function BookingManagement() {
           <div className="space-y-3">
             <div className="flex justify-between"><span className="text-gray-500">Booking ID</span><span className="font-medium text-gray-800">{selected.bookingId || selected.id}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">Customer</span><span className="font-medium text-gray-800">{selected.customerName || selected.customer?.name}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">User</span><span className="text-right font-medium text-gray-800">{(() => { const cust = customers.find(x => x.id === selected.customerId); const visit = cust?.visits?.[0]; const name = visit?.registeredBy || selected.salesManagerName || selected.assignedToUser?.name || selected.creator?.name || "—"; const code = visit?.registeredByRole || selected.assignedToUser?.employeeCode || selected.creator?.employeeCode || ""; return (<div><div>{name}</div>{code && <div className="text-xs text-gray-400 font-mono">{code}</div>}</div>); })()}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">User</span><span className="text-right font-medium text-gray-800">{(() => { const { name, code } = resolveRowUser(selected); return (<div><div>{name}</div>{code && <div className="text-xs text-gray-400 font-mono">{code}</div>}</div>); })()}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">Project</span><span className="font-medium text-gray-800">{selected.projectName || selected.project?.name}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">Site No.</span><span className="font-medium text-gray-800">{selected.siteNo || selected.site?.siteNo}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">Plot Price</span><span className="font-medium text-amber-700">{formatCurrency(selected.plotPrice || selected.plotPrice)}</span></div>

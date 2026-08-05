@@ -164,11 +164,25 @@ export default function BookingReport() {
     return map;
   }, [users]);
 
-  // Resolve the "User" for a booking: prefer the customer's latest site-visit assigned user,
-  // otherwise fall back to the booking's assigned/creator user.
+  // Resolve the "User" for a booking: prefer the booking's assigned user (matches what's
+  // stored in DB), falling back to the customer's latest site-visit assigned user, then
+  // to creator/fallback chain. Stale bookings (assigned == customer creator) use the visit user.
   const resolveBookingUser = (b) => {
     const cust = customers.find((c) => c.id === b.customerId) || b.customer || {};
     const visit = cust?.visits?.[0];
+    const assignedId = b.assignedTo;
+    const creatorId = b.createdById || b.createdBy || cust.createdById || cust.createdBy;
+    const visitUserId = visit?.registeredById;
+    const stale = assignedId && creatorId && Number(assignedId) === Number(creatorId) && visitUserId && Number(visitUserId) !== Number(creatorId);
+    const emp = stale ? null : (b.assignedToUser || b.creator);
+    if (emp?.name) {
+      return {
+        id: emp.id || assignedId || creatorId || null,
+        name: emp.name,
+        role: emp.role || "",
+        code: emp.employeeCode || "",
+      };
+    }
     if (visit?.registeredBy) {
       return {
         id: visit.registeredById || null,
@@ -177,13 +191,9 @@ export default function BookingReport() {
         code: visit.registeredByRole || "",
       };
     }
-    const emp = b.assignedToUser || b.creator;
-    const creatorId = b.createdById || b.createdBy || b.assignedTo || cust.createdById || cust.createdBy || emp?.id || null;
     const creatorFromMap = creatorId ? userMap.get(creatorId) : null;
     const name =
       b.salesManagerName ||
-      b.assignedToUser?.name ||
-      b.creator?.name ||
       b.creatorName ||
       b.createdUser?.name ||
       cust.createdByName ||
@@ -192,7 +202,6 @@ export default function BookingReport() {
       creatorFromMap?.name ||
       "System Admin";
     const role =
-      b.assignedToUser?.role ||
       b.creatorRole ||
       b.creator?.role ||
       b.createdUser?.role ||
@@ -201,9 +210,8 @@ export default function BookingReport() {
       creatorFromMap?.role ||
       "Admin";
     const code =
-      b.assignedToUser?.employeeCode ||
-      b.creator?.employeeCode ||
       b.creatorEmployeeCode ||
+      b.creator?.employeeCode ||
       b.createdUser?.employeeCode ||
       cust.createdByEmployeeCode ||
       cust.createdUser?.employeeCode ||
