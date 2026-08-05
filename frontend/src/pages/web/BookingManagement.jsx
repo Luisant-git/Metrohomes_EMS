@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useData } from "../../context/DataContext.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 import StatCard from "../../components/StatCard.jsx";
 import DataTable from "../../components/DataTable.jsx";
 import Modal from "../../components/Modal.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
-import { BookOpen, Eye, Plus, IndianRupee, FileText, MessageSquare, CheckCircle, Bell, Home, Building2, Phone, SquarePen, AlertCircle, Download, MapPin, XCircle, FileSpreadsheet } from "lucide-react";
+import { BookOpen, Eye, Plus, IndianRupee, FileText, MessageSquare, CheckCircle, Bell, Home, Building2, Phone, SquarePen, AlertCircle, Download, MapPin, XCircle, FileSpreadsheet, UserPlus } from "lucide-react";
 import { toast } from "react-toastify";
 import { siteVisit } from "../../api/siteVisit.js";
 import { booking as bookingApi } from "../../api/booking.js";
@@ -23,12 +24,14 @@ const empty = {
 
 export default function BookingManagement() {
   const { bookings, customers, sites, addBooking, updateBooking, updateCustomer, refreshCustomers, refreshBookings } = useData();
+  const { user } = useAuth();
   const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({ ...empty, bookingDate: new Date().toISOString().split("T")[0] });
   const [receipts, setReceipts] = useState([]);
   const [mobileSearch, setMobileSearch] = useState("");
   const [foundCustomer, setFoundCustomer] = useState(null);
+  const [isNewCustomer, setIsNewCustomer] = useState(false);
   const [customerVisits, setCustomerVisits] = useState([]);
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -219,8 +222,9 @@ export default function BookingManagement() {
   const handleMobileSearch = async (mobile) => {
     setMobileSearch(mobile);
     if (mobile.length === 10) {
-      const c = customers.find(x => x.mobile === mobile);
+      const c = customers.find(x => x.mobile === mobile && !(x.name || "").startsWith("TEMP_OTP_"));
       if (c) {
+        setIsNewCustomer(false);
         await fetchCustomerVisits(c.id);
         const existingBooking = bookings.find(b => b.customerId === c.id && b.status !== 'Cancelled' && b.remainingAmount > 0);
         setFoundCustomer({ ...c, existingBooking: existingBooking || null });
@@ -242,11 +246,25 @@ export default function BookingManagement() {
         }));
         toast.success("Customer found! Details loaded ✓");
       } else {
+        setIsNewCustomer(true);
         setFoundCustomer(null);
         setCustomerVisits([]);
-        toast.error("Customer not found with this mobile number");
+        setForm(p => ({
+          ...p,
+          customerId: "",
+          customerName: "",
+          applicantName: "",
+          guardianName: "",
+          relation: "",
+          address: "",
+          pinCode: "",
+          mobile,
+          email: "",
+        }));
+        toast.info("No existing customer found — you can register this booking directly as a new customer");
       }
     } else {
+      setIsNewCustomer(false);
       setFoundCustomer(null);
       setCustomerVisits([]);
       setForm(p => ({ ...p, customerId: "" }));
@@ -254,17 +272,36 @@ export default function BookingManagement() {
   };
 
   const handleBook = async () => {
-    if (!form.customerId || !form.siteId || !form.plotArea || !form.paidAmount || !form.applicantName) {
+    if (!form.siteId || !form.plotArea || !form.paidAmount || !form.applicantName) {
       toast.error("Fill all required fields");
       return;
     }
     try {
       setSaving(true);
+      let customerId = Number(form.customerId);
+      if (!customerId) {
+        if (!form.mobile || form.mobile.length !== 10) {
+          toast.error("Enter a valid 10-digit mobile number");
+          return;
+        }
+        const regRes = await customerApi.registerCustomer({
+          name: form.applicantName,
+          mobile: form.mobile,
+          email: form.email || undefined,
+          address: form.address || undefined,
+          pinCode: form.pinCode || undefined,
+          createdBy: user?.id,
+        });
+        const created = regRes && regRes.data ? regRes.data : regRes;
+        customerId = Number(created?.id);
+        if (!customerId) throw new Error("Failed to register customer");
+        await refreshCustomers();
+      }
       const pricePerSqft = +form.pricePerSqft || 5000;
       const plotPrice = +form.plotArea * pricePerSqft;
       const remaining = plotPrice - +form.paidAmount;
       const payload = {
-        customerId: Number(form.customerId),
+        customerId,
         projectId: Number(form.projectId),
         siteId: Number(form.siteId),
         bookingDate: form.bookingDate,
@@ -288,7 +325,7 @@ export default function BookingManagement() {
       };
       const rawRes = await bookingApi.create(payload);
       const res = rawRes && rawRes.data ? rawRes.data : rawRes;
-      await updateCustomer(+form.customerId, { status: "Booked" });
+      await updateCustomer(customerId, { status: "Booked" });
       await refreshBookings();
       toast.success("Booking registered! WhatsApp notification sent 📱");
 
@@ -853,6 +890,7 @@ export default function BookingManagement() {
           const today = new Date().toISOString().split("T")[0];
           setForm({ ...empty, bookingDate: today });
           setFoundCustomer(null);
+          setIsNewCustomer(false);
           setMobileSearch("");
           setCustomerVisits([]);
           setModal("add");
@@ -972,7 +1010,7 @@ export default function BookingManagement() {
             <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><div className="w-6 h-6 rounded-lg bg-green-600 flex items-center justify-center"><Phone size={14} className="text-white" /></div>Customer Details</h3>
             <div className="space-y-3">
               <div>
-                <label className="label">Search Customer by Mobile *</label>
+                <label className="label">Search Customer by Mobile <span className="text-red-500">*</span></label>
                 <div className="relative">
                   <input type="tel" value={mobileSearch} onChange={e => handleMobileSearch(e.target.value)} className="input-field pr-10" placeholder="Enter 10-digit mobile number" maxLength={10} />
                   {foundCustomer && <CheckCircle size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600" />}
@@ -983,6 +1021,12 @@ export default function BookingManagement() {
                       <div><div className="text-sm font-semibold text-gray-800">{foundCustomer.name}</div><div className="text-xs text-gray-600">{foundCustomer.mobile} · {foundCustomer.email}</div></div>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${foundCustomer.status === "Ready for Booking" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>{foundCustomer.status}</span>
                     </div>
+                  </div>
+                )}
+                {isNewCustomer && mobileSearch.length === 10 && (
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="text-sm font-semibold text-blue-800 flex items-center gap-1.5"><UserPlus size={14} /> New Customer</div>
+                    <div className="text-xs text-blue-700 mt-1">No existing customer found with this mobile number. Fill the details below to register this booking directly as a new customer.</div>
                   </div>
                 )}
                 {foundCustomer?.existingBooking && (
@@ -1063,11 +1107,11 @@ export default function BookingManagement() {
             </div>
           </div>
 
-          {form.customerId && (
+          {(form.customerId || isNewCustomer) && (
             <div>
               <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><div className="w-6 h-6 rounded-lg bg-purple-600 flex items-center justify-center"><Building2 size={14} className="text-white" /></div>Applicant Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="label">Applicant Name *</label><input value={form.applicantName} onChange={e => setForm(p => ({ ...p, applicantName: e.target.value }))} className="input-field" placeholder="Customer name" /></div>
+                <div><label className="label">Applicant Name <span className="text-red-500">*</span></label><input value={form.applicantName} onChange={e => setForm(p => ({ ...p, applicantName: e.target.value }))} className="input-field" placeholder="Customer name" /></div>
                 <div><label className="label">Guardian Name</label><input value={form.guardianName || ''} onChange={e => setForm(p => ({ ...p, guardianName: e.target.value }))} className="input-field" placeholder="Guardian name (optional)" /></div>
                 <div className="md:col-span-2"><label className="label">Address</label><textarea value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} className="input-field h-16 resize-none" placeholder="Full address" /></div>
                 <div><label className="label">Pin Code</label><input type="number" value={form.pinCode} onChange={e => setForm(p => ({ ...p, pinCode: e.target.value }))} className="input-field" placeholder="6-digit" maxLength={6} /></div>
@@ -1168,8 +1212,8 @@ export default function BookingManagement() {
                   ) : null;
                 })()}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div><label className="label">Plot Area (sqft) *</label><input type="number" value={form.plotArea} onChange={e => { const area = e.target.value; setForm(p => ({ ...p, plotArea: area, plotPrice: area ? area * (+p.pricePerSqft || 5000) : "" })); }} className="input-field" placeholder="1200" /></div>
-                  <div><label className="label">Plot Price (₹) *</label><input type="number" value={form.plotPrice} readOnly className="input-field bg-white border-amber-200 font-medium text-amber-700" placeholder="Auto-calculated" /></div>
+                  <div><label className="label">Plot Area (sqft) <span className="text-red-500">*</span></label><input type="number" value={form.plotArea} onChange={e => { const area = e.target.value; setForm(p => ({ ...p, plotArea: area, plotPrice: area ? area * (+p.pricePerSqft || 5000) : "" })); }} className="input-field" placeholder="1200" /></div>
+                  <div><label className="label">Plot Price (₹) <span className="text-red-500">*</span></label><input type="number" value={form.plotPrice} readOnly className="input-field bg-white border-amber-200 font-medium text-amber-700" placeholder="Auto-calculated" /></div>
                 </div>
               </div>
             )}
@@ -1212,7 +1256,7 @@ export default function BookingManagement() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div><label className="label">Paid Amount (₹) *</label><input type="number" value={form.paidAmount} onChange={e => setForm(p => ({ ...p, paidAmount: e.target.value }))} className="input-field" placeholder="Token amount" /></div>
+            <div><label className="label">Paid Amount (₹) <span className="text-red-500">*</span></label><input type="number" value={form.paidAmount} onChange={e => setForm(p => ({ ...p, paidAmount: e.target.value }))} className="input-field" placeholder="Token amount" /></div>
             <div><label className="label">Payment Status</label>
               <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="input-field">
                 <option value="Initial Payment">Initial Payment</option>
@@ -1226,7 +1270,7 @@ export default function BookingManagement() {
         </div>
         <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
           <button onClick={() => setConfirmOpen(true)} className="btn-primary flex-1 justify-center py-2.5">{foundCustomer?.existingBooking ? <><IndianRupee size={16} /> Pay Now</> : <><BookOpen size={16} />Register Booking</>}</button>
-          {!foundCustomer?.existingBooking && (<button onClick={() => { setForm(empty); setFoundCustomer(null); setMobileSearch(""); setCustomerVisits([]); }} className="btn-secondary flex-1 justify-center py-2.5"><span className="text-orange-600 font-medium">Clear</span></button>)}
+          {!foundCustomer?.existingBooking && (<button onClick={() => { setForm(empty); setFoundCustomer(null); setIsNewCustomer(false); setMobileSearch(""); setCustomerVisits([]); }} className="btn-secondary flex-1 justify-center py-2.5"><span className="text-orange-600 font-medium">Clear</span></button>)}
           <button onClick={() => { setModal(null); setCustomerVisits([]); }} className="btn-secondary flex-1 justify-center py-2.5">Cancel</button>
         </div>
 
@@ -1268,6 +1312,7 @@ export default function BookingManagement() {
                   if (successPayload) {
                     setForm(empty);
                     setFoundCustomer(null);
+                    setIsNewCustomer(false);
                     setMobileSearch("");
                     setSuccessData(successPayload);
                     setConfirmOpen(false);
