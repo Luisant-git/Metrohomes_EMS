@@ -43,6 +43,11 @@ model User {
   parentUserId          Int?
   parent                User?    @relation("UserHierarchy", fields: [parentUserId], references: [id])
   children              User[]   @relation("UserHierarchy")
+
+  // Inactivity tracking
+  lastActivityAt        DateTime?   // last activity (created subordinate OR booked customer)
+  reactivatedAt         DateTime?   // last time Admin manually reactivated this user
+  reactivatedBy         Int?        // Admin user id who last reactivated this user
   
   createdBy             Int?
   createdAt             DateTime @default(now())

@@ -167,6 +167,14 @@ export class UserController {
     return this.userService.updateStatus(id, status);
   }
 
+  @Put(':id/reactivate')
+  @Roles('Admin')
+  @ApiOperation({ summary: 'Reactivate an inactive user (Admin only)' })
+  @ApiParam({ name: 'id', type: Number, description: 'User ID' })
+  reactivate(@Param('id', ParseIntPipe) id: number, @CurrentUser() currentUser: any) {
+    return this.userService.reactivate(id, currentUser);
+  }
+
   @Delete(':id')
   @Roles('Admin', 'Director')
   @HttpCode(HttpStatus.NO_CONTENT)

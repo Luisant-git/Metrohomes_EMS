@@ -108,6 +108,16 @@ export class BookingService {
 
     this.logger.log(`Booking created: ${receiptNo} for customer ${customer.name}`);
 
+    // Rule 3 — Activity: a booking was created by the logged-in user.
+    // Record lastActivityAt (restarts the 90-day inactivity window) and
+    // keep/reactivate the creator as Active.
+    if (createdBy) {
+      await this.prisma.user.update({
+        where: { id: createdBy },
+        data: { status: 'Active', lastActivityAt: new Date() },
+      });
+    }
+
     // Update site status — Sold if fully paid at booking, Booked otherwise
     const siteStatus = dto.remainingAmount <= 0 ? 'Sold' : 'Booked';
     await this.prisma.site.update({

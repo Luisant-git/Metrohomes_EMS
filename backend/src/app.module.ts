@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -14,7 +15,7 @@ import { BookingModule } from './booking/booking.module';
 import { MapsModule } from './maps/maps.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, UserModule, WhatsappModule, DashboardModule, UploadModule, SiteModule, CustomerModule, SiteVisitModule, BookingModule, MapsModule],
+  imports: [ScheduleModule.forRoot(), PrismaModule, AuthModule, UserModule, WhatsappModule, DashboardModule, UploadModule, SiteModule, CustomerModule, SiteVisitModule, BookingModule, MapsModule],
   controllers: [AppController],
   providers: [AppService],
 })

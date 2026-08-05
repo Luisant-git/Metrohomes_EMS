@@ -148,6 +148,12 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
+    // Account status check — must happen BEFORE the OTP is generated/sent.
+    // Inactive users cannot log in until an administrator reactivates them.
+    if (user.status !== 'Active') {
+      throw new UnauthorizedException('Your account is inactive. Please contact your administrator for assistance.');
+    }
+
     const isAdmin = user.role === 'Admin' || user.role === UserRole.ADMIN;
     if (isAdmin) {
       return { isAdmin: true, message: 'Admin login required' };
@@ -172,6 +178,11 @@ export class AuthService {
     const user = await this.userService.findByIdentifier(employeeCode);
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    // Safety: an inactive user must not complete login even with a valid OTP.
+    if (user.status !== 'Active') {
+      throw new UnauthorizedException('Your account is inactive. Please contact your administrator for assistance.');
     }
 
     if (!user.pin || !user.pinExpiresAt) {

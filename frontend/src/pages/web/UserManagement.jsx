@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { user as userApi } from "../../api/user.js";
 import DataTable from "../../components/DataTable.jsx";
 import Modal from "../../components/Modal.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
@@ -34,7 +35,8 @@ const emptyForm = {
   panNo: "",
   referredById: "",
   referredByName: "",
-  parentUserId: ""
+  parentUserId: "",
+  status: "Active"
 };
 
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
@@ -815,6 +817,9 @@ function TreeNode({ node, users, customers, bookings, depth = 0, onViewTeam }) {
             <span className="text-sm font-medium text-gray-800 truncate">{node.name}</span>
             <StatusBadge status={node.role} />
             <span className="text-[10px] text-gray-400 font-mono">{node.employeeCode}</span>
+            {node.status === "Inactive" && (
+              <span className="text-[10px] font-medium text-red-600 truncate">· Inactive — contact administrator</span>
+            )}
           </div>
           <div className="flex items-center gap-2 text-[10px] text-gray-400">
             {node.email && <span>{node.email}</span>}
@@ -1011,7 +1016,8 @@ export default function UserManagement() {
       referredById: u.referredById || "",
       referredByName: u.referredByName || "",
       parentUserId: u.parentUserId || "",
-      employeeCode: u.employeeCode || ""
+      employeeCode: u.employeeCode || "",
+      status: u.status || "Active"
     });
     setEditErrors({});
     setModal("edit");
@@ -1101,6 +1107,20 @@ export default function UserManagement() {
 
         console.log("Updating user with payload:", JSON.stringify(updateData));
         await updateUser(selected.id, updateData);
+
+        // Status change — Admin only. Reactivation of an auto-inactive user
+        // is allowed exclusively to the Admin role.
+        if (user?.role === "Admin" && form.status !== selected.status) {
+          if (form.status === "Active") {
+            await userApi.reactivate(selected.id);
+            toast.success(`User "${form.name}" activated!`);
+          } else {
+            await userApi.updateStatus(selected.id, "Inactive");
+            toast.success(`User "${form.name}" set to Inactive`);
+          }
+          await refreshUsers();
+        }
+
         toast.success(`User "${form.name}" updated successfully!`);
         setModal(null);
       }
@@ -1170,7 +1190,23 @@ export default function UserManagement() {
         );
       }
     },
-    { key: "status", label: "Status", render: v => <StatusBadge status={v} /> },
+    {
+      key: "status", label: "Status", render: (v, row) => (
+        <div className="flex items-center gap-1.5">
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${v === "Active"
+            ? "bg-green-100 text-green-700"
+            : "bg-red-100 text-red-700"
+            }`}>
+            {v}
+          </span>
+          {row.autoInactive && (
+            <span title={`Inactive for ${row.daysInactive ?? 0} days (no user created or booking in last 90 days)`}>
+              <AlertTriangle size={13} className="text-amber-500" />
+            </span>
+          )}
+        </div>
+      )
+    },
   ];
 
   const handleViewTeam = (node) => {
@@ -1573,6 +1609,20 @@ export default function UserManagement() {
               <FormField label="Referred By">
                 <input value={(() => { const p = users.find(u => u.id === form.parentUserId); return p ? `${p.name} (${p.role})` : "—"; })()} className="input-field bg-gray-50" disabled />
               </FormField>
+              <FormField label="Status">
+                <select
+                  value={form.status}
+                  onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
+                  className={`input-field ${user?.role === "Admin" ? "" : "bg-gray-50"}`}
+                  disabled={user?.role !== "Admin"}
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+                {user?.role !== "Admin" && (
+                  <p className="text-xs text-gray-400 mt-1">Only Admin can change user status</p>
+                )}
+              </FormField>
             </div>
           </div>
 
@@ -1730,7 +1780,7 @@ export default function UserManagement() {
                           <span className="text-sm text-gray-500">{k}</span>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${selected.status === "Active"
                             ? "bg-green-50 text-green-700"
-                            : "bg-gray-100 text-gray-600"
+                            : "bg-red-100 text-red-700"
                             }`}>
                             {v}
                           </span>

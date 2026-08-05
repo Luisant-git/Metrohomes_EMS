@@ -11,10 +11,20 @@ export class UserService {
 
   private readonly logger = new Logger(UserService.name);
 
+  // A user is auto-inactivated only when BOTH activities
+  // (create a subordinate user, book a customer) are missing
+  // for this many consecutive days. Enforced by the daily
+  // cron job (UserInactivityScheduler), not on API requests.
+  // Configurable via USER_INACTIVITY_DAYS (defaults to 90).
+  private readonly INACTIVITY_DAYS: number;
+
   constructor(
     private prisma: PrismaService,
     private whatsappService: WhatsappService,
-  ) {}
+  ) {
+    const envDays = Number(process.env.USER_INACTIVITY_DAYS);
+    this.INACTIVITY_DAYS = Number.isInteger(envDays) && envDays > 0 ? envDays : 90;
+  }
 
 
      private async generateEmployeeCode(role: string): Promise<string> {
@@ -161,6 +171,16 @@ const employeeCode = await this.generateEmployeeCode(createUserDto.role);
     }
 
     const { pin, ...result } = user;
+
+    // Rule 3 — Activity: creator created a subordinate user.
+    // Record lastActivityAt (restarts the 90-day window) and keep them Active.
+    if (currentUser?.id) {
+      await this.prisma.user.update({
+        where: { id: currentUser.id },
+        data: { status: 'Active', lastActivityAt: new Date() },
+      });
+    }
+
     return result;
   }
 
@@ -195,7 +215,28 @@ const employeeCode = await this.generateEmployeeCode(createUserDto.role);
       users = users.filter((user) => user.id === currentUser.id || teamIds.includes(user.id));
     }
 
-    return users.map(({ pin, ...user }) => user);
+    // ─── Inactivity display fields ────────────────────────────────
+    // Status transitions are handled ONLY by the daily cron job
+    // (UserInactivityScheduler) to avoid extra DB queries per request.
+    // Here we just annotate the response with read-only info derived
+    // from the persisted activity fields.
+    const cutoff = this.getInactivityCutoff();
+    const referenceDate = (u: any): Date | null => {
+      const candidates = [u.lastActivityAt, u.reactivatedAt, u.createdAt].filter(Boolean);
+      return candidates.length ? new Date(Math.max(...candidates.map((d: Date) => d.getTime()))) : null;
+    };
+
+    return users.map(({ pin, ...user }) => {
+      const ref = referenceDate(user);
+      const daysInactive = ref ? Math.max(0, Math.floor((Date.now() - ref.getTime()) / 86400000)) : 0;
+      const autoInactive = user.status === 'Inactive' && (!ref || ref < cutoff);
+      return {
+        ...user,
+        lastActivityAt: ref ? ref.toISOString() : null,
+        daysInactive,
+        autoInactive,
+      };
+    });
   }
 
   // ─── FIND ONE USER ───────────────────────────────────────────────
@@ -528,6 +569,125 @@ const employeeCode = await this.generateEmployeeCode(createUserDto.role);
     }
 
     return teamMembers;
+  }
+
+  // ─── INACTIVITY HELPERS ────────────────────────────────────────────
+  private getInactivityCutoff(now: Date = new Date()): Date {
+    return new Date(now.getTime() - this.INACTIVITY_DAYS * 24 * 60 * 60 * 1000);
+  }
+
+  // Returns the latest activity date (created a subordinate OR booked a customer)
+  // for each given user id. Users with no activity are not present in the map.
+  private async getLastActivityByUser(userIds: number[]): Promise<Map<number, Date>> {
+    const ids = userIds.filter((id) => id != null);
+    const map = new Map<number, Date>();
+    if (ids.length === 0) return map;
+
+    const consider = (uid: number, date: Date) => {
+      if (uid == null || !date) return;
+      const existing = map.get(uid);
+      if (!existing || date > existing) map.set(uid, date);
+    };
+
+    const [subordinates, bookings] = await Promise.all([
+      this.prisma.user.findMany({
+        where: { createdBy: { in: ids } },
+        select: { createdBy: true, createdAt: true },
+      }),
+      this.prisma.booking.findMany({
+        where: { createdBy: { in: ids } },
+        select: { createdBy: true, createdAt: true },
+      }),
+    ]);
+
+    subordinates.forEach((r) => r.createdBy != null && consider(r.createdBy, r.createdAt));
+    bookings.forEach((r) => r.createdBy != null && consider(r.createdBy, r.createdAt));
+    return map;
+  }
+
+  // Rule 5 — Daily scheduler logic. For every non-Admin user:
+  //   Active   = created a subordinate OR booked a customer within last 90 days
+  //   Inactive = BOTH activities missing for 90 consecutive days
+  // The reference window starts at lastActivityAt ?? reactivatedAt ?? createdAt.
+  async autoDeactivateInactiveUsers(): Promise<{ checked: number; deactivated: number; reactivated: number }> {
+    const now = new Date();
+    const cutoff = this.getInactivityCutoff(now);
+
+    const users = await this.prisma.user.findMany({
+      where: { role: { not: 'Admin' } },
+      select: { id: true, status: true, createdAt: true, lastActivityAt: true, reactivatedAt: true },
+    });
+
+    const activityMap = await this.getLastActivityByUser(users.map((u) => u.id));
+    const referenceDate = (u: any): Date | null => {
+      const candidates = [activityMap.get(u.id), u.lastActivityAt, u.reactivatedAt, u.createdAt].filter(Boolean);
+      return candidates.length ? new Date(Math.max(...candidates.map((d: Date) => d.getTime()))) : null;
+    };
+
+    const toDeactivate: number[] = [];
+    const toReactivate: number[] = [];
+
+    for (const u of users) {
+      const ref = referenceDate(u);
+      const hasRecentActivity = ref !== null && ref >= cutoff;
+      if (u.status === 'Active' && !hasRecentActivity) {
+        toDeactivate.push(u.id);
+      } else if (u.status !== 'Active' && hasRecentActivity) {
+        toReactivate.push(u.id);
+      }
+    }
+
+    if (toDeactivate.length > 0) {
+      await this.prisma.user.updateMany({
+        where: { id: { in: toDeactivate } },
+        data: { status: 'Inactive' },
+      });
+    }
+    if (toReactivate.length > 0) {
+      await this.prisma.user.updateMany({
+        where: { id: { in: toReactivate } },
+        data: { status: 'Active' },
+      });
+    }
+
+    if (toDeactivate.length > 0) {
+      this.logger.log(`Auto-inactivity: deactivated ${toDeactivate.length} user(s) with no activity for ${this.INACTIVITY_DAYS}+ days`);
+    }
+    if (toReactivate.length > 0) {
+      this.logger.log(`Auto-inactivity: reactivated ${toReactivate.length} user(s) who performed activity again`);
+    }
+
+    return {
+      checked: users.length,
+      deactivated: toDeactivate.length,
+      reactivated: toReactivate.length,
+    };
+  }
+
+  // Rule 4 — Only Admin can reactivate an inactive user.
+  // Sets status Active, records reactivatedAt/reactivatedBy and resets
+  // lastActivityAt to now (a fresh 90-day cycle starts from today).
+  async reactivate(id: number, adminUser?: any) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const now = new Date();
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: {
+        status: 'Active',
+        lastActivityAt: now,
+        reactivatedAt: now,
+        reactivatedBy: adminUser?.id ?? null,
+      },
+      include: { parent: true, children: true },
+    });
+
+    this.logger.log(`User ${user.name} (${user.employeeCode}) reactivated by ${adminUser?.name || 'unknown'}`);
+    const { pin, ...result } = updated;
+    return result;
   }
 
   // ─── SEARCH ────────────────────────────────────────────────────────

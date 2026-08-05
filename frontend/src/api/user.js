@@ -151,6 +151,15 @@ export const user = {
     return handleResponse(response);
   },
 
+  // Reactivate Inactive User (Admin only)
+  async reactivate(userId) {
+    const response = await fetch(`${VITE_API_URL}/users/${userId}/reactivate`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   // Delete User (Admin/Director only)
   async delete(userId) {
     const response = await fetch(`${VITE_API_URL}/users/${userId}`, {

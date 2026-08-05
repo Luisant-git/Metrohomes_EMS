@@ -7,6 +7,7 @@ import logo from "../assests/logo 1.png";
 const OTP_LENGTH = 4;
 const OTP_EXPIRY_SECONDS = 292;
 const RESEND_COOLDOWN_SECONDS = 45;
+const INACTIVE_ACCOUNT_MESSAGE = "Your account is inactive. Please contact your administrator for assistance.";
 
 export default function LoginPage() {
   const [step, setStep] = useState("enterId"); // "enterId" | "adminPin" | "otpSent"
@@ -16,6 +17,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [expiryLeft, setExpiryLeft] = useState(OTP_EXPIRY_SECONDS);
   const [resendLeft, setResendLeft] = useState(RESEND_COOLDOWN_SECONDS);
+  const [errorText, setErrorText] = useState("");
 
   const { requestOtp, verifyOtp, adminLogin } = useAuth();
   const inputsRef = useRef([]);
@@ -63,6 +65,7 @@ export default function LoginPage() {
     e.preventDefault();
     if (!identifier.trim()) return;
     setLoading(true);
+    setErrorText("");
     try {
       const result = await requestOtp(identifier);
       if (result?.isAdmin) {
@@ -76,7 +79,12 @@ export default function LoginPage() {
         setOtp(Array(OTP_LENGTH).fill(""));
         setTimeout(() => inputsRef.current[0]?.focus(), 100);
       } else {
-        toast.error(result.error || "User not found or request failed");
+        const errMsg = result.error || "User not found or request failed";
+        if (errMsg === INACTIVE_ACCOUNT_MESSAGE) {
+          setErrorText(errMsg);
+        } else {
+          toast.error(errMsg);
+        }
       }
     } catch (err) {
       toast.error(err.message || "Failed to identify user");
@@ -139,7 +147,13 @@ export default function LoginPage() {
         setOtp(Array(OTP_LENGTH).fill(""));
         inputsRef.current[0]?.focus();
       } else {
-        toast.error(result?.error || "Failed to resend OTP");
+        const errMsg = result?.error || "Failed to resend OTP";
+        if (errMsg === INACTIVE_ACCOUNT_MESSAGE) {
+          setErrorText(errMsg);
+          setStep("enterId");
+        } else {
+          toast.error(errMsg);
+        }
       }
     } catch (err) {
       toast.error(err.message || "Failed to resend OTP");
@@ -152,6 +166,7 @@ export default function LoginPage() {
     setStep("enterId");
     setOtp(Array(OTP_LENGTH).fill(""));
     setAdminPin("");
+    setErrorText("");
   };
 
   return (
@@ -268,13 +283,19 @@ export default function LoginPage() {
                     <input
                       type="text"
                       value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value.toUpperCase())}
+                      onChange={(e) => { setIdentifier(e.target.value.toUpperCase()); setErrorText(""); }}
                       placeholder="Enter your User ID"
                       required
                       className="w-full bg-white border border-slate-300 rounded-md pl-9 pr-3 py-2.5 text-xs text-slate-900 placeholder-slate-400 outline-none transition-colors focus:border-[#1D6FB9] focus:ring-2 focus:ring-[#1D6FB9]/20"
                     />
                   </div>
                 </div>
+
+                {errorText && (
+                  <p className="text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                    {errorText}
+                  </p>
+                )}
 
                 <button
                   type="submit"
