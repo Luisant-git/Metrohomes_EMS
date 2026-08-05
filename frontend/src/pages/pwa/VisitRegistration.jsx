@@ -807,8 +807,12 @@ export default function PWAVisitRegistration() {
                 ["Persons", form.persons],
                 ["Pickup", form.location || "—"],
                 ["Notes", form.notes || "—"],
-                ["Created By Role", salesManager.role],
-                ["Sales Manager", salesManager.name],
+                ["User", (
+                  <div className="text-right">
+                    <div>{salesManager.name}</div>
+                    {salesManager.employeeCode && <div className="text-xs text-gray-400 font-mono">{salesManager.employeeCode}</div>}
+                  </div>
+                )],
                 ["Sales Manager Mobile", salesManager.mobile],
               ]
                 .filter(([k, v]) => v !== null)

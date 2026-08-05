@@ -796,8 +796,12 @@ export default function CustomerRegistration() {
                 ["Visit Time", form.visitTime ? (() => { const [h,m] = form.visitTime.split(':'); const hour = parseInt(h,10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hour12 = hour % 12 || 12; return `${hour12}:${m} ${ampm}`; })() : '—'],
                 ["Number of Persons", form.persons],
                 ["Pickup Location", form.location || "—"],
-                ["Created By", salesManager.role],
-                ["Sales Manager", salesManager.name],
+                ["User", (
+                  <div className="text-right">
+                    <div>{salesManager.name}</div>
+                    {salesManager.employeeCode && <div className="text-xs text-gray-400 font-mono">{salesManager.employeeCode}</div>}
+                  </div>
+                )],
                 ["Sales Manager Mobile", salesManager.mobile],
               ]
                 .filter(([k, v]) => v !== null)

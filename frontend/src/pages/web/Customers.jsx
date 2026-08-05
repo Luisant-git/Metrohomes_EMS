@@ -180,8 +180,17 @@ export default function WebCustomers() {
     },
     {
       key: "createdByName",
-      label: "Created By",
-      render: (v, row) => row.assignedToUser?.name || "—",
+      label: "User",
+      render: (v, row) => {
+        const name = row.assignedToUser?.name || "—";
+        const code = row.assignedToUser?.employeeCode || "";
+        return (
+          <div>
+            <div className="text-gray-700">{name}</div>
+            {code && <div className="text-xs text-gray-400 font-mono">{code}</div>}
+          </div>
+        );
+      },
     },
     {
       key: "visitDateTime",
@@ -239,7 +248,7 @@ export default function WebCustomers() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by Name, Mobile, Site, Created By..."
+              placeholder="Search by Name, Mobile, Site, User..."
               className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             {search && (
@@ -414,8 +423,12 @@ export default function WebCustomers() {
                 ["Persons", selected.persons],
                 ["Purchase Mode", selected.purchaseMode],
                 ["Pickup Location", selected.pickupLocation],
-                ["Assigned To", selected.assignedToUser?.name || "—"],
-                ["Notes", selected.notes],
+                ["User", (
+                  <div>
+                    <div>{selected.assignedToUser?.name || "—"}</div>
+                    {selected.assignedToUser?.employeeCode && <div className="text-xs text-gray-400 font-mono">{selected.assignedToUser.employeeCode}</div>}
+                  </div>
+                )],                ["Notes", selected.notes],
               ].map(([k, v]) => (
                 <div key={k} className="flex flex-col gap-0.5">
                   <span className="text-[11px] text-gray-400 font-medium tracking-wide">

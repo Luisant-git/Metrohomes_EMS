@@ -88,10 +88,21 @@ export default function PWACustomers() {
   };
 
   const getCreatorName = (customer) => {
+    const visit = customer.visits?.[0];
+    if (visit?.registeredBy) return visit.registeredBy;
     const creator = users.find(
       (u) => u.id === (customer.createdById || customer.createdBy),
     );
     return creator ? creator.name : customer.salesManagerName || "—";
+  };
+
+  const getCreatorCode = (customer) => {
+    const visit = customer.visits?.[0];
+    if (visit?.registeredByRole) return visit.registeredByRole;
+    const creator = users.find(
+      (u) => u.id === (customer.createdById || customer.createdBy),
+    );
+    return creator?.employeeCode || "";
   };
 
   const searchedCustomers = useMemo(() => {
@@ -247,7 +258,7 @@ export default function PWACustomers() {
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                placeholder="Search by Name, Mobile, Site, Created By..."
+                placeholder="Search by Name, Mobile, Site, User..."
                 className="w-full pl-8 pr-2 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -301,7 +312,7 @@ export default function PWACustomers() {
                     Customer
                   </th>
                   <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
-                    Created By
+                    User
                   </th>
                   <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
                     Mobile
@@ -341,8 +352,11 @@ export default function PWACustomers() {
                           {c.name}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-700 text-xs font-medium">
-                        {getCreatorName(c)}
+                      <td className="px-4 py-3 text-xs font-medium">
+                        <div className="text-gray-700">{getCreatorName(c)}</div>
+                        {getCreatorCode(c) && (
+                          <div className="text-gray-400 font-mono">{getCreatorCode(c)}</div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-gray-500 text-xs">
                         {c.mobile}
@@ -465,15 +479,30 @@ export default function PWACustomers() {
                 ["Email", selected.email],
                 ["Site", selected.siteName || null],
                 [
-                  "Created By",
+                  "User",
                   (() => {
+                    const visit = selected.visits?.[0];
+                    if (visit?.registeredBy) {
+                      return (
+                        <div>
+                          <div>{visit.registeredBy}</div>
+                          {visit.registeredByRole && <div className="text-xs text-gray-400 font-mono">{visit.registeredByRole}</div>}
+                        </div>
+                      );
+                    }
                     const creator = users.find(
                       (u) =>
                         u.id === (selected.createdById || selected.createdBy),
                     );
-                    return creator
-                      ? `${creator.name} (${creator.employeeCode})`
-                      : selected.salesManagerName || "—";
+                    if (creator) {
+                      return (
+                        <div>
+                          <div>{creator.name}</div>
+                          {creator.employeeCode && <div className="text-xs text-gray-400 font-mono">{creator.employeeCode}</div>}
+                        </div>
+                      );
+                    }
+                    return selected.salesManagerName || "—";
                   })(),
                 ],
                 [

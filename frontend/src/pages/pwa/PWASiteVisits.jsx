@@ -213,7 +213,7 @@ export default function PWASiteVisits() {
       </div>
 
       {/* View Modal - Mobile optimized */}
-      <Modal open={modal === "view"} onClose={() => setModal(null)} title="Visit Details" size="full">
+      <Modal open={modal === "view"} onClose={() => setModal(null)} title="Visit Details" size="sm">
         {selected && (
           <div className="space-y-4">
             <div className="flex items-center gap-3">
@@ -236,12 +236,28 @@ export default function PWASiteVisits() {
                 ["Persons", selected.persons],
                 ["Purchase Mode", selected.purchaseMode],
                 ["Pickup Location", selected.pickupLocation],
-                ["Assigned To", selected.assignedToUser?.name || "—"],
+                ["User", (
+                  <div>
+                    <div>{selected.assignedToUser?.name || "—"}</div>
+                    {selected.assignedToUser?.employeeCode && <div className="text-xs text-gray-400 font-mono">{selected.assignedToUser.employeeCode}</div>}
+                  </div>
+                )],
                 ["Notes", selected.notes],
               ].map(([k, v]) => (
                 <div key={k} className="flex flex-col gap-0.5">
                   <span className="text-[11px] text-gray-400 font-medium tracking-wide uppercase">{k}</span>
-                  <span className="text-sm text-gray-800 font-medium break-words">{v || "—"}</span>
+                  {k === "Pickup Location" && v ? (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1 cursor-pointer text-sm font-medium break-words"
+                    >
+                      {v} ↗
+                    </a>
+                  ) : (
+                    <span className="text-sm text-gray-800 font-medium break-words">{v || "—"}</span>
+                  )}
                 </div>
               ))}
             </div>
@@ -276,7 +292,7 @@ export default function PWASiteVisits() {
       </Modal>
 
       {/* Edit Status Modal - Mobile optimized */}
-      <Modal open={modal === "edit"} onClose={() => setModal(null)} title="Update Visit" size="full">
+      <Modal open={modal === "edit"} onClose={() => setModal(null)} title="Update Visit" size="sm">
         {selected && (
           <div className="space-y-4">
             <div className="bg-gray-50 rounded-xl p-4">
