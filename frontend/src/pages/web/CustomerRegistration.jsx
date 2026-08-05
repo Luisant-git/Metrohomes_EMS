@@ -76,7 +76,6 @@ export default function CustomerRegistration() {
   const { sites, addCustomer, refreshCustomers } = useData();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const isDev = import.meta.env.DEV;
 
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [step, setStep] = useState(1);
@@ -270,9 +269,7 @@ export default function CustomerRegistration() {
 
     try {
       await customer.requestOtp(form.mobile);
-      toast.success(isDev
-        ? "Local development: OTP is 1234. No WhatsApp message was sent."
-        : "OTP sent to mobile via WhatsApp!");
+      toast.success("OTP sent to mobile via WhatsApp!");
       setOtpSent(true);
       setErrors({});
       startOtpTimer();

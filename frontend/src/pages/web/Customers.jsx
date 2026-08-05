@@ -32,7 +32,7 @@ const STATUSES = [
   "Visit Scheduled",
   "Visit Completed",
   "Booked",
-  "Payment Done",
+
 ];
 const DIRECTOR_STATUSES = ["Interested", "Visit Scheduled", "Visit Completed"];
 
@@ -41,7 +41,7 @@ const statusConfig = {
   "Visit Scheduled": { icon: CalendarCheck, color: "orange" },
   "Visit Completed": { icon: CheckCircle2, color: "teal" },
   Booked: { icon: BookOpen, color: "green" },
-  "Payment Done": { icon: Wallet, color: "yellow" },
+
 };
 
 export default function WebCustomers() {

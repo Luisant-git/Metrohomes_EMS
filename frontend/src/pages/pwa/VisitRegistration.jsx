@@ -72,7 +72,6 @@ export default function PWAVisitRegistration() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const isDev = import.meta.env.DEV;
 
   const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
 
@@ -271,9 +270,7 @@ export default function PWAVisitRegistration() {
 
     try {
       await customer.requestOtp(form.mobile);
-      toast.success(isDev
-        ? "Local development: OTP is 1234. No WhatsApp message was sent."
-        : "OTP sent to your mobile via WhatsApp!");
+      toast.success("OTP sent to your mobile via WhatsApp!");
       setOtpSent(true);
       setErrors({});
       startOtpTimer();
