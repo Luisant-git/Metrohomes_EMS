@@ -101,7 +101,7 @@ export class BookingService {
         project: { select: { name: true, location: true } },
         site: { select: { siteNo: true, facing: true, totalSqft: true } },
         creator: { select: { id: true, name: true, employeeCode: true, role: true } },
-        assignedToUser: { select: { name: true } },
+        assignedToUser: { select: { name: true, employeeCode: true } },
         receipts: true,
       },
     });
@@ -170,7 +170,7 @@ export class BookingService {
         project: { select: { name: true, location: true } },
         site: { select: { siteNo: true, facing: true, totalSqft: true } },
         creator: { select: { id: true, name: true, employeeCode: true, role: true } },
-        assignedToUser: { select: { name: true, mobile: true } },
+        assignedToUser: { select: { name: true, mobile: true, employeeCode: true } },
         receipts: { orderBy: { paymentDate: 'desc' } },
       },
       orderBy: { createdAt: 'desc' },
@@ -187,7 +187,7 @@ export class BookingService {
         project: { select: { name: true, location: true } },
         site: { select: { siteNo: true, facing: true, totalSqft: true, pricePerSqft: true } },
         creator: { select: { id: true, name: true, employeeCode: true, role: true } },
-        assignedToUser: { select: { name: true, mobile: true } },
+        assignedToUser: { select: { name: true, mobile: true, employeeCode: true } },
         receipts: { orderBy: { paymentDate: 'desc' } },
       },
     });
@@ -228,7 +228,7 @@ export class BookingService {
         project: { select: { name: true, location: true } },
         site: { select: { siteNo: true, facing: true, totalSqft: true } },
         creator: { select: { id: true, name: true, employeeCode: true, role: true } },
-        assignedToUser: { select: { name: true, mobile: true } },
+        assignedToUser: { select: { name: true, mobile: true, employeeCode: true } },
       },
     });
 
@@ -274,7 +274,7 @@ export class BookingService {
         project: { select: { name: true, location: true } },
         site: { select: { siteNo: true, facing: true, totalSqft: true } },
         creator: { select: { id: true, name: true, employeeCode: true, role: true } },
-        assignedToUser: { select: { name: true, mobile: true } },
+        assignedToUser: { select: { name: true, mobile: true, employeeCode: true } },
       },
     });
 
@@ -634,7 +634,7 @@ export class BookingService {
           include: {
             project: { select: { name: true, id: true } },
             site: { select: { siteNo: true, id: true } },
-            assignedToUser: { select: { name: true } },
+            assignedToUser: { select: { name: true, employeeCode: true } },
           },
           orderBy: { createdAt: 'desc' },
         },
@@ -651,7 +651,7 @@ export class BookingService {
         project: { select: { name: true, location: true } },
         site: { select: { siteNo: true, facing: true, totalSqft: true, pricePerSqft: true } },
         customer: { select: { name: true, phone: true, email: true, address: true, pinCode: true } },
-        assignedToUser: { select: { name: true, mobile: true } },
+        assignedToUser: { select: { name: true, mobile: true, employeeCode: true } },
         creator: { select: { id: true, name: true, employeeCode: true, role: true } },
         receipts: { orderBy: { paymentDate: 'desc' } },
       },

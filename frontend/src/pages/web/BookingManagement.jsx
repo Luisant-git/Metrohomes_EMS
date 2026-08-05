@@ -19,11 +19,11 @@ const empty = {
   applicantName: "", relation: "", address: "", pinCode: "", mobile: "", email: "",
   paymentMode: "Cash", bankName: "", chequeNo: "", chequeDate: "", transferId: "", loanOrOwn: "Own Fund",
   plotArea: "", pricePerSqft: "", plotPrice: "", paidAmount: "", status: "Initial Payment",
-  salesManagerName: "", officeIdNo: "", location: "", notes: "", guardianName: ""
+  salesManagerName: "", employeeCode: "", assignedTo: "", officeIdNo: "", location: "", notes: "", guardianName: ""
 };
 
 export default function BookingManagement() {
-  const { bookings, customers, sites, addBooking, updateBooking, updateCustomer, refreshCustomers, refreshBookings } = useData();
+  const { bookings, customers, sites, users, addBooking, updateBooking, updateCustomer, refreshCustomers, refreshBookings } = useData();
   const { user } = useAuth();
   const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
@@ -33,6 +33,7 @@ export default function BookingManagement() {
   const [foundCustomer, setFoundCustomer] = useState(null);
   const [isNewCustomer, setIsNewCustomer] = useState(false);
   const [customerVisits, setCustomerVisits] = useState([]);
+  const [employeeCodeError, setEmployeeCodeError] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -49,6 +50,8 @@ export default function BookingManagement() {
   const [cancelForm, setCancelForm] = useState({ mobile: "", otp: "", cancellationReason: "", refundAmount: "" });
   const [otpSending, setOtpSending] = useState(false);
   const [canceling, setCanceling] = useState(false);
+
+  const isDirectBooking = isNewCustomer || (!!foundCustomer && !(foundCustomer.visits && foundCustomer.visits.length > 0));
 
   const handleDownloadPdf = async (row) => {
     try {
@@ -187,9 +190,11 @@ export default function BookingManagement() {
       );
       const availableVisits = visits.filter(v => !bookedSiteIds.has(String(v.siteId)));
       setCustomerVisits(availableVisits);
+      return availableVisits;
     } catch (err) {
       console.error("Failed to fetch customer visits:", err);
       setCustomerVisits([]);
+      return [];
     }
   };
 
@@ -197,6 +202,10 @@ export default function BookingManagement() {
     const c = customers.find(x => x.id === +cid);
     if (c) {
       await fetchCustomerVisits(c.id);
+      const latestVisit = c.visits?.[0];
+      const visitUser = latestVisit?.registeredBy;
+      const visitUserCode = latestVisit?.registeredByRole;
+      const visitUserId = latestVisit?.registeredById;
       const existingBooking = bookings.find(b => b.customerId === c.id && b.status !== 'Cancelled' && b.remainingAmount > 0);
       const pricePerSqft = 5000;
       setForm(p => ({
@@ -210,7 +219,9 @@ export default function BookingManagement() {
         pinCode: c.pinCode || "",
         mobile: c.mobile || "",
         email: c.email || "",
-        salesManagerName: c.salesManagerName,
+        salesManagerName: visitUser ? `${visitUser}${visitUserCode ? ` (${visitUserCode})` : ''}` : c.salesManagerName,
+        employeeCode: "",
+        assignedTo: visitUserId || c.createdById || c.createdBy || "",
         pricePerSqft,
         plotPrice: p.plotArea ? p.plotArea * pricePerSqft : ""
       }));
@@ -226,6 +237,10 @@ export default function BookingManagement() {
       if (c) {
         setIsNewCustomer(false);
         await fetchCustomerVisits(c.id);
+        const latestVisit = c.visits?.[0];
+        const visitUser = latestVisit?.registeredBy;
+        const visitUserCode = latestVisit?.registeredByRole;
+        const visitUserId = latestVisit?.registeredById;
         const existingBooking = bookings.find(b => b.customerId === c.id && b.status !== 'Cancelled' && b.remainingAmount > 0);
         setFoundCustomer({ ...c, existingBooking: existingBooking || null });
         const pricePerSqft = 5000;
@@ -240,7 +255,9 @@ export default function BookingManagement() {
           pinCode: c.pinCode || "",
           mobile: c.mobile || "",
           email: c.email || "",
-          salesManagerName: c.salesManagerName,
+          salesManagerName: visitUser ? `${visitUser}${visitUserCode ? ` (${visitUserCode})` : ''}` : c.salesManagerName,
+          employeeCode: "",
+          assignedTo: visitUserId || c.createdById || c.createdBy || "",
           pricePerSqft,
           plotPrice: p.plotArea ? p.plotArea * pricePerSqft : ""
         }));
@@ -249,6 +266,7 @@ export default function BookingManagement() {
         setIsNewCustomer(true);
         setFoundCustomer(null);
         setCustomerVisits([]);
+        setEmployeeCodeError("");
         setForm(p => ({
           ...p,
           customerId: "",
@@ -260,6 +278,9 @@ export default function BookingManagement() {
           pinCode: "",
           mobile,
           email: "",
+          employeeCode: "",
+          assignedTo: "",
+          salesManagerName: "",
         }));
         toast.info("No existing customer found — you can register this booking directly as a new customer");
       }
@@ -271,10 +292,45 @@ export default function BookingManagement() {
     }
   };
 
+  const resolveEmployee = (code) => {
+    if (!code) return null;
+    const match = code.trim().toLowerCase();
+    return users.find(u => u.employeeCode && String(u.employeeCode).trim().toLowerCase() === match) || null;
+  };
+
+  const handleEmployeeCode = (code) => {
+    setEmployeeCodeError("");
+    const trimmed = code.trim();
+    setForm(p => ({ ...p, employeeCode: code, assignedTo: "", salesManagerName: "" }));
+    if (!trimmed) return;
+    const emp = resolveEmployee(trimmed);
+    if (emp) {
+      setForm(p => ({ ...p, employeeCode: code, assignedTo: emp.id, salesManagerName: `${emp.name}${emp.employeeCode ? ` (${emp.employeeCode})` : ''}` }));
+      setEmployeeCodeError("");
+    } else if (trimmed.length >= 6) {
+      setEmployeeCodeError("Invalid Employee Code");
+    }
+  };
+
   const handleBook = async () => {
     if (!form.siteId || !form.plotArea || !form.paidAmount || !form.applicantName) {
       toast.error("Fill all required fields");
       return;
+    }
+    let assignedEmployee = null;
+    if (isDirectBooking) {
+      const code = (form.employeeCode || "").trim();
+      if (!code) {
+        setEmployeeCodeError("Employee Code is required for direct bookings");
+        toast.error("Employee Code is required for direct bookings");
+        return;
+      }
+      assignedEmployee = resolveEmployee(code);
+      if (!assignedEmployee) {
+        setEmployeeCodeError("Invalid Employee Code");
+        toast.error("Invalid Employee Code. Please enter a valid employee code.");
+        return;
+      }
     }
     try {
       setSaving(true);
@@ -290,7 +346,7 @@ export default function BookingManagement() {
           email: form.email || undefined,
           address: form.address || undefined,
           pinCode: form.pinCode || undefined,
-          createdBy: user?.id,
+          createdBy: assignedEmployee ? assignedEmployee.id : user?.id,
         });
         const created = regRes && regRes.data ? regRes.data : regRes;
         customerId = Number(created?.id);
@@ -318,8 +374,8 @@ export default function BookingManagement() {
         transferId: form.transferId || undefined,
         loanOrOwn: form.loanOrOwn,
         status: form.status,
-        assignedTo: form.assignedTo ? Number(form.assignedTo) : undefined,
-        assignedToUserName: form.salesManagerName || undefined,
+        assignedTo: assignedEmployee ? assignedEmployee.id : (form.assignedTo ? Number(form.assignedTo) : undefined),
+        assignedToUserName: assignedEmployee ? assignedEmployee.name : (form.salesManagerName || undefined),
         officeIdNo: form.officeIdNo || undefined,
         notes: form.notes || undefined,
       };
@@ -829,6 +885,18 @@ export default function BookingManagement() {
   const bookingColumns = [
     { key: "bookingId", label: "Booking ID", render: v => <span className="font-mono text-xs text-gray-500">{v}</span> },
     { key: "customerName", label: "Customer Name" },
+    { key: "salesManagerName", label: "User", render: (v, row) => {
+      const cust = customers.find(x => x.id === row.customerId);
+      const visit = cust?.visits?.[0];
+      const name = visit?.registeredBy || v || row.assignedToUser?.name || row.creator?.name || "—";
+      const code = visit?.registeredByRole || row.assignedToUser?.employeeCode || row.creator?.employeeCode || "";
+      return (
+        <div>
+          <div className="text-gray-700">{name}</div>
+          {code && <div className="text-xs text-gray-400 font-mono">{code}</div>}
+        </div>
+      );
+    } },
     { key: "projectName", label: "Project" },
     { key: "siteNo", label: "Site Number" },
     { key: "plotPrice", label: "Total Plot Price", render: v => <span className="text-amber-700 font-medium">{formatCurrency(v)}</span> },
@@ -891,6 +959,7 @@ export default function BookingManagement() {
           setForm({ ...empty, bookingDate: today });
           setFoundCustomer(null);
           setIsNewCustomer(false);
+          setEmployeeCodeError("");
           setMobileSearch("");
           setCustomerVisits([]);
           setModal("add");
@@ -1082,7 +1151,7 @@ export default function BookingManagement() {
                             )}
                             {visit.assignedToUser?.name && (
                               <div>
-                                <span className="text-gray-500">Sales Manager:</span>
+                                <span className="text-gray-500">User:</span>
                                 <span className="ml-1 font-medium text-gray-700">{visit.assignedToUser.name}</span>
                               </div>
                             )}
@@ -1101,6 +1170,41 @@ export default function BookingManagement() {
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {isDirectBooking && (
+                  <div>
+                    <label className="label">Employee Code <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={form.employeeCode}
+                      onChange={e => handleEmployeeCode(e.target.value)}
+                      className={`input-field uppercase ${employeeCodeError ? "border-red-500 focus:border-red-500" : ""}`}
+                      placeholder="e.g. SM12345"
+                      autoComplete="off"
+                      maxLength={20}
+                    />
+                    {form.assignedTo && (() => {
+                      const emp = users.find(u => u.id === Number(form.assignedTo));
+                      const av = emp?.avatar;
+                      return (
+                        <div className="mt-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-3">
+                          {av ? (
+                            <img src={av} alt={emp?.name || "Employee"} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">{(form.salesManagerName || "?").charAt(0)}</div>
+                          )}
+                          <div>
+                            <div className="text-sm font-semibold text-gray-800">{form.salesManagerName}</div>
+                            <div className="text-xs text-gray-500">Employee verified — will be assigned as booking owner</div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {employeeCodeError && (
+                      <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle size={12} /> {employeeCodeError}</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -1270,7 +1374,7 @@ export default function BookingManagement() {
         </div>
         <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
           <button onClick={() => setConfirmOpen(true)} className="btn-primary flex-1 justify-center py-2.5">{foundCustomer?.existingBooking ? <><IndianRupee size={16} /> Pay Now</> : <><BookOpen size={16} />Register Booking</>}</button>
-          {!foundCustomer?.existingBooking && (<button onClick={() => { setForm(empty); setFoundCustomer(null); setIsNewCustomer(false); setMobileSearch(""); setCustomerVisits([]); }} className="btn-secondary flex-1 justify-center py-2.5"><span className="text-orange-600 font-medium">Clear</span></button>)}
+          {!foundCustomer?.existingBooking && (<button onClick={() => { setForm(empty); setFoundCustomer(null); setIsNewCustomer(false); setEmployeeCodeError(""); setMobileSearch(""); setCustomerVisits([]); }} className="btn-secondary flex-1 justify-center py-2.5"><span className="text-orange-600 font-medium">Clear</span></button>)}
           <button onClick={() => { setModal(null); setCustomerVisits([]); }} className="btn-secondary flex-1 justify-center py-2.5">Cancel</button>
         </div>
 
@@ -1313,6 +1417,7 @@ export default function BookingManagement() {
                     setForm(empty);
                     setFoundCustomer(null);
                     setIsNewCustomer(false);
+                    setEmployeeCodeError("");
                     setMobileSearch("");
                     setSuccessData(successPayload);
                     setConfirmOpen(false);
@@ -1346,6 +1451,7 @@ export default function BookingManagement() {
           <div className="space-y-3">
             <div className="flex justify-between"><span className="text-gray-500">Booking ID</span><span className="font-medium text-gray-800">{selected.bookingId || selected.id}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">Customer</span><span className="font-medium text-gray-800">{selected.customerName || selected.customer?.name}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">User</span><span className="text-right font-medium text-gray-800">{(() => { const cust = customers.find(x => x.id === selected.customerId); const visit = cust?.visits?.[0]; const name = visit?.registeredBy || selected.salesManagerName || selected.assignedToUser?.name || selected.creator?.name || "—"; const code = visit?.registeredByRole || selected.assignedToUser?.employeeCode || selected.creator?.employeeCode || ""; return (<div><div>{name}</div>{code && <div className="text-xs text-gray-400 font-mono">{code}</div>}</div>); })()}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">Project</span><span className="font-medium text-gray-800">{selected.projectName || selected.project?.name}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">Site No.</span><span className="font-medium text-gray-800">{selected.siteNo || selected.site?.siteNo}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">Plot Price</span><span className="font-medium text-amber-700">{formatCurrency(selected.plotPrice || selected.plotPrice)}</span></div>

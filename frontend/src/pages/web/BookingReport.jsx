@@ -164,6 +164,54 @@ export default function BookingReport() {
     return map;
   }, [users]);
 
+  // Resolve the "User" for a booking: prefer the customer's latest site-visit assigned user,
+  // otherwise fall back to the booking's assigned/creator user.
+  const resolveBookingUser = (b) => {
+    const cust = customers.find((c) => c.id === b.customerId) || b.customer || {};
+    const visit = cust?.visits?.[0];
+    if (visit?.registeredBy) {
+      return {
+        id: visit.registeredById || null,
+        name: visit.registeredBy,
+        role: "",
+        code: visit.registeredByRole || "",
+      };
+    }
+    const emp = b.assignedToUser || b.creator;
+    const creatorId = b.createdById || b.createdBy || b.assignedTo || cust.createdById || cust.createdBy || emp?.id || null;
+    const creatorFromMap = creatorId ? userMap.get(creatorId) : null;
+    const name =
+      b.salesManagerName ||
+      b.assignedToUser?.name ||
+      b.creator?.name ||
+      b.creatorName ||
+      b.createdUser?.name ||
+      cust.createdByName ||
+      cust.createdUser?.name ||
+      cust.user?.name ||
+      creatorFromMap?.name ||
+      "System Admin";
+    const role =
+      b.assignedToUser?.role ||
+      b.creatorRole ||
+      b.creator?.role ||
+      b.createdUser?.role ||
+      cust.createdByRole ||
+      cust.createdUser?.role ||
+      creatorFromMap?.role ||
+      "Admin";
+    const code =
+      b.assignedToUser?.employeeCode ||
+      b.creator?.employeeCode ||
+      b.creatorEmployeeCode ||
+      b.createdUser?.employeeCode ||
+      cust.createdByEmployeeCode ||
+      cust.createdUser?.employeeCode ||
+      creatorFromMap?.employeeCode ||
+      (creatorId ? `EMP${String(creatorId).padStart(3, "0")}` : "SYS-001");
+    return { id: creatorId, name, role, code };
+  };
+
   // Aggregate Stats for the 6 Stat Cards requested
   const stats = useMemo(() => {
     const totalBookingsCount = bookings.length;
@@ -467,22 +515,11 @@ export default function BookingReport() {
     return Array.from(seen.values());
   }, [sites, bookings, customerProjectFilter]);
 
-  // Unique "Created By" names for the searchable dropdown
+  // Unique "User" names for the searchable dropdown
   const createdByOptions = useMemo(() => {
     const set = new Set();
     bookings.forEach((b) => {
-      const cust = customers.find((c) => c.id === b.customerId) || b.customer || {};
-      const creatorId = b.createdById || b.createdBy || cust.createdById || cust.createdBy;
-      const creatorFromMap = creatorId ? userMap.get(creatorId) : null;
-      const name =
-        b.creatorName ||
-        b.creator?.name ||
-        b.createdUser?.name ||
-        cust.createdByName ||
-        cust.createdUser?.name ||
-        cust.user?.name ||
-        creatorFromMap?.name ||
-        "System Admin";
+      const { name } = resolveBookingUser(b);
       set.add(name);
     });
     return Array.from(set).sort().map((name) => ({ value: name, label: name }));
@@ -492,38 +529,11 @@ export default function BookingReport() {
   const recentlyBookedCustomers = useMemo(() => {
     const result = bookings.map((b) => {
       const cust = customers.find((c) => c.id === b.customerId) || b.customer || {};
-
-      const creatorId = b.createdById || b.createdBy || cust.createdById || cust.createdBy;
-      const creatorFromMap = creatorId ? userMap.get(creatorId) : null;
-
-      const createdByName =
-        b.creatorName ||
-        b.creator?.name ||
-        b.createdUser?.name ||
-        cust.createdByName ||
-        cust.createdUser?.name ||
-        cust.user?.name ||
-        creatorFromMap?.name ||
-        "System Admin";
-
-      const createdByRole =
-        b.creatorRole ||
-        b.creator?.role ||
-        b.createdUser?.role ||
-        cust.createdByRole ||
-        cust.createdUser?.role ||
-        creatorFromMap?.role ||
-        "Admin";
-
-      const createdByEmpCode =
-        b.creatorEmployeeCode ||
-        b.creator?.employeeCode ||
-        b.createdUser?.employeeCode ||
-        cust.createdByEmployeeCode ||
-        cust.createdByEmployeeCode ||
-        cust.createdUser?.employeeCode ||
-        creatorFromMap?.employeeCode ||
-        (creatorId ? `EMP${String(creatorId).padStart(3, "0")}` : "SYS-001");
+      const bookingUser = resolveBookingUser(b);
+      const createdByName = bookingUser.name;
+      const createdByRole = bookingUser.role;
+      const createdByEmpCode = bookingUser.code;
+      const creatorId = bookingUser.id;
 
       const siteObj = sites.find((s) => s.id === b.siteId) || b.site || {};
       const projectName = b.projectName || b.project?.name || siteObj.project?.name || "Standard Project";
@@ -1000,7 +1010,7 @@ export default function BookingReport() {
             )}
           </div>
 
-          {/* Project / Site / Created By Filters */}
+          {/* Project / Site / User Filters */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="flex items-center gap-1 text-sm font-medium text-slate-500">
               <Filter size={14} /> Filters:
@@ -1041,7 +1051,7 @@ export default function BookingReport() {
                 value={customerCreatedByFilter}
                 onChange={(v) => { setCustomerCreatedByFilter(v); setCustomerPage(1); }}
                 options={createdByOptions}
-                placeholder="Created By (Search)"
+                placeholder="User (Search)"
               />
             </div>
             {(customerProjectFilter || customerSiteFilter || customerCreatedByFilter || customerStatusFilter) && (
@@ -1064,8 +1074,7 @@ export default function BookingReport() {
                 <th className="px-3.5 py-3">Mobile</th>
                 <th className="px-3.5 py-3">Project / Site</th>
                 <th className="px-3.5 py-3">Status</th>
-                <th className="px-3.5 py-3">Created By</th>
-                <th className="px-3.5 py-3">Created ID</th>
+                <th className="px-3.5 py-3">User</th>
                 <th className="px-3.5 py-3 text-right">View</th>
               </tr>
             </thead>
@@ -1104,16 +1113,10 @@ export default function BookingReport() {
                       <StatusBadge status={item.status} />
                     </td>
 
-                    {/* Created By */}
+                    {/* User */}
                     <td className="px-3.5 py-3">
                       <div className="font-medium text-slate-800 text-sm">{item.createdByName}</div>
-                    </td>
-
-                    {/* Created ID */}
-                    <td className="px-3.5 py-3">
-                      <span className="inline-flex items-center text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-lg">
-                        {item.createdByEmpCode}
-                      </span>
+                      {item.createdByEmpCode && <div className="text-xs text-slate-400 font-mono">{item.createdByEmpCode}</div>}
                     </td>
 
                     {/* View Button */}
@@ -1382,10 +1385,10 @@ export default function BookingReport() {
                 </div>
               )}
 
-              {/* Created By Section */}
+              {/* User Section */}
               <div>
                 <div className="text-[11px] font-semibold text-indigo-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <UserCheck size={12} /> Created By
+                  <UserCheck size={12} /> User
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium text-slate-900">{viewBooking.createdByName}</span>

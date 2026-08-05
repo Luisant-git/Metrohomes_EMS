@@ -249,6 +249,7 @@ export class CustomerService {
           status: v.status || '',
           registeredBy: v.assignedToUser?.name || '',
           registeredByRole: v.assignedToUser?.employeeCode || '',
+          registeredById: v.assignedTo,
         })),
         registeredDate: c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : '',
         createdAt: c.createdAt,
