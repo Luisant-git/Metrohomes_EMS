@@ -345,7 +345,14 @@ export default function BookingManagement() {
       return;
     }
     let assignedEmployee = null;
-    if (form.customerId || isNewCustomer) {
+    const lockedBooking = foundCustomer?.existingBooking;
+    if (lockedBooking) {
+      assignedEmployee =
+        lockedBooking.assignedToUser ||
+        (lockedBooking.assignedTo ? users.find(u => u.id === Number(lockedBooking.assignedTo)) : null) ||
+        null;
+    }
+    if (!assignedEmployee && (form.customerId || isNewCustomer)) {
       const code = (form.employeeCode || "").trim();
       if (code) {
         assignedEmployee = resolveEmployee(code);
@@ -1207,11 +1214,15 @@ export default function BookingManagement() {
                       type="text"
                       value={form.employeeCode}
                       onChange={e => handleEmployeeCode(e.target.value)}
-                      className={`input-field uppercase ${employeeCodeError ? "border-red-500 focus:border-red-500" : ""}`}
+                      readOnly={!!foundCustomer?.existingBooking}
+                      className={`input-field uppercase ${foundCustomer?.existingBooking ? "bg-gray-100 text-gray-600 cursor-not-allowed" : ""} ${employeeCodeError ? "border-red-500 focus:border-red-500" : ""}`}
                       placeholder="e.g. SM12345"
                       autoComplete="off"
                       maxLength={20}
                     />
+                    {foundCustomer?.existingBooking && (
+                      <p className="text-xs text-amber-600 mt-1 flex items-center gap-1"><AlertCircle size={12} /> Balance pending on previous booking — employee locked</p>
+                    )}
                     {form.assignedTo && (() => {
                       const emp = users.find(u => u.id === Number(form.assignedTo));
                       const av = emp?.avatar;
