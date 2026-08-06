@@ -1,7 +1,8 @@
-import { useState, useMemo, useRef, useEffect } from "react";
-import { Trophy, Download, Medal, Star, Crown, Calendar, CheckCircle, FileSpreadsheet, Search, X, ChevronDown, Building2, UserRound, Eye, User, MapPin, Phone, Ruler } from "lucide-react";
+﻿import { useState, useMemo, useRef, useEffect } from "react";
+import { Trophy, Download, Medal, Star, Crown, Calendar, CheckCircle, FileSpreadsheet, Search, X, ChevronDown, Building2, UserRound, Eye, User, MapPin, Phone, Ruler, BarChart2 } from "lucide-react";
 import { toast } from "react-toastify";
 import jsPDF from "jspdf";
+import { toCanvas } from "html-to-image";
 import { useData } from "../../context/DataContext.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import logoUrl from "../../assests/logo 1.png";
@@ -116,6 +117,7 @@ export default function AchieversReport() {
   const [roleFilter, setRoleFilter] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [viewAchiever, setViewAchiever] = useState(null);
+  const pdfExportContainerRef = useRef(null);
 
   // ── Filter Options ──
   const projectOptions = useMemo(() => {
@@ -357,157 +359,31 @@ export default function AchieversReport() {
       return;
     }
     setIsExporting(true);
-    const toastId = toast.loading("Generating PDF Report...");
+    const toastId = toast.loading("Generating High-Quality PDF...");
 
     try {
-      const logoData = await loadImageAsDataUrl(logoUrl);
-      const userProfData = await loadImageAsDataUrl(userProfUrl);
-
-      const avatarCache = new Map();
-      const avatarUrls = [
-        ...new Set(calculatedAchievers.map((a) => a.avatarUrl || userProfUrl).filter(Boolean)),
-      ];
-      await Promise.all(
-        avatarUrls.map(async (u) => {
-          avatarCache.set(u, await loadImageAsDataUrl(u));
-        })
-      );
-
-      // 15-inch landscape poster sheet (381mm x 279mm)
-      const PDF_W = 381;
-      const PDF_H = 279;
-      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: [PDF_W, PDF_H] });
-
-      const margin = 15;
-      const contentW = PDF_W - margin * 2;
-      const rowH = 13;
-
-      const colDefs = [
-        { key: "rank", label: "Rank", x: margin, w: 26 },
-        { key: "name", label: "Achiever", x: margin + 26, w: 155 },
-        { key: "role", label: "Role", x: margin + 181, w: 90 },
-        { key: "id", label: "ID", x: margin + 271, w: 50 },
-        { key: "sales", label: "Sales", x: margin + 321, w: 30 },
-      ];
-
-      const renderHeader = (pageNumber) => {
-        if (logoData) {
-          pdf.addImage(logoData, "PNG", margin, margin, 34, 26, undefined, "FAST");
-        }
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(32);
-        pdf.setTextColor(17, 24, 39);
-        pdf.text("Achievers of the Month", PDF_W / 2, margin + 17, { align: "center" });
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(16);
-        pdf.setTextColor(29, 111, 185);
-        pdf.text(`${monthRange.monthName} ${monthRange.year}`, PDF_W / 2, margin + 30, { align: "center" });
-        pdf.setFontSize(10);
-        pdf.setTextColor(107, 114, 128);
-        pdf.text(
-          `Total Sales: ${summaryMetrics.totalSales}   |   Achievers: ${calculatedAchievers.length}`,
-          PDF_W / 2,
-          margin + 40,
-          { align: "center" }
-        );
-        pdf.setDrawColor(29, 111, 185);
-        pdf.setLineWidth(0.9);
-        pdf.line(margin, margin + 46, PDF_W - margin, margin + 46);
-        if (pageNumber > 1) {
-          pdf.setFontSize(9);
-          pdf.setTextColor(150, 150, 150);
-          pdf.text(`Page ${pageNumber}`, PDF_W - margin, PDF_H - 8, { align: "right" });
-        }
-      };
-
-      const drawTableHeader = (top) => {
-        pdf.setFillColor(29, 111, 185);
-        pdf.rect(margin, top, contentW, rowH, "F");
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(11);
-        pdf.setTextColor(255, 255, 255);
-        colDefs.forEach((c) => {
-          const centered = c.key === "rank" || c.key === "sales";
-          const tx = centered ? c.x + c.w / 2 : c.x + (c.key === "name" ? 14 : 4);
-          pdf.text(c.label, tx, top + rowH / 2 + 1.2, centered ? { align: "center" } : undefined);
+      const container = pdfExportContainerRef.current;
+      if (!container) throw new Error("PDF container missing");
+      const pages = container.querySelectorAll(".pdf-page");
+      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a5" });
+      
+      for (let i = 0; i < pages.length; i++) {
+        if (i > 0) pdf.addPage("a5", "landscape");
+        const canvas = await toCanvas(pages[i], { 
+          pixelRatio: 3, 
+          cacheBust: false,
+          backgroundColor: "#F8FAFC"
         });
-      };
-
-      const drawRow = (a, top, idx) => {
-        pdf.setFillColor(idx % 2 === 0 ? 248 : 255, idx % 2 === 0 ? 250 : 255, idx % 2 === 0 ? 252 : 255);
-        pdf.rect(margin, top, contentW, rowH, "F");
-
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(12);
-        pdf.setTextColor(30, 64, 175);
-        pdf.text(String(a.rank), colDefs[0].x + colDefs[0].w / 2, top + rowH / 2 + 1.2, { align: "center" });
-
-        const avatarData = avatarCache.get(a.avatarUrl || userProfUrl);
-        const imgSize = 9;
-        if (avatarData) {
-          pdf.addImage(
-            avatarData,
-            "PNG",
-            colDefs[1].x + 2,
-            top + (rowH - imgSize) / 2,
-            imgSize,
-            imgSize,
-            undefined,
-            "FAST"
-          );
-        }
-        pdf.setTextColor(17, 24, 39);
-        pdf.text(a.name, colDefs[1].x + 14, top + rowH / 2 + 1.2);
-
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(11);
-        pdf.setTextColor(71, 85, 105);
-        pdf.text(a.role, colDefs[2].x + 4, top + rowH / 2 + 1.2);
-
-        pdf.setFont("courier", "normal");
-        pdf.setTextColor(100, 116, 139);
-        pdf.text(String(a.employeeCode || a.id), colDefs[3].x + 4, top + rowH / 2 + 1.2);
-
-        pdf.setFont("helvetica", "bold");
-        pdf.setTextColor(29, 111, 185);
-        pdf.text(String(a.sales), colDefs[4].x + colDefs[4].w / 2, top + rowH / 2 + 1.2, { align: "center" });
-      };
-
-      renderHeader(1);
-      const tableTop = margin + 52;
-      drawTableHeader(tableTop);
-      let y = tableTop + rowH;
-      let page = 1;
-
-      calculatedAchievers.forEach((a, idx) => {
-        if (y + rowH > PDF_H - 12) {
-          pdf.addPage([PDF_W, PDF_H], "landscape");
-          page += 1;
-          renderHeader(page);
-          drawTableHeader(tableTop);
-          y = tableTop + rowH;
-        }
-        drawRow(a, y, idx);
-        y += rowH;
-      });
+        const imgData = canvas.toDataURL("image/jpeg", 0.98);
+        pdf.addImage(imgData, "JPEG", 0, 0, 210, 148);
+      }
 
       const formattedMonth = `${monthRange.year}${String(monthRange.month).padStart(2, "0")}`;
       pdf.save(`Achievers_Report_${formattedMonth}.pdf`);
-
-      toast.update(toastId, {
-        render: "PDF report downloaded successfully! 📄",
-        type: "success",
-        isLoading: false,
-        autoClose: 3000,
-      });
+      toast.update(toastId, { render: "PDF report downloaded successfully!", type: "success", isLoading: false, autoClose: 3000 });
     } catch (err) {
       console.error(err);
-      toast.update(toastId, {
-        render: "Failed to download PDF report",
-        type: "error",
-        isLoading: false,
-        autoClose: 3000,
-      });
+      toast.update(toastId, { render: "Failed to download PDF report", type: "error", isLoading: false, autoClose: 3000 });
     } finally {
       setIsExporting(false);
     }
@@ -1145,6 +1021,329 @@ export default function AchieversReport() {
           </div>
         </div>
       )}
+
+{/* ── Hidden PDF Export Template ── */}
+<div className="absolute top-[-9999px] left-[-9999px] pointer-events-none opacity-0" aria-hidden="true" ref={pdfExportContainerRef}>
+  {Array.from({ length: Math.max(1, Math.ceil(calculatedAchievers.length / 10)) }).map((_, pageIdx) => {
+    const batch = calculatedAchievers.slice(pageIdx * 10, (pageIdx + 1) * 10);
+    return (
+      <div key={pageIdx} className="pdf-page w-[1050px] h-[742px] relative flex flex-col font-sans box-border" style={{ overflow: "hidden", background: "#FFFFFF" }}>
+        
+        {/* Decorative background circles */}
+        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full" style={{ background: "radial-gradient(circle, rgba(191,219,254,0.25) 0%, transparent 70%)" }}></div>
+        <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full" style={{ background: "radial-gradient(circle, rgba(191,219,254,0.25) 0%, transparent 70%)" }}></div>
+        
+        {/* Decorative dots */}
+        <div className="absolute top-[120px] left-[80px] w-2 h-2 rounded-full bg-blue-200/60"></div>
+        <div className="absolute top-[180px] right-[100px] w-2 h-2 rounded-full bg-blue-200/60"></div>
+        <div className="absolute bottom-[200px] left-[60px] w-1.5 h-1.5 rounded-full bg-blue-300/50"></div>
+        <div className="absolute bottom-[280px] right-[70px] w-1.5 h-1.5 rounded-full bg-blue-300/50"></div>
+
+        {/* Logo top-left - LARGER */}
+        <div className="absolute top-6 left-10 z-20">
+          <img src={logoUrl} alt="Logo" className="h-32" crossOrigin="anonymous" />
+        </div>
+
+        {/* Header Section */}
+        <div className="w-full text-center mt-10 z-10 flex flex-col items-center relative">
+          {/* Stars above title */}
+          <div className="flex items-center gap-2 mb-2">
+            <Star className="text-amber-400 fill-amber-400 w-3 h-3" />
+            <Star className="text-amber-400 fill-amber-400 w-4 h-4" />
+            <Star className="text-amber-400 fill-amber-400 w-3 h-3" />
+          </div>
+          
+  <h1 
+  className="text-[38px] font-medium text-slate-800 m-0 leading-tight"
+  style={{ 
+    letterSpacing: "-0.01em",
+    fontFamily: "'Inter', 'Helvetica Neue', sans-serif"
+  }}
+>
+  Achievers of the Month
+</h1>
+          {/* Month pill with decorative lines */}
+          <div className="flex items-center gap-3 mt-3">
+            <div className="h-px w-16 bg-blue-300"></div>
+          <div className="text-white font-bold px-8 py-2 rounded-full text-[17px] tracking-wide" style={{ background: "linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)", boxShadow: "0 4px 12px rgba(59,130,246,0.3)" }}>
+  {monthRange.monthName} {monthRange.year}
+</div>
+            <div className="h-px w-16 bg-blue-300"></div>
+          </div>
+        </div>
+
+        
+      {/* Achievers Grid - PREMIUM CORPORATE DESIGN */}
+<div className="flex-1 mt-12 w-full z-10 grid grid-cols-5 gap-x-5 gap-y-10 px-10 content-start">
+  {batch.map((a) => {
+    const r = a.rank;
+    const isGold = r === 1;
+    const isSilver = r === 2;
+    const isBronze = r === 3;
+
+    // Premium metallic color palettes
+    const badgeTheme = isGold 
+      ? { 
+          light: '#FFE066',
+          main: '#F4B400', 
+          deep: '#D89A00',
+          shadow: '#8B6508',
+          text: '#FFFFFF',
+          glowColor: 'rgba(244,180,0,0.4)'
+        }
+      : isSilver 
+      ? { 
+          light: '#F1F5F9',
+          main: '#CBD5E1', 
+          deep: '#94A3B8',
+          shadow: '#475569',
+          text: '#FFFFFF',
+          glowColor: 'rgba(148,163,184,0.3)'
+        }
+      : isBronze 
+      ? { 
+          light: '#E8A87C',
+          main: '#CD7F32', 
+          deep: '#9C5B1A',
+          shadow: '#5C3810',
+          text: '#FFFFFF',
+          glowColor: 'rgba(205,127,50,0.3)'
+        }
+      : { 
+          light: '#3B5BB8',
+          main: '#1E3A8A', 
+          deep: '#152C6B',
+          shadow: '#0A163B',
+          text: '#FFFFFF',
+          glowColor: 'rgba(30,58,138,0.25)'
+        };
+
+    return (
+      <div 
+        key={a.id} 
+        className="rounded-2xl relative flex flex-col items-center pt-9 pb-4 px-3 bg-white"
+        style={{ 
+          border: '1px solid #E5E7EB',
+          boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(15,23,42,0.06)",
+          height: "230px"
+        }}
+      >
+    {/* AWARD ROSETTE RIBBON BADGE */}
+<div 
+  className="absolute -top-4 -left-2 z-20"
+  style={{ 
+    filter: isGold 
+      ? `drop-shadow(0 0 10px ${badgeTheme.glowColor}) drop-shadow(0 4px 8px rgba(0,0,0,0.18))`
+      : `drop-shadow(0 4px 8px rgba(0,0,0,0.15))`
+  }}
+>
+  <svg width="52" height="66" viewBox="0 0 52 66">
+    <defs>
+      {/* Circle medal gradient */}
+      <radialGradient id={`medalGrad-${a.id}`} cx="35%" cy="30%" r="75%">
+        <stop offset="0%" stopColor={badgeTheme.light} />
+        <stop offset="55%" stopColor={badgeTheme.main} />
+        <stop offset="100%" stopColor={badgeTheme.deep} />
+      </radialGradient>
+      
+      {/* Ribbon tail gradient - left */}
+      <linearGradient id={`tailL-${a.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor={badgeTheme.deep} />
+        <stop offset="60%" stopColor={badgeTheme.main} />
+        <stop offset="100%" stopColor={badgeTheme.deep} />
+      </linearGradient>
+      
+      {/* Ribbon tail gradient - right */}
+      <linearGradient id={`tailR-${a.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor={badgeTheme.deep} />
+        <stop offset="40%" stopColor={badgeTheme.main} />
+        <stop offset="100%" stopColor={badgeTheme.deep} />
+      </linearGradient>
+      
+      {/* Border ring gradient */}
+      <linearGradient id={`ring-${a.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor={badgeTheme.main} />
+        <stop offset="100%" stopColor={badgeTheme.shadow} />
+      </linearGradient>
+    </defs>
+    
+    {/* ==== RIBBON TAILS (behind medal) ==== */}
+    {/* Left ribbon tail */}
+    <path 
+      d="M 15 32 
+         L 9 62 
+         L 16 57 
+         L 23 64 
+         L 25 38 Z" 
+      fill={`url(#tailL-${a.id})`}
+      stroke={badgeTheme.shadow}
+      strokeWidth="0.4"
+    />
+    
+    {/* Right ribbon tail */}
+    <path 
+      d="M 37 32 
+         L 43 62 
+         L 36 57 
+         L 29 64 
+         L 27 38 Z" 
+      fill={`url(#tailR-${a.id})`}
+      stroke={badgeTheme.shadow}
+      strokeWidth="0.4"
+    />
+    
+    {/* Fold shadow on tails */}
+    <path 
+      d="M 15 32 L 25 38 L 23 44 L 14 38 Z" 
+      fill="rgba(0,0,0,0.2)"
+    />
+    <path 
+      d="M 37 32 L 27 38 L 29 44 L 38 38 Z" 
+      fill="rgba(0,0,0,0.2)"
+    />
+    
+    {/* ==== MEDAL CIRCLE (on top) - LARGER ==== */}
+    {/* Outer ring border */}
+    <circle 
+      cx="26" cy="23" r="21" 
+      fill={`url(#ring-${a.id})`}
+    />
+    
+    {/* Main medal body - BIGGER */}
+    <circle 
+      cx="26" cy="23" r="19" 
+      fill={`url(#medalGrad-${a.id})`}
+    />
+    
+    {/* Inner decorative ring */}
+    <circle 
+      cx="26" cy="23" r="16.5" 
+      fill="none"
+      stroke="rgba(255,255,255,0.4)"
+      strokeWidth="0.7"
+    />
+    
+    {/* Glass shine highlight (top-left) - smaller so number is clear */}
+    <ellipse 
+      cx="19" cy="15" rx="5" ry="3" 
+      fill="white" 
+      opacity="0.35"
+    />
+    <ellipse 
+      cx="17.5" cy="14" rx="1.8" ry="1" 
+      fill="white" 
+      opacity="0.7"
+    />
+    
+    {/* Crown for Rank 1 only */}
+    {isGold && (
+      <g transform="translate(26, 8)">
+        <path 
+          d="M -5 2 L -5 -2 L -2.5 0 L 0 -3 L 2.5 0 L 5 -2 L 5 2 Z" 
+          fill="#FFFFFF"
+          stroke={badgeTheme.shadow}
+          strokeWidth="0.3"
+        />
+        <circle cx="-5" cy="-2" r="0.7" fill="#FFFFFF" stroke={badgeTheme.shadow} strokeWidth="0.2"/>
+        <circle cx="0" cy="-3" r="0.7" fill="#FFFFFF" stroke={badgeTheme.shadow} strokeWidth="0.2"/>
+        <circle cx="5" cy="-2" r="0.7" fill="#FFFFFF" stroke={badgeTheme.shadow} strokeWidth="0.2"/>
+      </g>
+    )}
+    
+    {/* Rank number - BIG BOLD WHITE with dark shadow for pop */}
+    {/* Shadow layer for depth */}
+    <text 
+      x="26.5" 
+      y={isGold ? "31.5" : "30.5"}
+      textAnchor="middle" 
+      fontSize={r >= 10 ? "17" : "22"}
+      fontWeight="900" 
+      fill={badgeTheme.shadow}
+      fontFamily="'Inter', 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+      style={{ letterSpacing: "-0.03em" }}
+      opacity="0.5"
+    >
+      {r}
+    </text>
+    
+    {/* Main white number - LARGE & BOLD */}
+    <text 
+      x="26" 
+      y={isGold ? "31" : "30"}
+      textAnchor="middle" 
+      fontSize={r >= 10 ? "17" : "22"}
+      fontWeight="900" 
+      fill="#FFFFFF"
+      fontFamily="'Inter', 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+      style={{ letterSpacing: "-0.03em" }}
+    >
+      {r}
+    </text>
+  </svg>
+</div>
+
+        {/* Avatar */}
+        <div className="relative flex justify-center items-center w-full mt-3">
+          <div 
+            className="w-[76px] h-[76px] rounded-full z-10 bg-white overflow-hidden"
+            style={{ 
+              border: '3px solid #F1F5F9',
+              boxShadow: "0 2px 8px rgba(0,0,0,0.08)"
+            }}
+          >
+            <img 
+              src={a.avatarUrl || userProfUrl} 
+              className="w-full h-full object-cover" 
+              crossOrigin="anonymous"
+              alt={a.name}
+            />
+          </div>
+        </div>
+
+        {/* Name */}
+        <p className="mt-3 font-extrabold text-slate-900 text-[15px] truncate w-full text-center px-1 leading-tight">
+          {a.name}
+        </p>
+        
+        {/* Role */}
+        <p 
+          className="text-[12px] font-bold mt-1 truncate w-full text-center text-slate-600"
+          style={{ letterSpacing: "0.01em" }}
+        >
+          {a.role}
+        </p>
+
+        {/* Sales pill */}
+        <div 
+          className="mt-auto rounded-lg py-1.5 px-4 w-full text-center text-[13px] font-bold flex items-center justify-center gap-1.5"
+          style={{ 
+            background: '#EFF6FF', 
+            border: '1px solid #DBEAFE', 
+            color: '#1D4ED8' 
+          }}
+        >
+          <BarChart2 className="w-3.5 h-3.5" strokeWidth={2.5} />
+          {a.sales} Sales
+        </div>
+      </div>
+    );
+  })}
+</div>
+
+        {/* Bottom Banner */}
+       <div
+  className="w-full flex items-center justify-center gap-2 py-3 z-10"
+  style={{ background: "linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)" }}
+>
+  <Trophy className="w-4 h-4 text-yellow-300 fill-yellow-300" />
+  <span className="text-white text-sm font-medium">
+    Celebrating Outstanding Performance
+  </span>
+</div>
+      </div>
+    );
+  })}
+</div>
     </div>
   );
 }
