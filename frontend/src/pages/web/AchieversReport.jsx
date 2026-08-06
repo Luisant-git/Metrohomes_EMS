@@ -392,9 +392,9 @@ export default function AchieversReport() {
   // ── CSV Export Routine ──
   const handleDownloadCSV = () => {
     let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Rank,Name,Role,Sales\n";
+    csvContent += "Name,Role,ID,Sales,Mobile\n";
     calculatedAchievers.forEach((a) => {
-      csvContent += `${a.rank},"${a.name}","${a.role}",${a.sales}\n`;
+      csvContent += `"${a.name}","${a.role}","${a.employeeCode || a.id}",${a.sales},"${a.mobile || ""}"\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
