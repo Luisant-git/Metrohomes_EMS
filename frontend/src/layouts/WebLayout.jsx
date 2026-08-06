@@ -115,7 +115,14 @@ export default function WebLayout({ children }) {
                 </div>
                 <div className="text-left hidden sm:block">
                   <div className="text-sm font-semibold text-gray-800 leading-tight">{user?.name}</div>
-                  <div className="text-xs text-gray-400">{user?.role}</div>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-xs text-gray-400">{user?.role}</span>
+                    {user?.employeeCode && (
+                      <span className="text-[10px] font-mono font-semibold text-blue-600 bg-blue-50 border border-blue-100 rounded-md px-1.5 py-0.5 leading-none">
+                        {user.employeeCode}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <ChevronDown size={14} className="text-gray-400 hidden sm:block" />
               </button>

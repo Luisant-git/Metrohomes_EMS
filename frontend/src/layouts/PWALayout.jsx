@@ -79,7 +79,10 @@ export default function PWALayout({ children }) {
             {!isNested && (
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-lg leading-tight">Metrohomes</div>
-                <div className="text-blue-100 text-xs font-medium">{subtitle} · {user?.name?.split(" ")[0]}</div>
+                <div className="text-blue-100 text-xs font-medium">
+                  {subtitle} · {user?.name?.split(" ")[0]}
+                  {user?.employeeCode ? <span className="font-mono font-bold ml-1">· {user.employeeCode}</span> : null}
+                </div>
               </div>
             )}
           </div>
