@@ -197,7 +197,7 @@ export class WhatsappService {
                   { type: 'text', text: this.sanitizeText(driverName, 'Not Assigned') },
                   { type: 'text', text: this.sanitizeText(driverMobile) },
                   { type: 'text', text: this.sanitizeText(vehicleNo) },
-                  { type: 'text', text: this.sanitizeText(location) },
+                  { type: 'text', text: this.locationToLink(location) },
                 ],
               },
             ],
@@ -300,6 +300,12 @@ export class WhatsappService {
     if (val === null || val === undefined) return defaultVal;
     const str = String(val).trim();
     return str.length > 0 ? str : defaultVal;
+  }
+
+  private locationToLink(location: any): string {
+    const loc = this.sanitizeText(location, '');
+    if (!loc) return 'N/A';
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`;
   }
 
   async sendTemplate(templateName: string, formattedNumber: string, payload: any): Promise<any> {
