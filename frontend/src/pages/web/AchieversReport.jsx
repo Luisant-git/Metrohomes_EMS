@@ -617,14 +617,14 @@ export default function AchieversReport() {
               <div className="w-44 flex flex-col items-center order-2 md:order-1">
                 {/* Floating Avatar */}
                 <div className="relative mb-3 group">
+                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-slate-400 animate-bounce">
+                    <Crown size={20} className="fill-slate-400 text-slate-500" />
+                  </div>
                   <AvatarCircle
                     person={summaryMetrics.silver}
                     className="w-16 h-16 border-2 border-white bg-gradient-to-br from-slate-200 to-slate-100 shadow-md transition-transform duration-300 group-hover:scale-105"
                     textClassName="font-bold text-lg text-slate-700"
                   />
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-slate-300 text-slate-800 border border-white flex items-center justify-center text-xs font-black shadow-sm">
-                    🥈
-                  </div>
                 </div>
                 
                 {/* Pedestal */}
@@ -656,9 +656,6 @@ export default function AchieversReport() {
                     className="w-20 h-20 border-4 border-amber-300 bg-gradient-to-br from-amber-200 to-yellow-100 shadow-lg transition-transform duration-300 group-hover:scale-105"
                     textClassName="font-black text-2xl text-amber-800"
                   />
-                  <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-amber-400 text-white border-2 border-white flex items-center justify-center text-xs font-black shadow-md">
-                    🥇
-                  </div>
                 </div>
 
                 {/* Pedestal */}
@@ -682,14 +679,14 @@ export default function AchieversReport() {
               <div className="w-44 flex flex-col items-center order-3">
                 {/* Floating Avatar */}
                 <div className="relative mb-3 group">
+                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-orange-400 animate-bounce">
+                    <Crown size={20} className="fill-orange-400 text-orange-500" />
+                  </div>
                   <AvatarCircle
                     person={summaryMetrics.bronze}
                     className="w-16 h-16 border-2 border-white bg-gradient-to-br from-orange-100 to-amber-50 shadow-md transition-transform duration-300 group-hover:scale-105"
                     textClassName="font-bold text-lg text-orange-950/80"
                   />
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-orange-300 text-orange-850 border border-white flex items-center justify-center text-xs font-black shadow-sm">
-                    🥉
-                  </div>
                 </div>
 
                 {/* Pedestal */}
@@ -770,15 +767,9 @@ export default function AchieversReport() {
                       <tr key={a.id} className="hover:bg-slate-50/60 transition-colors">
                         {/* Rank */}
                         <td className="px-6 py-4">
-                          {a.rank <= 3 ? (
-                            <span className="text-lg leading-none">
-                              {a.rank === 1 ? "🥇" : a.rank === 2 ? "🥈" : "🥉"}
-                            </span>
-                          ) : (
-                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${rankChip}`}>
-                              {a.rank}
-                            </div>
-                          )}
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${rankChip}`}>
+                            {a.rank}
+                          </div>
                         </td>
 
                         {/* Name & Avatar */}
@@ -1024,8 +1015,8 @@ export default function AchieversReport() {
 
 {/* ── Hidden PDF Export Template ── */}
 <div className="absolute top-[-9999px] left-[-9999px] pointer-events-none opacity-0" aria-hidden="true" ref={pdfExportContainerRef}>
-  {Array.from({ length: Math.max(1, Math.ceil(calculatedAchievers.length / 10)) }).map((_, pageIdx) => {
-    const batch = calculatedAchievers.slice(pageIdx * 10, (pageIdx + 1) * 10);
+  {Array.from({ length: Math.max(1, Math.ceil(calculatedAchievers.length / 5)) }).map((_, pageIdx) => {
+    const batch = calculatedAchievers.slice(pageIdx * 5, (pageIdx + 1) * 5);
     return (
       <div key={pageIdx} className="pdf-page w-[1050px] h-[742px] relative flex flex-col font-sans box-border" style={{ overflow: "hidden", background: "#FFFFFF" }}>
         
@@ -1072,9 +1063,8 @@ export default function AchieversReport() {
           </div>
         </div>
 
-        
       {/* Achievers Grid - PREMIUM CORPORATE DESIGN */}
-<div className="flex-1 mt-12 w-full z-10 grid grid-cols-5 gap-x-5 gap-y-10 px-10 content-start">
+<div className="flex-1 mt-8 w-full z-10 grid grid-cols-5 gap-x-5 gap-y-10 px-10 content-start">
   {batch.map((a) => {
     const r = a.rank;
     const isGold = r === 1;
