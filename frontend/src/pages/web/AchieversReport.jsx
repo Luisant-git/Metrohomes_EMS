@@ -106,6 +106,16 @@ function RoleBadge({ role }) {
   );
 }
 
+function getPodiumCols(n) {
+  if (n <= 1) return 1;
+  if (n === 2) return 2;
+  if (n === 3) return 3;
+  if (n === 4) return 2;
+  if (n <= 6) return 3;
+  if (n <= 8) return 4;
+  return 5;
+}
+
 export default function AchieversReport() {
   const { users = [], bookings = [], customers = [], sites = [] } = useData();
 
@@ -1015,8 +1025,10 @@ export default function AchieversReport() {
 
 {/* ── Hidden PDF Export Template ── */}
 <div className="absolute top-[-9999px] left-[-9999px] pointer-events-none opacity-0" aria-hidden="true" ref={pdfExportContainerRef}>
-  {Array.from({ length: Math.max(1, Math.ceil(calculatedAchievers.length / 5)) }).map((_, pageIdx) => {
-    const batch = calculatedAchievers.slice(pageIdx * 5, (pageIdx + 1) * 5);
+  {Array.from({ length: Math.max(1, Math.ceil(calculatedAchievers.length / 10)) }).map((_, pageIdx) => {
+    const batch = calculatedAchievers.slice(pageIdx * 10, (pageIdx + 1) * 10);
+    const cols = getPodiumCols(batch.length);
+    const cardWidth = Math.min(Math.floor((970 - (cols - 1) * 20) / cols), 340);
     return (
       <div key={pageIdx} className="pdf-page w-[1050px] h-[742px] relative flex flex-col font-sans box-border" style={{ overflow: "hidden", background: "#FFFFFF" }}>
         
@@ -1036,7 +1048,7 @@ export default function AchieversReport() {
         </div>
 
         {/* Header Section */}
-        <div className="w-full text-center mt-10 z-10 flex flex-col items-center relative">
+        <div className="w-full text-center mt-4 z-10 flex flex-col items-center relative">
           {/* Stars above title */}
           <div className="flex items-center gap-2 mb-2">
             <Star className="text-amber-400 fill-amber-400 w-3 h-3" />
@@ -1064,7 +1076,7 @@ export default function AchieversReport() {
         </div>
 
       {/* Achievers Grid - PREMIUM CORPORATE DESIGN */}
-<div className="flex-1 mt-8 w-full z-10 grid grid-cols-5 gap-x-5 gap-y-10 px-10 content-start">
+<div className="flex-1 mt-8 w-full z-10 flex flex-wrap justify-center content-start gap-x-5 gap-y-10 px-10">
   {batch.map((a) => {
     const r = a.rank;
     const isGold = r === 1;
@@ -1111,8 +1123,9 @@ export default function AchieversReport() {
     return (
       <div 
         key={a.id} 
-        className="rounded-2xl relative flex flex-col items-center pt-9 pb-4 px-3 bg-white"
+        className="rounded-2xl relative flex flex-col items-center pt-9 pb-4 px-3 bg-white flex-shrink-0"
         style={{ 
+          width: `${cardWidth}px`,
           border: '1px solid #E5E7EB',
           boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(15,23,42,0.06)",
           height: "230px"
