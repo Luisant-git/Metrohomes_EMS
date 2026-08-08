@@ -29,12 +29,12 @@ export default function PWADashboard() {
       case "Regional Manager": {
         return {
           quickActions: [
-            { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
             { label: "View Projects", icon: Building2, path: "/sites", color: "bg-purple-500" },
+            { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
             { label: "My Team", icon: Users, path: "/my-team", color: "bg-blue-500" },
             { label: "My Customers", icon: UserCheck, path: "/customers", color: "bg-green-500" },
             { label: "My Booking", icon: Award, path: "/customers?status=Booked", color: "bg-teal-500" },
-            { label: "Project Visits", icon: MapPin, path: "/visits", color: "bg-emerald-500" },
+            { label: "View Site Visit", icon: MapPin, path: "/visits", color: "bg-emerald-500" },
           ],
         };
       }
@@ -42,12 +42,12 @@ export default function PWADashboard() {
       case "Branch Manager": {
         return {
           quickActions: [
-            { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
             { label: "View Projects", icon: Building2, path: "/sites", color: "bg-purple-500" },
+            { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
             { label: "My Team", icon: Users, path: "/my-team", color: "bg-blue-500" },
             { label: "My Customers", icon: UserCheck, path: "/customers", color: "bg-green-500" },
             { label: "My Booking", icon: Award, path: "/customers?status=Booked", color: "bg-teal-500" },
-            { label: "Project Visits", icon: MapPin, path: "/visits", color: "bg-emerald-500" },
+            { label: "View Site Visit", icon: MapPin, path: "/visits", color: "bg-emerald-500" },
           ],
         };
       }
@@ -55,12 +55,12 @@ export default function PWADashboard() {
       case "BDM": {
         return {
           quickActions: [
-            { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
             { label: "View Projects", icon: Building2, path: "/sites", color: "bg-purple-500" },
+            { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
             { label: "My Team", icon: Users, path: "/my-team", color: "bg-blue-500" },
             { label: "My Customers", icon: UserCheck, path: "/customers", color: "bg-green-500" },
             { label: "My Booking", icon: Award, path: "/customers?status=Booked", color: "bg-teal-500" },
-            { label: "Project Visits", icon: MapPin, path: "/visits", color: "bg-emerald-500" },
+            { label: "View Site Visit", icon: MapPin, path: "/visits", color: "bg-emerald-500" },
           ],
         };
       }
@@ -68,12 +68,12 @@ export default function PWADashboard() {
       case "Director": {
         return {
           quickActions: [
-            { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
             { label: "View Projects", icon: Building2, path: "/sites", color: "bg-purple-500" },
+            { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
             { label: "My Team", icon: Users, path: "/my-team", color: "bg-orange-500" },
             { label: "My Customers", icon: UserCheck, path: "/customers", color: "bg-green-500" },
             { label: "My Booking", icon: Award, path: "/customers?status=Booked", color: "bg-teal-500" },
-            { label: "Site Visit", icon: MapPin, path: "/site-visits", color: "bg-emerald-500" },
+            { label: "View Site Visit", icon: MapPin, path: "/site-visits", color: "bg-emerald-500" },
           ],
           myCustomers: [],
         };
@@ -83,11 +83,11 @@ export default function PWADashboard() {
         const myCustomers = customers.filter((c) => c.createdById === user?.id);
         return {
           quickActions: [
-            { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
             { label: "View Projects", icon: Building2, path: "/sites", color: "bg-purple-500" },
+            { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
             { label: "My Customers", icon: Users, path: "/customers", color: "bg-orange-500" },
             { label: "My Booking", icon: Award, path: "/customers?status=Booked", color: "bg-teal-500" },
-            { label: "Project Visits", icon: MapPin, path: "/visits", color: "bg-emerald-500" },
+            { label: "View Site Visit", icon: MapPin, path: "/visits", color: "bg-emerald-500" },
           ],
           myCustomers,
         };
