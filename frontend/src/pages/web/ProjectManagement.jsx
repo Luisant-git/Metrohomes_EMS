@@ -179,8 +179,8 @@ export default function ProjectManagement() {
     {
       key: "name", label: "Project Name", render: (v, row) => (
         <div>
-          <div className="font-medium text-gray-800">{v}</div>
-          <div className="text-xs text-gray-400 flex items-center gap-1"><MapPin size={10} />{row.location}</div>
+          <div className="font-bold text-slate-900">{v}</div>
+          <div className="text-xs text-slate-500 font-medium flex items-center gap-1"><MapPin size={10} />{row.location}</div>
         </div>
       )
     },
@@ -216,8 +216,8 @@ export default function ProjectManagement() {
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
-        <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2"><Building2 size={22} className="text-blue-600 flex-shrink-0" />Project Master</h1>
-        <p className="text-gray-400 text-sm mt-0.5">{sites.length} total projects</p>
+        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2"><Building2 size={22} className="text-blue-600 flex-shrink-0" />Project Master</h1>
+        <p className="text-slate-500 text-sm mt-0.5">{sites.length} total projects</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -263,11 +263,11 @@ export default function ProjectManagement() {
           </FormField>
 
           {/* Available Sites Section */}
-          <div className="sm:col-span-3 bg-gray-50/70 p-4 rounded-xl border border-gray-200 space-y-3.5">
+          <div className="sm:col-span-3 bg-white p-4 rounded-xl border border-gray-200 space-y-3.5">
             {/* Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                   <LayoutGrid size={15} className="text-blue-600" />
                   Available Sites Breakdown
                 </span>
@@ -291,7 +291,7 @@ export default function ProjectManagement() {
               <div className="p-3 bg-white rounded-xl border border-blue-200 shadow-sm space-y-2">
                 <div className="flex flex-wrap lg:flex-nowrap items-end gap-2">
                   <div className="flex-1 min-w-[80px]">
-                    <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-1 block">Site No *</label>
+                    <label className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider mb-1 block">Site No *</label>
                     <input 
                       value={plotForm.siteNo} 
                       onChange={e => setPlotForm(p => ({ ...p, siteNo: e.target.value }))} 
@@ -300,7 +300,7 @@ export default function ProjectManagement() {
                     />
                   </div>
                   <div className="w-[105px] shrink-0">
-                    <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-1 block">Facing</label>
+                    <label className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider mb-1 block">Facing</label>
                     <select 
                       value={plotForm.facing} 
                       onChange={e => setPlotForm(p => ({ ...p, facing: e.target.value }))} 
@@ -317,7 +317,7 @@ export default function ProjectManagement() {
                     </select>
                   </div>
                   <div className="flex-1 min-w-[80px]">
-                    <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-1 block">East-West</label>
+                    <label className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider mb-1 block">East-West</label>
                     <input 
                       value={plotForm.eastWest} 
                       onChange={e => setPlotForm(p => ({ ...p, eastWest: e.target.value }))} 
@@ -326,7 +326,7 @@ export default function ProjectManagement() {
                     />
                   </div>
                   <div className="flex-1 min-w-[80px]">
-                    <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-1 block">North-South</label>
+                    <label className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider mb-1 block">North-South</label>
                     <input 
                       value={plotForm.northSouth} 
                       onChange={e => setPlotForm(p => ({ ...p, northSouth: e.target.value }))} 
@@ -335,7 +335,7 @@ export default function ProjectManagement() {
                     />
                   </div>
                   <div className="flex-1 min-w-[85px]">
-                    <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-1 block">Total Sqft *</label>
+                    <label className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider mb-1 block">Total Sqft *</label>
                     <input 
                       type="number" 
                       value={plotForm.totalSqft} 
@@ -345,7 +345,7 @@ export default function ProjectManagement() {
                     />
                   </div>
                   <div className="flex-1 min-w-[85px]">
-                    <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-1 block">Price/sqft</label>
+                    <label className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider mb-1 block">Price/sqft</label>
                     <input 
                       type="number" 
                       value={plotForm.pricePerSqft} 
@@ -355,7 +355,7 @@ export default function ProjectManagement() {
                     />
                   </div>
                   <div className="flex-1 min-w-[85px]">
-                    <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-1 block">Status</label>
+                    <label className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider mb-1 block">Status</label>
                     <select
                       value={plotForm.status}
                       onChange={e => setPlotForm(p => ({ ...p, status: e.target.value }))}
@@ -377,7 +377,7 @@ export default function ProjectManagement() {
                     <button 
                       type="button"
                       onClick={handleCancelPlotEdit} 
-                      className="h-[34px] px-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition-colors flex items-center justify-center"
+                      className="h-[34px] px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors flex items-center justify-center"
                       title="Cancel"
                     >
                       <X size={13} />
@@ -394,16 +394,16 @@ export default function ProjectManagement() {
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-200">
                       {plotColumns.map(col => (
-                        <th key={col.key} className="text-left px-3.5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">{col.label}</th>
+                        <th key={col.key} className="text-left px-3.5 py-2.5 text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">{col.label}</th>
                       ))}
-                      <th className="text-right px-3.5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th className="text-right px-3.5 py-2.5 text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {(form.plots || []).map((pl, idx) => (
-                      <tr key={idx} className={`transition-colors ${editingPlotIdx === idx ? "bg-blue-50/60 font-medium border-l-2 border-l-blue-500" : "hover:bg-gray-50/70"}`}>
-                        <td className="px-3.5 py-2 text-gray-500 font-medium text-xs">{idx + 1}</td>
-                        <td className="px-3.5 py-2 text-gray-900 font-semibold text-xs">{pl.siteNo}</td>
+                      <tr key={idx} className={`transition-colors ${editingPlotIdx === idx ? "bg-slate-50 font-medium border-l-2 border-l-blue-500" : "hover:bg-slate-50/70"}`}>
+                        <td className="px-3.5 py-2 text-slate-500 font-medium text-xs">{idx + 1}</td>
+                        <td className="px-3.5 py-2 text-slate-900 font-bold text-xs">{pl.siteNo}</td>
                         <td className="px-3.5 py-2">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
                             pl.facing === "East" ? "bg-amber-50 text-amber-700 border-amber-200" :
@@ -415,13 +415,13 @@ export default function ProjectManagement() {
                             {pl.facing}
                           </span>
                         </td>
-                        <td className="px-3.5 py-2 text-gray-700 text-xs">{pl.eastWest ? `${pl.eastWest} ft` : "-"}</td>
-                        <td className="px-3.5 py-2 text-gray-700 text-xs">{pl.northSouth ? `${pl.northSouth} ft` : "-"}</td>
-                        <td className="px-3.5 py-2 text-gray-900 font-medium text-xs">{Number(pl.totalSqft).toLocaleString("en-IN")} sqft</td>
-                        <td className="px-3.5 py-2 text-gray-900 font-medium text-xs">
+                        <td className="px-3.5 py-2 text-slate-700 text-xs">{pl.eastWest ? `${pl.eastWest} ft` : "-"}</td>
+                        <td className="px-3.5 py-2 text-slate-700 text-xs">{pl.northSouth ? `${pl.northSouth} ft` : "-"}</td>
+                        <td className="px-3.5 py-2 text-slate-900 font-semibold text-xs">{Number(pl.totalSqft).toLocaleString("en-IN")} sqft</td>
+                        <td className="px-3.5 py-2 text-slate-900 font-semibold text-xs">
                           {pl.pricePerSqft ? formatINR(pl.pricePerSqft) : "-"}
                         </td>
-                        <td className="px-3.5 py-2 text-gray-700 text-xs">{pl.status || "Active"}</td>
+                        <td className="px-3.5 py-2 text-slate-700 font-medium text-xs">{pl.status || "Active"}</td>
                         <td className="px-3.5 py-2 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <button type="button" onClick={() => handleEditPlot(idx)} className="p-1.5 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors border border-orange-100" title="Edit Plot">
@@ -442,7 +442,7 @@ export default function ProjectManagement() {
 
           {/* Upload Section */}
           <div className="sm:col-span-3">
-            <div className="text-sm font-medium text-gray-700 mb-3">Upload Files</div>
+            <div className="text-sm font-semibold text-slate-800 mb-3">Upload Files</div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Images */}
               <div className="border-2 border-dashed border-gray-200 rounded-xl p-5 hover:border-blue-300 hover:bg-blue-50/30 transition-all">
@@ -450,8 +450,8 @@ export default function ProjectManagement() {
                   <div className="w-11 h-11 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-2">
                     <ImageIcon size={22} />
                   </div>
-                  <p className="text-sm font-medium text-gray-700">Project Images</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">JPG, PNG, WebP</p>
+                  <p className="text-sm font-semibold text-slate-800">Project Images</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">JPG, PNG, WebP</p>
                   <label className="mt-2.5 px-4 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg cursor-pointer hover:bg-blue-700 transition-colors inline-flex items-center gap-1">
                     <Plus size={12} /> Add Images
                     <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
@@ -465,8 +465,8 @@ export default function ProjectManagement() {
                   <div className="w-11 h-11 rounded-xl bg-green-100 text-green-600 flex items-center justify-center mb-2">
                     <FileText size={22} />
                   </div>
-                  <p className="text-sm font-medium text-gray-700">Brochure</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">PDF, DOC</p>
+                  <p className="text-sm font-semibold text-slate-800">Brochure</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">PDF, DOC</p>
                   <label className="mt-2.5 px-4 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg cursor-pointer hover:bg-green-700 transition-colors inline-flex items-center gap-1">
                     <Plus size={12} /> {form.brochure ? "Change" : "Upload"}
                     <input type="file" accept=".pdf,.doc,.docx" onChange={handleBrochureUpload} className="hidden" />
@@ -480,8 +480,8 @@ export default function ProjectManagement() {
                   <div className="w-11 h-11 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center mb-2">
                     <File size={22} />
                   </div>
-                  <p className="text-sm font-medium text-gray-700">Documents</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">PDF, DOC, XLS</p>
+                  <p className="text-sm font-semibold text-slate-800">Documents</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">PDF, DOC, XLS</p>
                   <label className="mt-2.5 px-4 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg cursor-pointer hover:bg-purple-700 transition-colors inline-flex items-center gap-1">
                     <Plus size={12} /> Add Files
                     <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx" multiple onChange={handleDocumentUpload} className="hidden" />
@@ -495,7 +495,7 @@ export default function ProjectManagement() {
               {/* Images preview */}
               {(form.images || []).length > 0 && (
                 <div>
-                  <div className="text-xs font-medium text-gray-500 mb-1.5 flex items-center gap-1"><ImageIcon size={12} className="text-blue-500" /> Images ({form.images.length})</div>
+                  <div className="text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1"><ImageIcon size={12} className="text-blue-500" /> Images ({form.images.length})</div>
                   <div className="grid grid-cols-6 gap-2">
                     {(form.images || []).map((img, idx) => (
                       <div key={idx} className="relative group">
@@ -512,7 +512,7 @@ export default function ProjectManagement() {
               {/* Brochure preview */}
               {form.brochure && (
                 <div>
-                  <div className="text-xs font-medium text-gray-500 mb-1.5 flex items-center gap-1"><FileText size={12} className="text-green-500" /> Brochure</div>
+                  <div className="text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1"><FileText size={12} className="text-green-500" /> Brochure</div>
                   <div className="flex items-center gap-2 px-3 py-2.5 bg-green-50 rounded-lg border border-green-200">
                     <FileText size={16} className="text-green-600 flex-shrink-0" />
                     <span className="text-xs text-green-700 flex-1 truncate font-medium">
@@ -528,13 +528,13 @@ export default function ProjectManagement() {
               {/* Documents preview */}
               {(form.documents || []).length > 0 && (
                 <div>
-                  <div className="text-xs font-medium text-gray-500 mb-1.5 flex items-center gap-1"><File size={12} className="text-purple-500" /> Documents ({form.documents.length})</div>
+                  <div className="text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1"><File size={12} className="text-purple-500" /> Documents ({form.documents.length})</div>
                   <div className="space-y-1 max-h-28 overflow-y-auto">
                     {(form.documents || []).map((doc, idx) => (
-                      <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-purple-200 transition-colors">
+                      <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-gray-200 hover:border-purple-200 transition-colors">
                         <File size={14} className="text-purple-500 flex-shrink-0" />
-                        <span className="text-xs text-gray-700 flex-1 truncate">{getFileName(doc)}</span>
-                        <span className="text-[10px] text-gray-400">#{idx + 1}</span>
+                        <span className="text-xs text-slate-700 flex-1 truncate">{getFileName(doc)}</span>
+                        <span className="text-[10px] text-slate-500">#{idx + 1}</span>
                         <button onClick={() => removeDocument(idx)} className="w-5 h-5 flex items-center justify-center bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors">
                           <X size={10} />
                         </button>
@@ -619,8 +619,8 @@ export default function ProjectManagement() {
                 <div className="flex items-center gap-3 mb-2">
                   <StatusBadge status={selected.status} />
                 </div>
-                <h2 className="text-2xl  text-gray-800">{selected.name}</h2>
-                <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-1">
+                <h2 className="text-2xl font-bold text-slate-900">{selected.name}</h2>
+                <p className="text-sm text-slate-600 font-medium flex items-center gap-1.5 mt-1">
                   <MapPin size={16} className="text-blue-500 flex-shrink-0" />
                   {selected.location}
                 </p>
@@ -632,21 +632,21 @@ export default function ProjectManagement() {
 
             {/* Key Metrics Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-                <p className="text-xs font-medium text-blue-600 uppercase tracking-wider">Total Sites</p>
-                <p className="text-xl font-bold text-gray-900 mt-1">{selected.totalPlots || 0}</p>
+              <div className="bg-white rounded-xl p-4 border border-blue-200">
+                <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">Total Sites</p>
+                <p className="text-2xl font-bold text-blue-600 mt-1">{selected.totalPlots || 0}</p>
               </div>
-              <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-                <p className="text-xs font-medium text-green-600 uppercase tracking-wider">Available</p>
-                <p className="text-xl font-bold text-gray-900 mt-1">{selected.availablePlots || 0}</p>
+              <div className="bg-white rounded-xl p-4 border border-green-200">
+                <p className="text-xs font-bold text-green-600 uppercase tracking-wider">Available</p>
+                <p className="text-2xl font-bold text-green-600 mt-1">{selected.availablePlots || 0}</p>
               </div>
-              <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
-                <p className="text-xs font-medium text-amber-600 uppercase tracking-wider">Booked</p>
-                <p className="text-xl font-bold text-gray-900 mt-1">{(selected.plots || []).filter(p => p.status === "Booked").length}</p>
+              <div className="bg-white rounded-xl p-4 border border-amber-200">
+                <p className="text-xs font-bold text-amber-600 uppercase tracking-wider">Booked</p>
+                <p className="text-2xl font-bold text-amber-600 mt-1">{(selected.plots || []).filter(p => p.status === "Booked").length}</p>
               </div>
-              <div className="bg-rose-50 rounded-xl p-4 border border-rose-100">
-                <p className="text-xs font-medium text-rose-600 uppercase tracking-wider">Sold</p>
-                <p className="text-xl font-bold text-gray-900 mt-1">{(selected.plots || []).filter(p => p.status === "Sold").length}</p>
+              <div className="bg-white rounded-xl p-4 border border-rose-200">
+                <p className="text-xs font-bold text-rose-600 uppercase tracking-wider">Sold</p>
+                <p className="text-2xl font-bold text-rose-600 mt-1">{(selected.plots || []).filter(p => p.status === "Sold").length}</p>
               </div>
             </div>
 
@@ -654,7 +654,7 @@ export default function ProjectManagement() {
             {(selected.plots || []).length > 0 && (
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-100">
-                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                     <LayoutGrid size={14} className="text-blue-600" />
                     Available Plots
                   </h4>
@@ -664,15 +664,15 @@ export default function ProjectManagement() {
                     <thead>
                       <tr className="bg-gray-50">
                         {plotColumns.map(col => (
-                          <th key={col.key} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">{col.label}</th>
+                          <th key={col.key} className="text-left px-4 py-2.5 text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">{col.label}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {(selected.plots || []).map((pl, idx) => (
                         <tr key={idx} className="hover:bg-gray-50/50">
-                          <td className="px-4 py-2.5 text-gray-500 font-medium text-xs">{idx + 1}</td>
-                          <td className="px-4 py-2.5 text-gray-800 font-medium">{pl.siteNo}</td>
+                          <td className="px-4 py-2.5 text-slate-500 font-medium text-xs">{idx + 1}</td>
+                          <td className="px-4 py-2.5 text-slate-900 font-semibold">{pl.siteNo}</td>
                           <td className="px-4 py-2.5">
                             <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
                               pl.facing === "East" ? "bg-amber-50 text-amber-700" :
@@ -684,10 +684,10 @@ export default function ProjectManagement() {
                               {pl.facing}
                             </span>
                           </td>
-                          <td className="px-4 py-2.5 text-gray-700">{pl.eastWest || "-"}</td>
-                          <td className="px-4 py-2.5 text-gray-700">{pl.northSouth || "-"}</td>
-                          <td className="px-4 py-2.5 text-gray-800 font-medium">{Number(pl.totalSqft).toLocaleString("en-IN")}</td>
-                          <td className="px-4 py-2.5 text-gray-800">{formatINR(pl.pricePerSqft)}</td>
+                          <td className="px-4 py-2.5 text-slate-700">{pl.eastWest || "-"}</td>
+                          <td className="px-4 py-2.5 text-slate-700">{pl.northSouth || "-"}</td>
+                          <td className="px-4 py-2.5 text-slate-900 font-semibold">{Number(pl.totalSqft).toLocaleString("en-IN")}</td>
+                          <td className="px-4 py-2.5 text-slate-900 font-medium">{formatINR(pl.pricePerSqft)}</td>
                           <td className="px-4 py-2.5">
                             <StatusBadge status={pl.status || "Active"} />
                           </td>
@@ -721,7 +721,7 @@ export default function ProjectManagement() {
             {/* Documents & Attachments */}
             {(selected.documents?.length > 0) && (
               <div className="bg-white rounded-xl p-4 border border-gray-200">
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-1.5">
                   <File size={14} className="text-purple-600" />
                   Documents & Attachments
                 </h4>
@@ -733,8 +733,8 @@ export default function ProjectManagement() {
                           <File size={18} />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900">Document #{idx + 1}</p>
-                          <p className="text-xs text-gray-500">Attachment File</p>
+                          <p className="text-sm font-semibold text-slate-900">Document #{idx + 1}</p>
+                          <p className="text-xs text-slate-500">Attachment File</p>
                         </div>
                       </div>
                       <a 
@@ -755,11 +755,11 @@ export default function ProjectManagement() {
              {/* Description */}
             {selected.description && (
               <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                   <FileText size={14} className="text-blue-600" />
                   Description
                 </h4>
-                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{selected.description}</p>
+                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{selected.description}</p>
               </div>
             )}
 
@@ -768,7 +768,7 @@ export default function ProjectManagement() {
               <button
                 type="button"
                 onClick={() => setModal(null)}
-                className="px-6 py-2.5 rounded-xl text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all active:scale-95"
+                className="px-6 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-gray-100 hover:bg-gray-200 transition-all active:scale-95"
               >
                 Close
               </button>
@@ -785,11 +785,11 @@ export default function ProjectManagement() {
               <AlertTriangle size={28} className="text-red-600" />
             </div>
 
-            <h3 className="text-lg font-normal text-gray-900 mb-2">Are you sure you want to delete?</h3>
-            <p className="text-sm text-gray-500 mb-1">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Are you sure you want to delete?</h3>
+            <p className="text-sm text-slate-500 mb-1">
               You are about to delete this project:
             </p>
-            <p className="text-sm font-medium text-gray-800 mb-4">
+            <p className="text-sm font-semibold text-slate-800 mb-4">
               "{deleteTarget.name}"
             </p>
 

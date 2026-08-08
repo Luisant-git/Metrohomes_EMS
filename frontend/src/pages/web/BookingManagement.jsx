@@ -906,8 +906,8 @@ export default function BookingManagement() {
 
   const columns = [
     { key: "receiptNo", label: "Receipt No." },
-    { key: "bookingId", label: "Booking ID", render: (v) => <span className="font-mono text-xs text-gray-500">{v}</span> },
-    { key: "customerName", label: "Customer", render: (v, row) => (<div><div className="font-medium">{v}</div><div className="text-xs text-gray-400">{row.siteName}</div></div>) },
+    { key: "bookingId", label: "Booking ID", render: (v) => <span className="font-mono text-xs font-semibold text-slate-900">{v}</span> },
+    { key: "customerName", label: "Customer", render: (v, row) => (<div><div className="font-medium">{v}</div><div className="text-xs text-slate-500">{row.siteName}</div></div>) },
     { key: "projectNo", label: "Project No." },
     { key: "currentPayment", label: "Payment", render: v => <span className="text-blue-600 font-medium">{formatCurrency(v)}</span> },
     { key: "totalPaid", label: "Total Paid", render: v => <span className="text-green-600 font-medium">{formatCurrency(v)}</span> },
@@ -920,7 +920,7 @@ export default function BookingManagement() {
   ];
 
   const bookingColumns = [
-    { key: "bookingId", label: "Booking ID", render: v => <span className="font-mono text-xs text-gray-500">{v}</span> },
+    { key: "bookingId", label: "Booking ID", render: v => <span className="font-mono text-xs font-semibold text-slate-900">{v}</span> },
     { key: "customerName", label: "Customer Name" },
     { key: "salesManagerName", label: "User", render: (v, row) => {
       const { name, code } = resolveRowUser(row);
@@ -987,7 +987,7 @@ export default function BookingManagement() {
   return (
     <div className="space-y-6 animate-fadeIn">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2"><BookOpen size={22} className="text-blue-600 flex-shrink-0" />Booking Management</h1></div>
+        <div><h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2"><BookOpen size={22} className="text-blue-600 flex-shrink-0" />Booking Management</h1></div>
         <button onClick={() => {
           const today = new Date().toISOString().split("T")[0];
           setForm({ ...empty, bookingDate: today });
@@ -1332,7 +1332,7 @@ export default function BookingManagement() {
                           </thead>
                           <tbody>
                             <tr className="border-t border-gray-100">
-                              <td className="px-3 py-2 font-bold text-gray-800">{selectedPlot.siteNo}</td>
+                              <td className="px-3 py-2 font-bold text-slate-900">{selectedPlot.siteNo}</td>
                               <td className="px-3 py-2">
                                 <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${
                                   selectedPlot.facing === "East" ? "bg-amber-50 text-amber-700" :
@@ -1342,10 +1342,10 @@ export default function BookingManagement() {
                                   "bg-gray-50 text-gray-600"
                                 }`}>{selectedPlot.facing}</span>
                               </td>
-                              <td className="px-3 py-2 text-gray-700">{selectedPlot.eastWest ? `${selectedPlot.eastWest} ft` : '-'}</td>
-                              <td className="px-3 py-2 text-gray-700">{selectedPlot.northSouth ? `${selectedPlot.northSouth} ft` : '-'}</td>
-                              <td className="px-3 py-2 font-medium text-gray-800">{Number(selectedPlot.totalSqft).toLocaleString("en-IN")}</td>
-                              <td className="px-3 py-2 font-medium text-gray-800">{formatINR(selectedPlot.pricePerSqft)}</td>
+                              <td className="px-3 py-2 text-slate-900">{selectedPlot.eastWest ? `${selectedPlot.eastWest} ft` : '-'}</td>
+                              <td className="px-3 py-2 text-slate-900">{selectedPlot.northSouth ? `${selectedPlot.northSouth} ft` : '-'}</td>
+                              <td className="px-3 py-2 font-semibold text-slate-900">{Number(selectedPlot.totalSqft).toLocaleString("en-IN")}</td>
+                              <td className="px-3 py-2 font-semibold text-slate-900">{formatINR(selectedPlot.pricePerSqft)}</td>
                             </tr>
                           </tbody>
                         </table>

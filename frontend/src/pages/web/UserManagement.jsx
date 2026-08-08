@@ -1178,7 +1178,7 @@ export default function UserManagement() {
       )
     },
     { key: "role", label: "Designation", render: v => <StatusBadge status={v} /> },
-    { key: "jobType", label: "Employment Type", render: v => v ? <span className="text-sm text-gray-600">{v}</span> : <span className="text-sm text-gray-400">—</span> },
+    { key: "jobType", label: "Employment Type", render: v => v ? <span className="text-sm font-medium text-slate-900">{v}</span> : <span className="text-sm text-slate-500">—</span> },
     { key: "mobile", label: "Mobile" },
     {
       key: "parentUserId", label: "Referred By", render: (v) => {
@@ -1223,7 +1223,7 @@ export default function UserManagement() {
     <div className="space-y-6 animate-fadeIn">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
             <Users size={22} className="text-indigo-600 flex-shrink-0" /> User Management
           </h1>
         </div>

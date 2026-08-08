@@ -2,18 +2,18 @@
 
 export default function StatCard({ icon: Icon, label, value, change, changeType = "up", color = "blue", prefix = "", suffix = "", active = false }) {
   const colorMap = {
-    blue: { bg: "bg-blue-50", icon: "text-blue-600", ring: "ring-blue-100", activeText: "text-blue-600" },
-    teal: { bg: "bg-teal-50", icon: "text-teal-600", ring: "ring-teal-100", activeText: "text-teal-600" },
-    green: { bg: "bg-emerald-50", icon: "text-emerald-600", ring: "ring-emerald-100", activeText: "text-emerald-600" },
-    purple: { bg: "bg-purple-50", icon: "text-purple-600", ring: "ring-purple-100", activeText: "text-purple-600" },
-    orange: { bg: "bg-orange-50", icon: "text-orange-600", ring: "ring-orange-100", activeText: "text-orange-600" },
-    red: { bg: "bg-red-50", icon: "text-red-600", ring: "ring-red-100", activeText: "text-red-600" },
-    yellow: { bg: "bg-yellow-50", icon: "text-yellow-600", ring: "ring-yellow-100", activeText: "text-yellow-600" },
+    blue: { bg: "bg-blue-50", icon: "text-blue-600", value: "text-blue-700", ring: "ring-blue-100", activeText: "text-blue-600" },
+    teal: { bg: "bg-teal-50", icon: "text-teal-600", value: "text-teal-700", ring: "ring-teal-100", activeText: "text-teal-600" },
+    green: { bg: "bg-emerald-50", icon: "text-emerald-600", value: "text-emerald-700", ring: "ring-emerald-100", activeText: "text-emerald-600" },
+    purple: { bg: "bg-purple-50", icon: "text-purple-600", value: "text-purple-700", ring: "ring-purple-100", activeText: "text-purple-600" },
+    orange: { bg: "bg-orange-50", icon: "text-orange-600", value: "text-orange-700", ring: "ring-orange-100", activeText: "text-orange-600" },
+    red: { bg: "bg-red-50", icon: "text-red-600", value: "text-red-700", ring: "ring-red-100", activeText: "text-red-600" },
+    yellow: { bg: "bg-yellow-50", icon: "text-yellow-600", value: "text-yellow-700", ring: "ring-yellow-100", activeText: "text-yellow-600" },
   };
   const c = colorMap[color] || colorMap.blue;
 
   return (
-    <div className="card p-3 sm:p-4 lg:p-5 hover:shadow-md transition-shadow duration-200">
+    <div className="card p-3 sm:p-4 lg:p-5 shadow-md shadow-slate-200/70 hover:shadow-lg hover:shadow-slate-300/70 transition-shadow duration-200">
       <div className="flex items-start justify-between mb-2 sm:mb-3 lg:mb-4">
         <div className={`w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-xl sm:rounded-2xl flex-shrink-0 ${c.bg} ring-1 ${c.ring} flex items-center justify-center`}>
           <Icon size={16} className={c.icon} />
@@ -25,10 +25,10 @@ export default function StatCard({ icon: Icon, label, value, change, changeType 
           </div>
         )}
       </div>
-      <div className="text-sm sm:text-lg lg:text-2xl font-medium text-gray-900 mb-0.5 truncate">
+      <div className={`text-sm sm:text-lg lg:text-2xl font-bold ${c.value} mb-0.5 truncate`}>
         {prefix}{typeof value === "number" ? value.toLocaleString("en-IN") : value}{suffix}
       </div>
-      <div className={`text-[10px] sm:text-xs lg:text-sm truncate ${active ? `font-semibold ${c.activeText}` : "text-gray-400 font-medium"}`}>{label}</div>
+      <div className={`text-[10px] sm:text-xs lg:text-sm truncate ${active ? `font-semibold ${c.activeText}` : "text-gray-500 font-medium"}`}>{label}</div>
     </div>
   );
 }

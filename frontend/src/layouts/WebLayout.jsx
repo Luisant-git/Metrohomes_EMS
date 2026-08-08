@@ -143,7 +143,7 @@ export default function WebLayout({ children }) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 animate-fadeIn">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-white animate-fadeIn">
           {children}
         </main>
       </div>

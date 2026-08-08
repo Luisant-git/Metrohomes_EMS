@@ -645,7 +645,7 @@ export default function BookingReport() {
       {/* ── 1. Light Page Header (No dark/black background) ── */}
       
           
-          <h1 className="text-2xl sm:text-3xl font- tracking-tight text-slate-800 flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
             <BarChart3 className="text-indigo-600" size={28} /> Booking & Sales Report
           </h1>
          
@@ -910,7 +910,7 @@ export default function BookingReport() {
                         <MapPin size={11} /> {item.siteCount} sites
                       </span>
                     </td>
-                    <td className="px-3.5 py-3 text-slate-600">
+                    <td className="px-3.5 py-3 text-slate-900">
                       {item.lastDate ? formatDate(item.lastDate) : "—"}
                     </td>
                     <td className="px-3.5 py-3 text-right">
@@ -1106,7 +1106,7 @@ export default function BookingReport() {
                     </td>
 
                     {/* Mobile */}
-                    <td className="px-3.5 py-3 text-slate-600 text-sm">{item.customerMobile}</td>
+                    <td className="px-3.5 py-3 text-slate-900 font-medium text-sm">{item.customerMobile}</td>
 
                     {/* Project / Site */}
                     <td className="px-3.5 py-3">

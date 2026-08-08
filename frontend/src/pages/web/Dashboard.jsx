@@ -85,11 +85,11 @@ export default function WebDashboard() {
     <div className="space-y-6 animate-fadeIn">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
           <LayoutDashboard size={24} className="text-blue-600 flex-shrink-0" />
           Dashboard
         </h1>
-        <p className="text-gray-400 text-sm mt-0.5">
+        <p className="text-slate-500 text-sm mt-0.5">
           Welcome back, {user?.name} ({user?.role}) · {new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
           {!["Admin", "Director"].includes(user?.role) && (
             <span className="ml-2 text-blue-500 font-medium">· Team: {teamInfo.totalTeam} members</span>

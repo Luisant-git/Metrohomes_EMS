@@ -28,7 +28,7 @@ export default function DataTable({ columns, data, actions, searchKey, title, on
       {/* Header */}
       {(title || onAdd) && (
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-4">
-          {title && <h3 className="font-semibold text-gray-800 text-base">{title}</h3>}
+          {title && <h3 className="font-bold text-slate-900 text-base">{title}</h3>}
           <div className="flex items-center gap-3 ml-auto">
             {!hideSearch && (
               <div className="relative">
@@ -52,7 +52,7 @@ export default function DataTable({ columns, data, actions, searchKey, title, on
             )}
             {extraActions}
             {onAdd && (
-              <button onClick={onAdd} className="btn-primary">
+              <button onClick={onAdd} className="btn-primary font-semibold shadow-sm shadow-blue-500/30 hover:shadow-md hover:shadow-blue-500/40">
                 {addLabel}
               </button>
             )}
@@ -66,11 +66,11 @@ export default function DataTable({ columns, data, actions, searchKey, title, on
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100">
               {columns.map(col => (
-                <th key={col.key} className="text-left px-5 py-3.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                <th key={col.key} className="text-left px-5 py-3.5 text-[11px] font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">
                   {col.label}
                 </th>
               ))}
-              {actions && <th className="text-right px-5 py-3.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Actions</th>}
+              {actions && <th className="text-right px-5 py-3.5 text-[11px] font-bold text-gray-700 uppercase tracking-wider">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -83,7 +83,7 @@ export default function DataTable({ columns, data, actions, searchKey, title, on
             ) : paged.map((row, i) => (
               <tr key={row.id || i} className={`hover:bg-gray-50/50 transition-colors ${typeof rowClassName === 'function' ? rowClassName(row) : rowClassName || ''}`}>
                 {columns.map(col => (
-                  <td key={col.key} className="px-5 py-3.5 text-sm text-gray-700 whitespace-nowrap">
+                  <td key={col.key} className="px-5 py-3.5 text-sm text-slate-900 whitespace-nowrap">
                     {col.render ? col.render(row[col.key], row) : row[col.key]}
                   </td>
                 ))}

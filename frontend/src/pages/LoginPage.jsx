@@ -170,7 +170,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f4f7fb] px-4 py-6 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-white px-4 py-6 relative overflow-hidden">
       {/* Background pattern */}
       <div
         className="absolute inset-0 opacity-[0.05]"
@@ -202,7 +202,7 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="bg-white rounded-2xl shadow-[0_15px_45px_rgba(15,23,42,0.08)] p-5 sm:p-6 border border-slate-100">
+          <div className="bg-white rounded-2xl shadow-[0_18px_50px_rgba(15,23,42,0.12),0_6px_20px_rgba(29,111,185,0.08)] p-5 sm:p-6 border border-slate-100">
             
             {/* Heading with back arrow on step 2 & admin pin step */}
             <div className="relative text-center mb-4">

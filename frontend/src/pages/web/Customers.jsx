@@ -213,11 +213,11 @@ export default function WebCustomers() {
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
-        <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
           <UserCheck size={22} className="text-purple-600 flex-shrink-0" />
           Site Visit
         </h1>
-        <p className="text-gray-400 text-sm mt-0.5">
+        <p className="text-slate-500 text-sm mt-0.5">
           {siteVisits.length} total visits
         </p>
       </div>

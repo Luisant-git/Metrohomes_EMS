@@ -17,8 +17,8 @@ export default function CommissionManagement() {
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
-        <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2"><Coins size={22} className="text-amber-500 flex-shrink-0" />Commission Management</h1>
-        <p className="text-gray-400 text-sm mt-0.5">Auto-calculated role-wise commission breakdown</p>
+        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2"><Coins size={22} className="text-amber-500 flex-shrink-0" />Commission Management</h1>
+        <p className="text-slate-500 text-sm mt-0.5">Auto-calculated role-wise commission breakdown</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

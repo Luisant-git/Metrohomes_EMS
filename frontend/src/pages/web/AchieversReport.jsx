@@ -422,11 +422,11 @@ export default function AchieversReport() {
       {/* ── Header Area ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-normal text-gray-900 flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
             <Trophy size={24} className="text-amber-500 flex-shrink-0" />
             Achievers Report
           </h1>
-          <p className="text-gray-400 text-sm mt-0.5">
+          <p className="text-slate-500 text-sm mt-0.5">
             Realestate ERP Performance Dashboard • {monthRange.monthName} {monthRange.year}
           </p>
         </div>
@@ -993,7 +993,7 @@ export default function AchieversReport() {
                                 {b.plotArea ? `${Number(b.plotArea).toLocaleString()} sq.ft` : ""}
                               </div>
                             </td>
-                            <td className="px-3 py-3 text-slate-600">{b.bookingDate || "—"}</td>
+                            <td className="px-3 py-3 text-slate-900 font-medium">{b.bookingDate || "—"}</td>
                             <td className="px-3 py-3 text-center">
                               <StatusBadge status={b.status} />
                             </td>
