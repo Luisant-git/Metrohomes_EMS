@@ -264,22 +264,24 @@ export default function PWACustomers() {
             </div>
           </div>
 
-          <div className="px-4 pb-2">
-            <select
-              value={roleFilter}
-              onChange={(e) => {
-                setRoleFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full rounded-xl px-3 py-2 bg-gray-50 border border-gray-200 text-xs font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {teamRoles.map((role) => (
-                <option key={role} value={role}>
-                  {role === "All" ? "All Roles" : role}
-                </option>
-              ))}
-            </select>
-          </div>
+          {user?.role !== "Sales Manager" && (
+            <div className="px-4 pb-2">
+              <select
+                value={roleFilter}
+                onChange={(e) => {
+                  setRoleFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full rounded-xl px-3 py-2 bg-gray-50 border border-gray-200 text-xs font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {teamRoles.map((role) => (
+                  <option key={role} value={role}>
+                    {role === "All" ? "All Roles" : role}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="px-4 pb-3">
             <select
