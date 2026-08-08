@@ -28,7 +28,6 @@ export default function PWADashboard() {
     switch (role) {
       case "Regional Manager": {
         return {
-          teamTitle: null, teamList: null, teamEmpty: null, teamPath: null,
           quickActions: [
             { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
             { label: "My Team", icon: Users, path: "/my-team", color: "bg-blue-500" },
@@ -40,9 +39,7 @@ export default function PWADashboard() {
       }
 
       case "Branch Manager": {
-        const myBDMs = users.filter((u) => u.role === "BDM" && u.parentUserId === user?.id);
         return {
-          teamTitle: "My BDMs", teamList: myBDMs, teamEmpty: "No BDMs assigned", teamPath: "/my-team",
           quickActions: [
             { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
             { label: "My Team", icon: Users, path: "/my-team", color: "bg-blue-500" },
@@ -54,9 +51,7 @@ export default function PWADashboard() {
       }
 
       case "BDM": {
-        const mySMs = users.filter((u) => u.role === "Sales Manager" && u.parentUserId === user?.id);
         return {
-          teamTitle: "My Sales Managers", teamList: mySMs, teamEmpty: "No Sales Managers assigned", teamPath: "/my-team",
           quickActions: [
             { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
             { label: "My Team", icon: Users, path: "/my-team", color: "bg-blue-500" },
@@ -70,7 +65,6 @@ export default function PWADashboard() {
 
       case "Director": {
         return {
-          teamTitle: null, teamList: null, teamEmpty: null, teamPath: null,
           quickActions: [
             { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
             { label: "View Projects", icon: Building2, path: "/sites", color: "bg-purple-500" },
@@ -86,7 +80,6 @@ export default function PWADashboard() {
       default: {
         const myCustomers = customers.filter((c) => c.createdById === user?.id);
         return {
-          teamTitle: null, teamList: null, teamEmpty: null, teamPath: null,
           quickActions: [
             { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
             { label: "View Projects", icon: Building2, path: "/sites", color: "bg-purple-500" },
@@ -102,7 +95,6 @@ export default function PWADashboard() {
 
   const data = getRoleData() || {
     quickActions: [],
-    teamTitle: null, teamList: null, teamEmpty: null, teamPath: null,
     myCustomers: [],
   };
 
@@ -197,40 +189,6 @@ export default function PWADashboard() {
             ))}
           </div>
         </div>
-
-        {/* Team Section */}
-        {data.teamTitle && data.teamList && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-sm text-slate-900">{data.teamTitle}</h3>
-              <button onClick={() => navigate(data.teamPath)} className="text-[#1D6FB9] hover:text-[#1D6FB9]/80 font-medium text-xs flex items-center gap-1">
-                View All <ArrowRight size={14} />
-              </button>
-            </div>
-            <div className="space-y-2">
-              {data.teamList.length === 0 ? (
-                <div className="text-center py-8 text-slate-400 text-sm">{data.teamEmpty}</div>
-              ) : (
-                data.teamList.slice(0, 3).map((member) => (
-                  <div key={member.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors">
-                    <div className="w-9 h-9 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-xl flex items-center justify-center text-indigo-700 font-bold text-sm overflow-hidden flex-shrink-0">
-                      {member.avatar ? (
-                        <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
-                      ) : (
-                        member.name?.charAt(0)
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm text-slate-900">{member.name}</div>
-                      <div className="text-[10px] text-slate-500 truncate">{member.employeeCode} • {member.branch || "Field"}</div>
-                    </div>
-                    <ArrowRight className="text-slate-300" size={14} />
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Recent Customers */}
         {data.myCustomers?.length > 0 && (
