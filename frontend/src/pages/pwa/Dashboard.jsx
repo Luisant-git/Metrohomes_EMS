@@ -3,7 +3,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { useData } from "../../context/DataContext.jsx";
 import { useNavigate } from "react-router-dom";
 import { 
-  Building2, Users, MapPin, TrendingUp, 
+  Building2, Users, MapPin, 
   UserCheck, ArrowRight, UserPlus, Award 
 } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge.jsx";
@@ -30,8 +30,9 @@ export default function PWADashboard() {
         return {
           quickActions: [
             { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
+            { label: "View Projects", icon: Building2, path: "/sites", color: "bg-purple-500" },
             { label: "My Team", icon: Users, path: "/my-team", color: "bg-blue-500" },
-            { label: "Customers", icon: UserCheck, path: "/customers", color: "bg-green-500" },
+            { label: "My Customers", icon: UserCheck, path: "/customers", color: "bg-green-500" },
             { label: "My Booking", icon: Award, path: "/customers?status=Booked", color: "bg-teal-500" },
             { label: "Project Visits", icon: MapPin, path: "/visits", color: "bg-emerald-500" },
           ],
@@ -42,8 +43,9 @@ export default function PWADashboard() {
         return {
           quickActions: [
             { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
+            { label: "View Projects", icon: Building2, path: "/sites", color: "bg-purple-500" },
             { label: "My Team", icon: Users, path: "/my-team", color: "bg-blue-500" },
-            { label: "Customers", icon: UserCheck, path: "/customers", color: "bg-green-500" },
+            { label: "My Customers", icon: UserCheck, path: "/customers", color: "bg-green-500" },
             { label: "My Booking", icon: Award, path: "/customers?status=Booked", color: "bg-teal-500" },
             { label: "Project Visits", icon: MapPin, path: "/visits", color: "bg-emerald-500" },
           ],
@@ -54,9 +56,9 @@ export default function PWADashboard() {
         return {
           quickActions: [
             { label: "Site Visit Registration", icon: UserPlus, path: "/customer-registration", color: "bg-blue-500" },
+            { label: "View Projects", icon: Building2, path: "/sites", color: "bg-purple-500" },
             { label: "My Team", icon: Users, path: "/my-team", color: "bg-blue-500" },
-            { label: "Sales Targets", icon: TrendingUp, path: "/sales-targets", color: "bg-purple-500" },
-            { label: "Customers", icon: UserCheck, path: "/customers", color: "bg-green-500" },
+            { label: "My Customers", icon: UserCheck, path: "/customers", color: "bg-green-500" },
             { label: "My Booking", icon: Award, path: "/customers?status=Booked", color: "bg-teal-500" },
             { label: "Project Visits", icon: MapPin, path: "/visits", color: "bg-emerald-500" },
           ],
