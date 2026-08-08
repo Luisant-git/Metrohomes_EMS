@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { LayoutDashboard, Building2, Users, MapPin, User, LogOut, ChevronLeft, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Building2, Users, MapPin, User, LogOut, ChevronLeft } from "lucide-react";
 import logo from "../assests/logo 1.png";
 
 const ROUTE_TITLES = {
@@ -19,14 +19,12 @@ const ROLE_BOTTOM_NAV = {
     { path: "/", icon: LayoutDashboard, label: "Dashboard" },
     { path: "/sites", icon: Building2, label: "Projects" },
     { path: "/my-team", icon: Users, label: "My Team" },
-    { path: "/sales-report", icon: BarChart3, label: "Reports" },
     { path: "/profile", icon: User, label: "Profile" },
   ],
   "Branch Manager": [
     { path: "/", icon: LayoutDashboard, label: "Dashboard" },
     { path: "/sites", icon: Building2, label: "Projects" },
     { path: "/my-team", icon: Users, label: "My Team" },
-    { path: "/sales-report", icon: BarChart3, label: "Reports" },
     { path: "/profile", icon: User, label: "Profile" },
   ],
   "BDM": [

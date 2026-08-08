@@ -29,7 +29,6 @@ import PWACustomers from "./pages/pwa/PWACustomers.jsx";
 import PWAVisits from "./pages/pwa/Visits.jsx";
 import PWASiteVisits from "./pages/pwa/PWASiteVisits.jsx";
 import PWABookings from "./pages/pwa/PWABookings.jsx";
-import PWASReport from "./pages/pwa/PWASReport.jsx";
 import PWAPerf from "./pages/pwa/PWAPerf.jsx";
 import PWANotif from "./pages/pwa/PWANotif.jsx";
 import PWAVisitRegistration from "./pages/pwa/VisitRegistration.jsx";
@@ -74,7 +73,6 @@ function AppRoutes() {
           <Route path="/customer-registration" element={<PWAVisitRegistration />} />
           <Route path="/visits" element={<PWAVisits />} />
           <Route path="/bookings" element={<PWABookings />} />
-          <Route path="/sales-report" element={<PWASReport />} />
           <Route path="/performance" element={<PWAPerf />} />
           <Route path="/notifications" element={<PWANotif />} />
           <Route path="/sites" element={<PWASites />} />
