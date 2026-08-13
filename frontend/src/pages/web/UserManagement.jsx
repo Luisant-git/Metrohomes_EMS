@@ -14,7 +14,7 @@ import {
   X, ChevronsDown, Shield, Crown, Globe, Briefcase, Target, CheckCircle, AlertCircle, AlertTriangle,
   User, Mail, Phone, MapPin, Calendar, CreditCard, Building, Hash, ArrowRight, Loader2,
   UserCog, UserCheck as UserVerify, FileText, Banknote, Users as UsersGroup,
-  FileDown
+  FileDown, ChevronsUpDown
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { formatINRShort } from "../../utils/format.js";
@@ -955,6 +955,8 @@ export default function UserManagement() {
     });
   };
 
+  const collapseAll = () => setExpandedIds(new Set());
+
   // ── PDF Export ──────────────────────────────────────────────────────────────
   const pdfExportRef = useRef(null);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
@@ -1583,6 +1585,16 @@ export default function UserManagement() {
                   placeholder="To Date"
                 />
               </div>
+
+              {expandedIds.size > 0 && (
+                <button
+                  onClick={collapseAll}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors flex-shrink-0"
+                  title="Collapse all expanded rows"
+                >
+                  <ChevronsUpDown size={15} /> Collapse All
+                </button>
+              )}
 
               <button
                 onClick={handleDownloadPDF}
