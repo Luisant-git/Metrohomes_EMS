@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Fragment, useRef } from "react";
 import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { user as userApi } from "../../api/user.js";
@@ -6,12 +6,15 @@ import DataTable from "../../components/DataTable.jsx";
 import Modal from "../../components/Modal.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import StatCard from "../../components/StatCard.jsx";
+import jsPDF from "jspdf";
+import { toCanvas } from "html-to-image";
 import {
-  SquarePen, Trash2, Eye, Users, ChevronDown, ChevronRight, UserPlus,
+  SquarePen, Trash2, Eye, Users, Plus, Minus, UserPlus,
   Search, Filter, Building2, Users as UsersIcon, UserCheck, TrendingUp,
   X, ChevronsDown, Shield, Crown, Globe, Briefcase, Target, CheckCircle, AlertCircle, AlertTriangle,
   User, Mail, Phone, MapPin, Calendar, CreditCard, Building, Hash, ArrowRight, Loader2,
-  UserCog, UserCheck as UserVerify, FileText, Banknote, Users as UsersGroup
+  UserCog, UserCheck as UserVerify, FileText, Banknote, Users as UsersGroup,
+  FileDown
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { formatINRShort } from "../../utils/format.js";
@@ -757,114 +760,155 @@ function NodeStat({ icon: Icon, label, value, color = "blue" }) {
   );
 }
 
-// ─── Hierarchy TreeNode Component ────────────────────────────────────────────
-function TreeNode({ node, users, customers, bookings, depth = 0, onViewTeam }) {
-  const [expanded, setExpanded] = useState(true);
+
+// ─── Tree Guide Lines ─────────────────────────────────────────────────────────
+function TreeGuide({ depth, lastChain }) {
+  if (depth === 0) return null;
+  return (
+    <span className="inline-flex flex-shrink-0">
+      {Array.from({ length: depth }).map((_, i) => (
+        <span key={i} className="relative inline-block w-4 h-4">
+          {i < depth - 1 && !lastChain[i] && (
+            <span className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-gray-300" />
+          )}
+          {i === depth - 1 && (
+            <>
+              <span className="absolute left-1/2 top-0 bottom-1/2 w-[1px] bg-gray-300" />
+              <span className="absolute left-1/2 right-0 top-1/2 h-[1px] bg-gray-300" />
+            </>
+          )}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+// ─── Hierarchy Tree Row Component ──────────────────────────────────────────
+function TreeRow({
+  node, users, depth = 0, lastChain = [],
+  expandedIds, onToggle, keptIds = null, autoExpandIds = new Set(),
+  onView, onEdit, onDelete
+}) {
   const children = users.filter(u => u.parentUserId === node.id);
-  const downline = [];
+  const parent = users.find(u => u.id === node.parentUserId);
+  const isExpanded = expandedIds.has(node.id) || autoExpandIds.has(node.id);
 
-  const queue = [...children];
-  while (queue.length > 0) {
-    const c = queue.shift();
-    downline.push(c);
-    queue.push(...users.filter(u => u.parentUserId === c.id));
-  }
-
-  const allSmIds = [];
-  const smQueue = [...downline];
-  while (smQueue.length > 0) {
-    const u = smQueue.shift();
-    if (u.role === "Sales Manager") allSmIds.push(u.id);
-    smQueue.push(...users.filter(x => x.parentUserId === u.id));
-  }
-
-  const activeCustomers = customers.filter(c => allSmIds.includes(c.createdById)).length;
-  const totalSales = bookings
-    .filter(b => {
-      const smId = b.assignedTo || b.createdBy;
-      return allSmIds.includes(smId);
-    })
-    .reduce((sum, b) => sum + (b.paidAmount || 0), 0);
-
-  const teamCount = children.length;
-  const totalDownline = downline.length;
+  const canExpand = children.length > 0;
+  const visibleChildren = keptIds ? children.filter(c => keptIds.has(c.id)) : children;
+  
+  // More distinct alternating row colors - increased contrast
+  const rowBg = depth % 2 === 0 ? 'bg-white' : 'bg-gray-100';
 
   return (
-    <div>
-      <div
-        className="flex items-center gap-2 py-2 px-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group border border-transparent hover:border-gray-100"
-        style={{ paddingLeft: `${depth * 28 + 12}px` }}
-        onClick={() => children.length > 0 && setExpanded(p => !p)}
-      >
-        {children.length > 0 ? (
-          <span className="text-gray-400 flex-shrink-0 transition-transform duration-200">
-            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+    <Fragment>
+      <tr className={`border-b border-gray-200 ${rowBg}`}>
+        <td className="px-4 py-3">
+          <div className="flex items-center min-w-0">
+            <TreeGuide depth={depth} lastChain={lastChain} />
+            
+            <button
+              onClick={() => canExpand && onToggle(node.id)}
+              className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mr-2 transition-all ${
+                canExpand
+                  ? 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                  : 'bg-gray-100 text-gray-400 cursor-default'
+              }`}
+              title={canExpand ? (isExpanded ? "Collapse" : "Expand") : "No downline"}
+            >
+              {isExpanded ? <Minus size={12} /> : <Plus size={12} />}
+            </button>
+
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold overflow-hidden flex-shrink-0">
+              {node.avatar ? (
+                <img src={node.avatar} alt={node.name} className="w-full h-full object-cover" />
+              ) : (
+                node.name?.charAt(0).toUpperCase()
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0 ml-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-800 truncate">{node.name}</span>
+                <span className="text-[10px] text-gray-500 font-mono">
+                  {node.employeeCode}
+                </span>
+              </div>
+            </div>
+          </div>
+        </td>
+
+        <td className="px-4 py-3">
+          <span className="text-sm text-gray-700">{node.role || "—"}</span>
+        </td>
+
+        <td className="px-4 py-3">
+          <span className="text-sm text-gray-600">{node.jobType || "—"}</span>
+        </td>
+
+        <td className="px-4 py-3">
+          <span className="text-sm text-gray-600">{node.mobile || "—"}</span>
+        </td>
+
+        <td className="px-4 py-3">
+          <span className="text-sm text-gray-500 truncate block max-w-[160px]">{node.email || "—"}</span>
+        </td>
+
+        <td className="px-4 py-3">
+          <span className="text-sm text-gray-600">
+            {parent ? parent.name : "—"}
           </span>
-        ) : (
-          <span className="w-[14px] flex-shrink-0" />
-        )}
+        </td>
 
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold overflow-hidden flex-shrink-0 shadow-sm">
-          {node.avatar ? (
-            <img src={node.avatar} alt={node.name} className="w-full h-full object-cover" />
-          ) : (
-            node.name?.charAt(0)
-          )}
-        </div>
+        <td className="px-4 py-3">
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+            node.status === "Active" 
+              ? "bg-green-100 text-green-700" 
+              : "bg-red-100 text-red-700"
+          }`}>
+            {node.status || "Active"}
+          </span>
+        </td>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-800 truncate">{node.name}</span>
-            <StatusBadge status={node.role} />
-            <span className="text-[10px] text-gray-400 font-mono">{node.employeeCode}</span>
-            {node.status === "Inactive" && (
-              <span className="text-[10px] font-medium text-red-600 truncate">· Inactive — contact administrator</span>
-            )}
+        <td className="px-4 py-3">
+          <div className="flex items-center justify-end gap-1">
+            <button onClick={() => onView?.(node)} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="View">
+              <Eye size={15} />
+            </button>
+            <button onClick={() => onEdit?.(node)} className="p-1.5 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors" title="Edit">
+              <SquarePen size={15} />
+            </button>
+            <button onClick={() => onDelete?.(node)} className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Delete">
+              <Trash2 size={15} />
+            </button>
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-gray-400">
-            {node.email && <span>{node.email}</span>}
-            {node.mobile && <span>· {node.mobile}</span>}
-            {node.branch && <span>· {node.branch}</span>}
-            {node.region && <span>· {node.region}</span>}
-          </div>
-        </div>
+        </td>
+      </tr>
 
-        <div className="flex items-center gap-1.5 flex-shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
-          {teamCount > 0 && <NodeStat icon={UsersIcon} label="Direct" value={teamCount} color="blue" />}
-          {totalDownline > 0 && <NodeStat icon={ChevronsDown} label="Team" value={totalDownline} color="purple" />}
-          {activeCustomers > 0 && <NodeStat icon={UserCheck} label="Customers" value={activeCustomers} color="green" />}
-          {totalSales > 0 && <NodeStat icon={TrendingUp} label="Sales" value={formatINRShort(totalSales, { decimals: 0 })} color="orange" />}
-        </div>
-
-        {children.length > 0 && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onViewTeam && onViewTeam(node); }}
-            className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-colors flex-shrink-0"
-            title={`View ${node.name}'s team`}
-          >
-            Team
-          </button>
-        )}
-      </div>
-
-      {expanded && children.length > 0 && (
-        <div>
-          {children.map(child => (
-            <TreeNode
+      {isExpanded && visibleChildren.length > 0 && (
+        <>
+          {visibleChildren.map((child, i) => (
+            <TreeRow
               key={child.id}
               node={child}
               users={users}
-              customers={customers}
-              bookings={bookings}
               depth={depth + 1}
-              onViewTeam={onViewTeam}
+              lastChain={[...lastChain, i === visibleChildren.length - 1]}
+              expandedIds={expandedIds}
+              onToggle={onToggle}
+              keptIds={keptIds}
+              autoExpandIds={autoExpandIds}
+              onView={onView}
+              onEdit={onEdit}
+              onDelete={onDelete}
             />
           ))}
-        </div>
+        </>
       )}
-    </div>
+    </Fragment>
   );
 }
+
+
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
@@ -874,9 +918,9 @@ export default function UserManagement() {
   const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState(emptyForm);
-  const [showTree, setShowTree] = useState(false);
   const [createdUser, setCreatedUser] = useState(null);
   const [treeSearch, setTreeSearch] = useState("");
+  const [treePage, setTreePage] = useState(1);
   const [filterRole, setFilterRole] = useState("");
   const [filterJobType, setFilterJobType] = useState("");
   const [viewingTeamId, setViewingTeamId] = useState(null);
@@ -885,6 +929,73 @@ export default function UserManagement() {
   const [dateTo, setDateTo] = useState("");
   const [editErrors, setEditErrors] = useState({});
   const [isCreatingUser, setIsCreatingUser] = useState(false);
+
+  const [expandedIds, setExpandedIds] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem("usermgmt_tree_expanded");
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("usermgmt_tree_expanded", JSON.stringify([...expandedIds]));
+    } catch {
+      /* ignore */
+    }
+  }, [expandedIds]);
+
+  const toggleNode = (id) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  // ── PDF Export ──────────────────────────────────────────────────────────────
+  const pdfExportRef = useRef(null);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    const rows = filteredUsers;
+    if (rows.length === 0) {
+      toast.error("No users to export with the current filters");
+      return;
+    }
+    setIsExportingPdf(true);
+    const toastId = toast.loading("Generating Users List PDF...");
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 150));
+      const container = pdfExportRef.current;
+      if (!container) throw new Error("PDF container missing");
+
+      const pages = container.querySelectorAll(".pdf-page");
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+      for (let i = 0; i < pages.length; i++) {
+        if (i > 0) pdf.addPage("a4", "portrait");
+        const canvas = await toCanvas(pages[i], {
+          pixelRatio: 3,
+          cacheBust: false,
+          backgroundColor: "#FFFFFF"
+        });
+        const imgData = canvas.toDataURL("image/jpeg", 0.97);
+        pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
+      }
+
+      pdf.save("Metrohomes_Users_List.pdf");
+      toast.update(toastId, { render: "Users list PDF downloaded successfully!", type: "success", isLoading: false, autoClose: 3000 });
+    } catch (err) {
+      console.error(err);
+      toast.update(toastId, { render: "Failed to download PDF", type: "error", isLoading: false, autoClose: 3000 });
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
 
   const creatableRoles = useMemo(() => hierarchy.getCreatableRoles(), [hierarchy]);
 
@@ -964,12 +1075,100 @@ export default function UserManagement() {
     return result;
   }, [visibleUsers, treeSearch, filterRole, filterJobType, dateFrom, dateTo, viewingTeamId, users]);
 
+  const pdfPages = useMemo(() => {
+    const rows = filteredUsers;
+    const perPage = 26;
+    const pages = [];
+    for (let i = 0; i < rows.length; i += perPage) {
+      pages.push(rows.slice(i, i + perPage));
+    }
+    return pages;
+  }, [filteredUsers]);
+
   const treeRoots = useMemo(() => {
     return users.filter(u => !u.parentUserId).sort((a, b) => {
       const order = ["Admin", "Director", "Regional Manager", "Branch Manager", "BDM", "Sales Manager"];
       return order.indexOf(a.role) - order.indexOf(b.role);
     });
   }, [users]);
+
+  const treeData = useMemo(() => {
+    const hasFilter = treeSearch || filterRole || filterJobType || viewingTeamId;
+
+    let keptIds = null;
+    let autoExpandIds = new Set();
+    let matches = [];
+
+    if (hasFilter) {
+      const s = treeSearch.toLowerCase();
+      matches = users.filter(u => {
+        if (filterRole && u.role !== filterRole) return false;
+        if (filterJobType && u.jobType !== filterJobType) return false;
+        if (viewingTeamId) {
+          const teamIds = getTeamMembers(viewingTeamId);
+          if (u.id !== viewingTeamId && !teamIds.includes(u.id)) return false;
+        }
+        if (treeSearch) {
+          return [u.name, u.employeeCode, u.mobile, u.email, u.role, u.branch, u.region]
+            .some(v => v && String(v).toLowerCase().includes(s));
+        }
+        return true;
+      });
+
+      keptIds = new Set();
+
+      // Matched users are shown as roots with no upline chain. Their downline is
+      // kept so it can be expanded/collapsed manually with the +/− button.
+      const addDownline = (id) => {
+        users.filter(u => u.parentUserId === id).forEach(child => {
+          keptIds.add(child.id);
+          addDownline(child.id);
+        });
+      };
+      matches.forEach(m => {
+        keptIds.add(m.id);
+        addDownline(m.id);
+      });
+    }
+
+    const effectiveExpanded = (id) => expandedIds.has(id) || autoExpandIds.has(id);
+
+    const byParent = {};
+    users.forEach(u => {
+      (byParent[u.parentUserId] = byParent[u.parentUserId] || []).push(u);
+    });
+
+    const claimed = new Set();
+    const claimChildren = (id) => {
+      (byParent[id] || []).forEach(child => {
+        claimed.add(child.id);
+        if (effectiveExpanded(child.id)) claimChildren(child.id);
+      });
+    };
+    [...autoExpandIds, ...expandedIds].forEach(id => claimChildren(id));
+
+    const byCreatedDesc = (a, b) => (new Date(b.createdAt || 0) - new Date(a.createdAt || 0)) || (b.id - a.id);
+
+    const visible = keptIds ? users.filter(u => keptIds.has(u.id)) : users;
+    let roots;
+    if (hasFilter) {
+      roots = matches.slice().sort(byCreatedDesc);
+    } else {
+      roots = visible.filter(u => !claimed.has(u.id)).sort(byCreatedDesc);
+    }
+
+    return { roots, keptIds, autoExpandIds };
+  }, [users, treeSearch, filterRole, filterJobType, viewingTeamId, expandedIds]);
+
+  const TREE_PAGE_SIZE = 10;
+  const totalTreePages = Math.max(1, Math.ceil(treeData.roots.length / TREE_PAGE_SIZE));
+  useEffect(() => {
+    if (treePage > totalTreePages) setTreePage(1);
+  }, [totalTreePages, treePage]);
+  const treePageRoots = useMemo(() => {
+    const start = (treePage - 1) * TREE_PAGE_SIZE;
+    return treeData.roots.slice(start, start + TREE_PAGE_SIZE);
+  }, [treeData.roots, treePage]);
 
   const openAdd = () => {
     setForm({
@@ -1002,7 +1201,6 @@ export default function UserManagement() {
       mobile: u.mobile || "",
       role: u.role || "",
       jobType: u.jobType || "",
-      // pin field removed
       fatherHusbandName: u.fatherHusbandName || "",
       address: u.address || "",
       dob: u.dob || "",
@@ -1051,7 +1249,6 @@ export default function UserManagement() {
           mobile: cleanMobile,
           role: form.role,
           jobType: form.jobType,
-          // pin field removed
           parentUserId: Number(form.parentUserId) || Number(user?.id),
           createdBy: Number(user?.id),
         };
@@ -1108,8 +1305,6 @@ export default function UserManagement() {
         console.log("Updating user with payload:", JSON.stringify(updateData));
         await updateUser(selected.id, updateData);
 
-        // Status change — Admin only. Reactivation of an auto-inactive user
-        // is allowed exclusively to the Admin role.
         if (user?.role === "Admin" && form.status !== selected.status) {
           if (form.status === "Active") {
             await userApi.reactivate(selected.id);
@@ -1211,7 +1406,6 @@ export default function UserManagement() {
 
   const handleViewTeam = (node) => {
     setViewingTeamId(node.id);
-    setShowTree(false);
     toast.success(`Showing ${node.name}'s team`, { duration: 2000 });
   };
 
@@ -1233,12 +1427,6 @@ export default function UserManagement() {
               <X size={14} /> Clear Filter
             </button>
           )}
-          <button
-            onClick={() => setShowTree(p => !p)}
-            className={`${showTree ? "btn-primary" : "btn-secondary"} text-sm`}
-          >
-            {showTree ? <Users size={14} /> : <Users size={14} />} {showTree ? "Tree View" : "Table View"}
-          </button>
         </div>
       </div>
 
@@ -1324,7 +1512,7 @@ export default function UserManagement() {
         </div>
       </div>
 
-      {viewingTeamId && !showTree && (
+      {viewingTeamId && (
         <div className="flex items-center gap-2 bg-blue-50 text-blue-700 text-sm font-semibold px-4 py-2.5 rounded-xl">
           <Users size={16} />
           <span>Viewing Team: {users.find(u => u.id === viewingTeamId)?.name}</span>
@@ -1334,74 +1522,7 @@ export default function UserManagement() {
         </div>
       )}
 
-      {showTree && (
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              value={treeSearch}
-              onChange={e => setTreeSearch(e.target.value)}
-              placeholder="Search by Name, Code, Mobile, Role, Branch, Region..."
-              className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            {treeSearch && (
-              <button onClick={() => setTreeSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                <X size={14} />
-              </button>
-            )}
-          </div>
-          {viewingTeamId && (
-            <div className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 text-xs font-semibold px-3 py-2 rounded-xl">
-              <Users size={12} />
-              Team View
-              <button onClick={clearTeamFilter} className="ml-1 hover:text-indigo-900"><X size={12} /></button>
-            </div>
-          )}
-          {filterRole && !viewingTeamId && (
-            <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-2 rounded-xl">
-              <Filter size={12} />
-              {filterRole}
-              <button onClick={() => setFilterRole("")} className="ml-1 hover:text-blue-900"><X size={12} /></button>
-            </div>
-          )}
-          <div className="text-xs text-gray-400">
-            {filteredUsers.length} of {visibleUsers.length} shown
-          </div>
-        </div>
-      )}
-
-      {showTree ? (
-        <div className="card p-5">
-          <h3 className="font-medium text-gray-800 mb-4 flex items-center gap-2">
-            <Building2 size={16} /> Organization Hierarchy
-            <span className="text-xs font-normal text-gray-400 ml-1">
-              ({users.length} total · {treeRoots.length} top-level)
-            </span>
-          </h3>
-
-          {filteredUsers.length === 0 ? (
-            <div className="text-center py-12 text-gray-400 text-sm">
-              {treeSearch ? "No users match your search" : "No users in your hierarchy"}
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {treeRoots.map(root => (
-                <TreeNode
-                  key={root.id}
-                  node={root}
-                  users={users}
-                  customers={customers}
-                  bookings={bookings}
-                  depth={0}
-                  onViewTeam={handleViewTeam}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        <>
-          <div className="card p-4">
+      <div className="card p-4">
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative flex-1 min-w-[200px]">
                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -1463,6 +1584,16 @@ export default function UserManagement() {
                 />
               </div>
 
+              <button
+                onClick={handleDownloadPDF}
+                disabled={isExportingPdf}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all shadow-sm active:scale-95 flex-shrink-0"
+                title="Download filtered users as PDF"
+              >
+                {isExportingPdf ? <Loader2 size={15} className="animate-spin" /> : <FileDown size={15} />}
+                PDF
+              </button>
+
               {(treeSearch || filterRole || filterJobType || dateFrom || dateTo) && (
                 <button
                   onClick={() => {
@@ -1479,7 +1610,7 @@ export default function UserManagement() {
               )}
 
               <span className="text-xs text-gray-400 ml-auto">
-                {filteredUsers.length} of {visibleUsers.length} users
+                {treeData.roots.length} of {users.length} users
               </span>
             </div>
           </div>
@@ -1487,8 +1618,16 @@ export default function UserManagement() {
           <DataTable
             title="Team Members"
             columns={columns}
-            data={filteredUsers}
-            searchKey={["name", "email", "role", "mobile", "employeeCode", "region", "branch"]}
+            data={treeData.roots}
+            hideSearch
+            tree={{
+              childrenOf: (row) => {
+                const kids = users.filter(u => u.parentUserId === row.id);
+                return treeData.keptIds ? kids.filter(c => treeData.keptIds.has(c.id)) : kids;
+              },
+              isExpanded: (id) => expandedIds.has(id) || treeData.autoExpandIds.has(id),
+              onToggle: toggleNode,
+            }}
             onAdd={canCreateUser ? openAdd : undefined}
             addLabel={canCreateUser ? "+ Add User" : undefined}
             actions={(row) => (
@@ -1505,8 +1644,6 @@ export default function UserManagement() {
               </>
             )}
           />
-        </>
-      )}
 
       <AddUserModal
         key={modal === "add" ? "add-modal" : "closed"}
@@ -1536,7 +1673,7 @@ export default function UserManagement() {
         userData={createdUser}
       />
 
-      {/* Edit Modal with same icon styling as Create Modal */}
+      {/* Edit Modal */}
       <Modal open={modal === "edit"} onClose={() => { setModal(null); setEditErrors({}); }} title="Edit User" size="lg">
         <div className="space-y-4">
           {/* Personal Information */}
@@ -1930,6 +2067,89 @@ export default function UserManagement() {
           </div>
         )}
       </Modal>
+
+      {/* Hidden PDF export container */}
+      <div
+        ref={pdfExportRef}
+        aria-hidden="true"
+        className="absolute top-[-9999px] left-[-9999px] pointer-events-none opacity-0"
+      >
+        {pdfPages.map((pageRows, pageIdx) => (
+          <div
+            key={pageIdx}
+            className="pdf-page w-[794px] h-[1123px] relative flex flex-col font-sans box-border p-10"
+            style={{ overflow: "hidden", background: "#FFFFFF" }}
+          >
+            {/* Watermark */}
+            <img
+              src="/metrohomes-icon.png"
+              alt=""
+              crossOrigin="anonymous"
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] object-contain pointer-events-none"
+              style={{ opacity: 0.06 }}
+            />
+
+            {/* Bordered content box */}
+            <div className="relative flex flex-col h-full border-2 border-[#1e3a8a] rounded-2xl p-8 overflow-hidden">
+              {/* Header: logo left + centered title */}
+              <div className="flex items-center mb-4">
+                <img src="/metrohomes-icon.png" alt="MH Logo" className="w-[90px] h-[90px] object-contain mr-[15px]" crossOrigin="anonymous" />
+                <div className="flex-1 text-center mr-[85px]">
+                  <div className="text-[28px] font-black text-[#1e3a8a] tracking-[1.5px] leading-tight" style={{ fontFamily: "Arial Black, Impact, sans-serif" }}>
+                    METRO HOMES
+                  </div>
+                  <div className="text-[10px] font-bold text-[#334155] mt-1">
+                    #557, 17th Cross, 2nd Floor, 2nd Stage, Indiranagar, Bengaluru-560 038
+                  </div>
+                </div>
+              </div>
+
+              {/* Title & Date */}
+              <div className="relative flex items-center justify-between mb-4">
+                <span className="w-full text-center text-[#1e3a8a] font-bold text-[14px] underline tracking-[1px]">USERS LIST</span>
+                <span className="absolute right-0 flex items-end text-[12.5px] font-bold text-[#1e293b]">
+                  Date:
+                  <span className="border-b border-dotted border-[#475569] min-w-[130px] ml-2 px-1 font-mono text-[13px] text-black inline-block text-center">
+                    {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                  </span>
+                </span>
+              </div>
+
+              {/* Table */}
+              <div className="flex-1">
+                <table className="w-full border-collapse text-[13px]">
+                  <thead>
+                    <tr className="bg-[#1e3a8a] text-white">
+                      <th className="border border-[#1e3a8a] px-3 py-2 text-left font-bold">User ID</th>
+                      <th className="border border-[#1e3a8a] px-3 py-2 text-left font-bold">Name</th>
+                      <th className="border border-[#1e3a8a] px-3 py-2 text-left font-bold">Designation</th>
+                      <th className="border border-[#1e3a8a] px-3 py-2 text-left font-bold">Employment Type</th>
+                      <th className="border border-[#1e3a8a] px-3 py-2 text-left font-bold">Mobile</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pageRows.map((u, rowIdx) => (
+                      <tr key={u.id} className="bg-white">
+                        <td className="border border-gray-200 px-3 py-2 font-mono font-medium text-black">{u.employeeCode || "—"}</td>
+                        <td className="border border-gray-200 px-3 py-2 text-black">{u.name || "—"}</td>
+                        <td className="border border-gray-200 px-3 py-2 text-black">{u.role || "—"}</td>
+                        <td className="border border-gray-200 px-3 py-2 text-black">{u.jobType || "—"}</td>
+                        <td className="border border-gray-200 px-3 py-2 text-black whitespace-nowrap">{u.mobile || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Footer */}
+              <div className="mt-5 pt-4 flex items-end justify-between text-[12.5px] font-bold text-[#1e293b]">
+                <span className="whitespace-nowrap">For Metro Homes</span>
+                <span className="text-[10px] font-semibold text-gray-400">Page {pageIdx + 1} of {pdfPages.length}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

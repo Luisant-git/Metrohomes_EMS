@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Search, ChevronLeft, ChevronRight, Filter } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Plus, Minus } from "lucide-react";
 
-export default function DataTable({ columns, data, actions, searchKey, title, onAdd, addLabel = "Add New", hideSearch, extraActions, resetSearch, statusOptions = [], statusFilter = "", onStatusFilterChange, rowClassName }) {
+export default function DataTable({ columns, data, actions, searchKey, title, onAdd, addLabel = "Add New", hideSearch, extraActions, resetSearch, statusOptions = [], statusFilter = "", onStatusFilterChange, rowClassName, tree = null }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const perPage = 8;
@@ -13,14 +13,29 @@ export default function DataTable({ columns, data, actions, searchKey, title, on
     }
   }, [resetSearch]);
 
-  const filtered = data.filter(row => {
+  // When `tree` is provided, flatten the rows depth-first based on expansion state
+  const rows = [];
+  if (tree) {
+    const walk = (node, depth) => {
+      const children = tree.childrenOf ? tree.childrenOf(node) : [];
+      rows.push({ row: node, depth, key: node.id ?? rows.length, canExpand: children.length > 0 });
+      if (children.length > 0 && tree.isExpanded && tree.isExpanded(node.id)) {
+        children.forEach(c => walk(c, depth + 1));
+      }
+    };
+    (data || []).forEach(root => walk(root, 0));
+  } else {
+    (data || []).forEach(row => rows.push({ row, depth: 0, key: row.id ?? rows.length, canExpand: false }));
+  }
+
+  const filtered = rows.filter(({ row }) => {
     if (statusFilter && row.status !== statusFilter) return false;
     if (!search) return true;
     const keys = searchKey ? (Array.isArray(searchKey) ? searchKey : [searchKey]) : Object.keys(row);
     return keys.some(k => String(row[k] ?? "").toLowerCase().includes(search.toLowerCase()));
   });
 
-  const totalPages = Math.ceil(filtered.length / perPage);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const paged = filtered.slice((page - 1) * perPage, page * perPage);
 
   return (
@@ -80,10 +95,31 @@ export default function DataTable({ columns, data, actions, searchKey, title, on
                   No records found
                 </td>
               </tr>
-            ) : paged.map((row, i) => (
-              <tr key={row.id || i} className={`hover:bg-gray-50/50 transition-colors ${typeof rowClassName === 'function' ? rowClassName(row) : rowClassName || ''}`}>
-                {columns.map(col => (
+            ) : paged.map(({ row, depth, key, canExpand }) => (
+              <tr key={key} className={`transition-colors ${typeof rowClassName === 'function' ? rowClassName(row) : rowClassName || ''} ${
+                tree
+                  ? depth === 0 ? 'bg-white' : depth % 2 === 1 ? 'bg-indigo-50/70' : 'bg-indigo-50/40'
+                  : ''
+              }`}>
+                {columns.map((col, ci) => (
                   <td key={col.key} className="px-5 py-3.5 text-sm text-slate-900 whitespace-nowrap">
+                    {ci === 0 && tree && (
+                      <span className="inline-flex items-center align-middle">
+                        {depth > 0 && <span className="inline-block flex-shrink-0" style={{ width: depth * 22 }} />}
+                        <button
+                          onClick={() => tree.onToggle?.(row.id)}
+                          disabled={!canExpand}
+                          className={`w-5 h-5 rounded flex items-center justify-center mr-2 flex-shrink-0 transition-all ${
+                            canExpand
+                              ? "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                              : "bg-gray-100 text-gray-400 cursor-default"
+                          }`}
+                          title={canExpand ? (tree.isExpanded?.(row.id) ? "Collapse" : "Expand") : "No downline"}
+                        >
+                          {tree.isExpanded?.(row.id) ? <Minus size={12} /> : <Plus size={12} />}
+                        </button>
+                      </span>
+                    )}
                     {col.render ? col.render(row[col.key], row) : row[col.key]}
                   </td>
                 ))}
