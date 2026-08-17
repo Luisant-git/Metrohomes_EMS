@@ -966,16 +966,6 @@ export default function UserManagement() {
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [pdfMetrics, setPdfMetrics] = useState({ headerHeight: 37, rowHeights: [] });
 
-  useEffect(() => {
-    if (!pdfMeasureRef.current) return;
-    const header = pdfMeasureRef.current.querySelector(".pdf-measure-header");
-    const rows = pdfMeasureRef.current.querySelectorAll(".pdf-measure-row");
-    setPdfMetrics({
-      headerHeight: header?.offsetHeight || 37,
-      rowHeights: Array.from(rows).map(r => r.offsetHeight || 38),
-    });
-  }, [filteredUsers]);
-
   const handleDownloadPDF = async () => {
     const rows = filteredUsers;
     if (rows.length === 0) {
@@ -1120,6 +1110,16 @@ export default function UserManagement() {
     }
     return result;
   }, [visibleUsers, treeSearch, filterRole, filterJobType, dateFrom, dateTo, viewingTeamId, users]);
+
+  useEffect(() => {
+    if (!pdfMeasureRef.current) return;
+    const header = pdfMeasureRef.current.querySelector(".pdf-measure-header");
+    const rows = pdfMeasureRef.current.querySelectorAll(".pdf-measure-row");
+    setPdfMetrics({
+      headerHeight: header?.offsetHeight || 37,
+      rowHeights: Array.from(rows).map(r => r.offsetHeight || 38),
+    });
+  }, [filteredUsers]);
 
   const pdfPages = useMemo(() => {
     const rows = filteredUsers;
