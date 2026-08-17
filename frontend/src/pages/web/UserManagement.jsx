@@ -44,7 +44,7 @@ const emptyForm = {
 };
 
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-const PDF_PER_PAGE = 26;
+const PDF_PER_PAGE = 20;
 
 function validatePanNo(panNo) {
   if (!panNo?.trim()) {
