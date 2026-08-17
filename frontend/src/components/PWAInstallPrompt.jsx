@@ -22,12 +22,7 @@ export default function PWAInstallPrompt() {
   const checkInstalled = () => {
     const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
     const isInPwa = window.navigator.standalone === true; // iOS Safari
-    if (isStandalone || isInPwa) return true;
-    try {
-      return localStorage.getItem("pwa-installed") === "true";
-    } catch (e) {
-      return false;
-    }
+    return isStandalone || isInPwa;
   };
 
   useEffect(() => {
