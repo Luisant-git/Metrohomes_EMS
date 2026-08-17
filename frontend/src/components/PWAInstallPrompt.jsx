@@ -70,14 +70,18 @@ export default function PWAInstallPrompt() {
 
   // Register service worker and detect when a new version is available
   useEffect(() => {
-    const updateSW = registerSW({
-      immediate: true,
-      onNeedRefresh() {
-        setNeedRefresh(true);
-      },
-      onOfflineReady() {},
-    });
-    updateSWRef.current = updateSW;
+    try {
+      const updateSW = registerSW({
+        immediate: true,
+        onNeedRefresh() {
+          setNeedRefresh(true);
+        },
+        onOfflineReady() {},
+      });
+      updateSWRef.current = updateSW;
+    } catch (e) {
+      // ignore - registration failure must never block the install prompt
+    }
   }, []);
 
   // Re-show the install prompt every 15 seconds until installed

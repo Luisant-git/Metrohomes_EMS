@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { UserRound, Send, ShieldCheck, RefreshCw, Check, ArrowLeft, Lock, Shield } from "lucide-react";
 import { toast } from "react-toastify";
 import logo from "../assests/logo 1.png";
+import PWAInstallPrompt from "../components/PWAInstallPrompt.jsx";
 
 const OTP_LENGTH = 4;
 const OTP_EXPIRY_SECONDS = 292;
@@ -493,6 +494,7 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+      <PWAInstallPrompt />
     </div>
   );
 }
