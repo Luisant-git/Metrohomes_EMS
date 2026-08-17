@@ -44,7 +44,7 @@ const emptyForm = {
 };
 
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-const PDF_TABLE_AVAILABLE_HEIGHT = 781;
+const PDF_TABLE_AVAILABLE_HEIGHT = 770;
 
 function validatePanNo(panNo) {
   if (!panNo?.trim()) {
@@ -2169,7 +2169,7 @@ export default function UserManagement() {
         className="absolute top-[-9999px] left-[-9999px] pointer-events-none opacity-0"
       >
         {/* Measurement table - mirrors the real PDF table so row heights are exact */}
-        <div ref={pdfMeasureRef} aria-hidden="true" className="pointer-events-none">
+        <div ref={pdfMeasureRef} aria-hidden="true" className="pointer-events-none w-[648px] font-sans">
           <table className="w-full border-collapse text-[13px]">
             <thead>
               <tr className="bg-[#1e3a8a] text-white pdf-measure-header">
