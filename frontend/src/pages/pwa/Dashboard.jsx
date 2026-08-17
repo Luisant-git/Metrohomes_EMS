@@ -7,7 +7,6 @@ import {
   UserCheck, ArrowRight, UserPlus, Award 
 } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge.jsx";
-import PWAInstallPrompt from "../../components/PWAInstallPrompt.jsx";
 
 export default function PWADashboard() {
   const { user: authUser } = useAuth();
@@ -215,9 +214,6 @@ export default function PWADashboard() {
           </div>
         )}
       </div>
-
-      {/* PWA Install Prompt */}
-      <PWAInstallPrompt />
     </div>
   );
 }

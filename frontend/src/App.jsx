@@ -7,6 +7,7 @@ import { registerPWAIfNeeded } from "./utils/pwa.js";
 import LoginPage from "./pages/LoginPage.jsx";
 import WebLayout from "./layouts/WebLayout.jsx";
 import PWALayout from "./layouts/PWALayout.jsx";
+import PWAInstallPrompt from "./components/PWAInstallPrompt.jsx";
 
 // Web pages
 import WebDashboard from "./pages/web/Dashboard.jsx";
@@ -126,6 +127,7 @@ export default function App() {
       <AuthProvider>
         <DataProvider>
           <AppRoutes />
+          <PWAInstallPrompt />
           <ToastContainer
             position="top-right"
             autoClose={3000}
