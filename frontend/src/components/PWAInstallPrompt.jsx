@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { registerSW } from "virtual:pwa-register";
-import { Download, RefreshCw } from "lucide-react";
+import { RefreshCw, X } from "lucide-react";
 
 export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -151,32 +151,37 @@ export default function PWAInstallPrompt() {
   if (isInstalled || !showInstall) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl border border-blue-100 p-6 mx-4 max-w-sm w-full animate-fadeIn">
-        <div className="flex flex-col items-center text-center gap-4">
-          <div className="w-16 h-16 flex items-center justify-center">
-            <Download size={32} className="text-blue-600" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="relative bg-white rounded-3xl shadow-xl border border-gray-100 p-6 pt-8 mx-4 max-w-sm w-full animate-fadeIn">
+        <button
+          onClick={handleDismiss}
+          className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+          title="Close"
+        >
+          <X size={18} />
+        </button>
+        <div className="flex items-center gap-4">
+          <div className="w-20 h-20 flex items-center justify-center flex-shrink-0">
+            <img src="/metrohomes-icon.png" alt="Metrohomes" className="w-16 h-16 object-contain" crossOrigin="anonymous" />
           </div>
-          <div>
-            <p className="font-bold text-lg text-slate-900">Install Metrohomes App</p>
-            <p className="text-sm text-slate-500 mt-1">
-              Install Metro Homes for faster access and an app-like experience.
-            </p>
+          <div className="min-w-0">
+            <p className="font-bold text-xl text-slate-900 leading-tight">Metrohomes</p>
+            <p className="text-sm text-slate-500 mt-0.5">Install the app</p>
           </div>
-          <div className="flex items-center gap-3 w-full mt-2">
-            <button
-              onClick={handleInstall}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-3 rounded-xl transition-colors active:scale-95"
-            >
-              Install Now
-            </button>
-            <button
-              onClick={handleDismiss}
-              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold px-4 py-3 rounded-xl transition-colors"
-            >
-              Later
-            </button>
-          </div>
+        </div>
+        <div className="flex items-center gap-3 mt-6">
+          <button
+            onClick={handleInstall}
+            className="w-36 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-6 py-3 rounded-xl transition-colors active:scale-95 shadow-sm shadow-blue-500/30 text-center"
+          >
+            Install
+          </button>
+          <button
+            onClick={handleDismiss}
+            className="w-36 ml-auto bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold px-6 py-3 rounded-xl transition-colors text-center"
+          >
+            Later
+          </button>
         </div>
       </div>
     </div>
