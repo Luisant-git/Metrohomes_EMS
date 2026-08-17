@@ -44,7 +44,7 @@ const emptyForm = {
 };
 
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-const PDF_PER_PAGE = 20;
+const PDF_TABLE_AVAILABLE_HEIGHT = 781;
 
 function validatePanNo(panNo) {
   if (!panNo?.trim()) {
@@ -962,7 +962,19 @@ export default function UserManagement() {
 
   // ── PDF Export ──────────────────────────────────────────────────────────────
   const pdfExportRef = useRef(null);
+  const pdfMeasureRef = useRef(null);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [pdfMetrics, setPdfMetrics] = useState({ headerHeight: 37, rowHeights: [] });
+
+  useEffect(() => {
+    if (!pdfMeasureRef.current) return;
+    const header = pdfMeasureRef.current.querySelector(".pdf-measure-header");
+    const rows = pdfMeasureRef.current.querySelectorAll(".pdf-measure-row");
+    setPdfMetrics({
+      headerHeight: header?.offsetHeight || 37,
+      rowHeights: Array.from(rows).map(r => r.offsetHeight || 38),
+    });
+  }, [filteredUsers]);
 
   const handleDownloadPDF = async () => {
     const rows = filteredUsers;
@@ -974,7 +986,15 @@ export default function UserManagement() {
     const toastId = toast.loading("Generating Users List PDF...");
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 150));
+      if (pdfMeasureRef.current) {
+        const header = pdfMeasureRef.current.querySelector(".pdf-measure-header");
+        const rows = pdfMeasureRef.current.querySelectorAll(".pdf-measure-row");
+        setPdfMetrics({
+          headerHeight: header?.offsetHeight || 37,
+          rowHeights: Array.from(rows).map(r => r.offsetHeight || 38),
+        });
+      }
+      await new Promise(resolve => setTimeout(resolve, 200));
       const container = pdfExportRef.current;
       if (!container) throw new Error("PDF container missing");
 
@@ -1103,12 +1123,26 @@ export default function UserManagement() {
 
   const pdfPages = useMemo(() => {
     const rows = filteredUsers;
+    const avail = PDF_TABLE_AVAILABLE_HEIGHT;
+    const headerHeight = pdfMetrics.headerHeight || 37;
     const pages = [];
-    for (let i = 0; i < rows.length; i += PDF_PER_PAGE) {
-      pages.push(rows.slice(i, i + PDF_PER_PAGE));
-    }
-    return pages;
-  }, [filteredUsers]);
+    let current = [];
+    let used = headerHeight;
+    let start = 0;
+    rows.forEach((row, i) => {
+      const rh = pdfMetrics.rowHeights?.length ? (pdfMetrics.rowHeights[i] || 38) : 38;
+      if (current.length > 0 && used + rh > avail) {
+        pages.push({ rows: current, start });
+        current = [];
+        used = headerHeight;
+        start = i;
+      }
+      current.push(row);
+      used += rh;
+    });
+    if (current.length) pages.push({ rows: current, start });
+    return pages.length ? pages : [{ rows: [], start: 0 }];
+  }, [filteredUsers, pdfMetrics]);
 
   const treeRoots = useMemo(() => {
     return users.filter(u => !u.parentUserId).sort((a, b) => {
@@ -2134,7 +2168,35 @@ export default function UserManagement() {
         aria-hidden="true"
         className="absolute top-[-9999px] left-[-9999px] pointer-events-none opacity-0"
       >
-        {pdfPages.map((pageRows, pageIdx) => (
+        {/* Measurement table - mirrors the real PDF table so row heights are exact */}
+        <div ref={pdfMeasureRef} aria-hidden="true" className="pointer-events-none">
+          <table className="w-full border-collapse text-[13px]">
+            <thead>
+              <tr className="bg-[#1e3a8a] text-white pdf-measure-header">
+                <th className="border border-[#1e3a8a] px-3 py-2 text-left font-bold">S.No</th>
+                <th className="border border-[#1e3a8a] px-3 py-2 text-left font-bold">User ID</th>
+                <th className="border border-[#1e3a8a] px-3 py-2 text-left font-bold">Name</th>
+                <th className="border border-[#1e3a8a] px-3 py-2 text-left font-bold">Designation</th>
+                <th className="border border-[#1e3a8a] px-3 py-2 text-left font-bold">Employment Type</th>
+                <th className="border border-[#1e3a8a] px-3 py-2 text-left font-bold">Mobile</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.map((u) => (
+                <tr key={u.id} className="pdf-measure-row bg-white">
+                  <td className="border border-gray-200 px-3 py-2 text-black">1</td>
+                  <td className="border border-gray-200 px-3 py-2 font-mono font-medium text-black">{u.employeeCode || "—"}</td>
+                  <td className="border border-gray-200 px-3 py-2 text-black">{u.name || "—"}</td>
+                  <td className="border border-gray-200 px-3 py-2 text-black">{u.role || "—"}</td>
+                  <td className="border border-gray-200 px-3 py-2 text-black">{u.jobType || "—"}</td>
+                  <td className="border border-gray-200 px-3 py-2 text-black whitespace-nowrap">{u.mobile || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {pdfPages.map(({ rows: pageRows, start }, pageIdx) => (
           <div
             key={pageIdx}
             className="pdf-page w-[794px] h-[1123px] relative flex flex-col font-sans box-border p-10"
@@ -2191,7 +2253,7 @@ export default function UserManagement() {
                   <tbody>
                     {pageRows.map((u, rowIdx) => (
                       <tr key={u.id} className="bg-white">
-                        <td className="border border-gray-200 px-3 py-2 text-black">{pageIdx * PDF_PER_PAGE + rowIdx + 1}</td>
+                        <td className="border border-gray-200 px-3 py-2 text-black">{start + rowIdx + 1}</td>
                         <td className="border border-gray-200 px-3 py-2 font-mono font-medium text-black">{u.employeeCode || "—"}</td>
                         <td className="border border-gray-200 px-3 py-2 text-black">{u.name || "—"}</td>
                         <td className="border border-gray-200 px-3 py-2 text-black">{u.role || "—"}</td>
