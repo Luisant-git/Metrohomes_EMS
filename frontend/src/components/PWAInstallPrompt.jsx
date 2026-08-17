@@ -6,9 +6,18 @@ export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstall, setShowInstall] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
   const [needRefresh, setNeedRefresh] = useState(false);
   const deferredPromptRef = useRef(null);
   const updateSWRef = useRef(null);
+
+  useEffect(() => {
+    setIsStandalone(window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
+    const mq = window.matchMedia("(display-mode: standalone)");
+    const onChange = () => setIsStandalone(mq.matches || window.navigator.standalone === true);
+    mq.addEventListener?.("change", onChange);
+    return () => mq.removeEventListener?.("change", onChange);
+  }, []);
 
   const checkInstalled = () => {
     const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
@@ -113,7 +122,7 @@ export default function PWAInstallPrompt() {
   };
 
   // ─── Update available popup ─────────────────────────────────────────
-  if (needRefresh) {
+  if (needRefresh && isStandalone) {
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
         <div className="bg-white rounded-2xl shadow-2xl border border-blue-100 p-6 mx-4 max-w-sm w-full animate-fadeIn">
