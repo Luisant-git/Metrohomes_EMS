@@ -14,10 +14,11 @@ import {
   X, ChevronsDown, Shield, Crown, Globe, Briefcase, Target, CheckCircle, AlertCircle, AlertTriangle,
   User, Mail, Phone, MapPin, Calendar, CreditCard, Building, Hash, ArrowRight, Loader2,
   UserCog, UserCheck as UserVerify, FileText, Banknote, Users as UsersGroup,
-  FileDown, ChevronsUpDown
+  FileDown, ChevronsUpDown, FileSpreadsheet
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { formatINRShort } from "../../utils/format.js";
+import { exportUsersToExcel } from "../../utils/excel.js";
 
 const emptyForm = {
   name: "",
@@ -43,6 +44,7 @@ const emptyForm = {
 };
 
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+const PDF_PER_PAGE = 26;
 
 function validatePanNo(panNo) {
   if (!panNo?.trim()) {
@@ -921,6 +923,7 @@ export default function UserManagement() {
   const [createdUser, setCreatedUser] = useState(null);
   const [treeSearch, setTreeSearch] = useState("");
   const [treePage, setTreePage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [filterRole, setFilterRole] = useState("");
   const [filterJobType, setFilterJobType] = useState("");
   const [viewingTeamId, setViewingTeamId] = useState(null);
@@ -996,6 +999,27 @@ export default function UserManagement() {
       toast.update(toastId, { render: "Failed to download PDF", type: "error", isLoading: false, autoClose: 3000 });
     } finally {
       setIsExportingPdf(false);
+    }
+  };
+
+  const handleDownloadExcel = () => {
+    const rows = filteredUsers;
+    if (rows.length === 0) {
+      toast.error("No users to export with the current filters");
+      return;
+    }
+    try {
+      exportUsersToExcel(rows, {
+        filename: "Metrohomes_Users_List.xlsx",
+        referredBy: (u) => {
+          const parent = users.find(p => p.id === u.parentUserId);
+          return parent ? parent.name : "";
+        },
+      });
+      toast.success("Users list Excel downloaded successfully!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to download Excel");
     }
   };
 
@@ -1079,10 +1103,9 @@ export default function UserManagement() {
 
   const pdfPages = useMemo(() => {
     const rows = filteredUsers;
-    const perPage = 26;
     const pages = [];
-    for (let i = 0; i < rows.length; i += perPage) {
-      pages.push(rows.slice(i, i + perPage));
+    for (let i = 0; i < rows.length; i += PDF_PER_PAGE) {
+      pages.push(rows.slice(i, i + PDF_PER_PAGE));
     }
     return pages;
   }, [filteredUsers]);
@@ -1541,6 +1564,20 @@ export default function UserManagement() {
                 )}
               </div>
 
+              <div className="min-w-[120px]">
+                <select
+                  value={pageSize}
+                  onChange={e => setPageSize(e.target.value)}
+                  className="input-field"
+                  title="Records per page"
+                >
+                  {[20, 50, 100, 150, 300].map(n => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                  <option value="all">All</option>
+                </select>
+              </div>
+
               <div className="min-w-[180px]">
                 <select
                   value={filterRole}
@@ -1606,6 +1643,15 @@ export default function UserManagement() {
                 PDF
               </button>
 
+              <button
+                onClick={handleDownloadExcel}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-all shadow-sm active:scale-95 flex-shrink-0"
+                title="Download filtered users as Excel"
+              >
+                <FileSpreadsheet size={15} />
+                Excel
+              </button>
+
               {(treeSearch || filterRole || filterJobType || dateFrom || dateTo) && (
                 <button
                   onClick={() => {
@@ -1632,6 +1678,8 @@ export default function UserManagement() {
             columns={columns}
             data={treeData.roots}
             hideSearch
+            serial
+            pageSize={pageSize === "all" ? 100000 : pageSize}
             tree={{
               childrenOf: (row) => {
                 const kids = users.filter(u => u.parentUserId === row.id);
@@ -2132,6 +2180,7 @@ export default function UserManagement() {
                 <table className="w-full border-collapse text-[13px]">
                   <thead>
                     <tr className="bg-[#1e3a8a] text-white">
+                      <th className="border border-[#1e3a8a] px-3 py-2 text-left font-bold">S.No</th>
                       <th className="border border-[#1e3a8a] px-3 py-2 text-left font-bold">User ID</th>
                       <th className="border border-[#1e3a8a] px-3 py-2 text-left font-bold">Name</th>
                       <th className="border border-[#1e3a8a] px-3 py-2 text-left font-bold">Designation</th>
@@ -2142,6 +2191,7 @@ export default function UserManagement() {
                   <tbody>
                     {pageRows.map((u, rowIdx) => (
                       <tr key={u.id} className="bg-white">
+                        <td className="border border-gray-200 px-3 py-2 text-black">{pageIdx * PDF_PER_PAGE + rowIdx + 1}</td>
                         <td className="border border-gray-200 px-3 py-2 font-mono font-medium text-black">{u.employeeCode || "—"}</td>
                         <td className="border border-gray-200 px-3 py-2 text-black">{u.name || "—"}</td>
                         <td className="border border-gray-200 px-3 py-2 text-black">{u.role || "—"}</td>

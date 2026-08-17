@@ -95,3 +95,29 @@ export function exportBookingToExcel(b, { filename } = {}) {
 
   XLSX.writeFile(wb, filename || `${b.bookingId || b.id || "booking"}.xlsx`);
 }
+
+export function exportUsersToExcel(users, { filename, referredBy = () => "" } = {}) {
+  const header = ["S.No", "User ID", "Name", "Designation", "Employment Type", "Mobile", "Email", "Referred By", "Status"];
+  const rows = [
+    header,
+    ...users.map((u, i) => [
+      i + 1,
+      u.employeeCode || "",
+      u.name || "",
+      u.role || "",
+      u.jobType || "",
+      u.mobile || "",
+      u.email || "",
+      referredBy(u) || "",
+      u.status || "",
+    ]),
+  ];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"] = [
+    { wch: 6 }, { wch: 14 }, { wch: 24 }, { wch: 18 },
+    { wch: 16 }, { wch: 14 }, { wch: 30 }, { wch: 24 }, { wch: 12 },
+  ];
+  XLSX.utils.book_append_sheet(wb, ws, "Users");
+  XLSX.writeFile(wb, filename || "Metrohomes_Users_List.xlsx");
+}

@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { Search, ChevronLeft, ChevronRight, Plus, Minus } from "lucide-react";
 
-export default function DataTable({ columns, data, actions, searchKey, title, onAdd, addLabel = "Add New", hideSearch, extraActions, resetSearch, statusOptions = [], statusFilter = "", onStatusFilterChange, rowClassName, tree = null }) {
+export default function DataTable({ columns, data, actions, searchKey, title, onAdd, addLabel = "Add New", hideSearch, extraActions, resetSearch, statusOptions = [], statusFilter = "", onStatusFilterChange, rowClassName, tree = null, serial = false, pageSize = null }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const perPage = 8;
+  const perPage = pageSize || 8;
 
   useEffect(() => {
     if (resetSearch !== undefined && resetSearch !== null) {
@@ -80,6 +80,7 @@ export default function DataTable({ columns, data, actions, searchKey, title, on
         <table className="w-full">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100">
+              {serial && <th className="text-left px-5 py-3.5 text-[11px] font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">S.No</th>}
               {columns.map(col => (
                 <th key={col.key} className="text-left px-5 py-3.5 text-[11px] font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">
                   {col.label}
@@ -91,16 +92,17 @@ export default function DataTable({ columns, data, actions, searchKey, title, on
           <tbody className="divide-y divide-gray-50">
             {paged.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + (actions ? 1 : 0)} className="text-center py-12 text-gray-400 text-sm">
+                <td colSpan={columns.length + (actions ? 1 : 0) + (serial ? 1 : 0)} className="text-center py-12 text-gray-400 text-sm">
                   No records found
                 </td>
               </tr>
-            ) : paged.map(({ row, depth, key, canExpand }) => (
+            ) : paged.map(({ row, depth, key, canExpand }, pi) => (
               <tr key={key} className={`transition-colors ${typeof rowClassName === 'function' ? rowClassName(row) : rowClassName || ''} ${
                 tree
                   ? depth === 0 ? 'bg-white' : depth % 2 === 1 ? 'bg-indigo-50/70' : 'bg-indigo-50/40'
                   : ''
               }`}>
+                {serial && <td className="px-5 py-3.5 text-sm text-slate-500 whitespace-nowrap">{(page - 1) * perPage + pi + 1}</td>}
                 {columns.map((col, ci) => (
                   <td key={col.key} className="px-5 py-3.5 text-sm text-slate-900 whitespace-nowrap">
                     {ci === 0 && tree && (
