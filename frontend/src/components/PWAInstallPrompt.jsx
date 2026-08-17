@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
 import { Download } from "lucide-react";
 
 export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
-  const location = useLocation();
 
   useEffect(() => {
     // Check if already installed
@@ -60,28 +58,32 @@ export default function PWAInstallPrompt() {
     };
   }, []);
 
-  // Re-show the prompt on page navigation if not installed and deferredPrompt exists
+  // Re-show the prompt periodically (every 1 minute) until installed
   useEffect(() => {
-    if (!isInstalled && deferredPrompt && !showPrompt) {
-      const timer = setTimeout(() => setShowPrompt(true), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [location.pathname, isInstalled, deferredPrompt]);
+    if (isInstalled || !deferredPrompt || showPrompt) return;
+    const timer = setTimeout(() => setShowPrompt(true), 60 * 1000);
+    return () => clearTimeout(timer);
+  }, [isInstalled, deferredPrompt, showPrompt]);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const result = await deferredPrompt.userChoice;
-    if (result.outcome === "accepted") {
-      setIsInstalled(true);
-      setShowPrompt(false);
-      try {
-        localStorage.setItem("pwa-installed", "true");
-      } catch (e) {
-        // ignore
+    try {
+      deferredPrompt.prompt();
+      const result = await deferredPrompt.userChoice;
+      if (result.outcome === "accepted") {
+        setIsInstalled(true);
+        setShowPrompt(false);
+        try {
+          localStorage.setItem("pwa-installed", "true");
+        } catch (e) {
+          // ignore
+        }
+      } else {
+        setShowPrompt(false);
       }
+    } catch (e) {
+      setShowPrompt(false);
     }
-    setDeferredPrompt(null);
   };
 
   const handleDismiss = () => {
