@@ -19,19 +19,15 @@ export default function PWAInstallPrompt() {
     return () => mq.removeEventListener?.("change", onChange);
   }, []);
 
-  const checkInstalled = () => {
+  useEffect(() => {
     const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
     const isInPwa = window.navigator.standalone === true; // iOS Safari
-    return isStandalone || isInPwa;
-  };
-
-  useEffect(() => {
-    if (checkInstalled()) {
+    if (isStandalone || isInPwa) {
       setIsInstalled(true);
       return;
     }
 
-    // Native install prompt (Chrome/Edge)
+    // Capture the real native install prompt (Chrome/Edge)
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       deferredPromptRef.current = e;
@@ -53,8 +49,7 @@ export default function PWAInstallPrompt() {
     };
     window.addEventListener("appinstalled", handleAppInstalled);
 
-    // Fallback: show manual install instructions even if the browser
-    // never fires beforeinstallprompt (iOS, unsupported, etc.)
+    // Fallback: show the banner even if the browser never fires a native prompt
     const fallbackTimer = setTimeout(() => {
       if (!deferredPromptRef.current && !checkInstalled()) {
         setShowInstall(true);
@@ -71,20 +66,27 @@ export default function PWAInstallPrompt() {
   // Register service worker and detect when a new version is available
   useEffect(() => {
     try {
+      let dismissed = false;
+      try {
+        dismissed = localStorage.getItem("pwa-update-dismissed") === "true";
+      } catch (e) {
+        // ignore
+      }
       const updateSW = registerSW({
         immediate: true,
         onNeedRefresh() {
+          if (dismissed) return;
           setNeedRefresh(true);
         },
         onOfflineReady() {},
       });
       updateSWRef.current = updateSW;
     } catch (e) {
-      // ignore - registration failure must never block the install prompt
+      // ignore - registration failure must never block the update prompt
     }
   }, []);
 
-  // Re-show the install prompt every 15 seconds until installed
+  // Re-show the install banner every 15 seconds until installed
   useEffect(() => {
     if (isInstalled || showInstall || needRefresh) return;
     const timer = setTimeout(() => setShowInstall(true), 15 * 1000);
@@ -111,7 +113,6 @@ export default function PWAInstallPrompt() {
         setShowInstall(false);
       }
     } else {
-      // No native prompt available - keep showing manual instructions
       setShowInstall(false);
     }
   };
@@ -120,10 +121,16 @@ export default function PWAInstallPrompt() {
     setShowInstall(false);
   };
 
-  // ─── Update available popup ─────────────────────────────────────────
+  const checkInstalled = () => {
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
+    const isInPwa = window.navigator.standalone === true;
+    return isStandalone || isInPwa;
+  };
+
+  // ─── Update available popup (top) ───────────────────────────────────
   if (needRefresh && isStandalone) {
     return (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
+      <div className="fixed inset-0 z-[60] flex items-start justify-center bg-black/30 backdrop-blur-sm p-4 pt-16">
         <div className="bg-white rounded-2xl shadow-2xl border border-blue-100 p-6 mx-4 max-w-sm w-full animate-fadeIn">
           <div className="flex flex-col items-center text-center gap-4">
             <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center">
@@ -137,13 +144,27 @@ export default function PWAInstallPrompt() {
             </div>
             <div className="flex items-center gap-3 w-full mt-2">
               <button
-                onClick={() => updateSWRef.current?.(true)}
+                onClick={() => {
+                  try {
+                    localStorage.removeItem("pwa-update-dismissed");
+                  } catch (e) {
+                    // ignore
+                  }
+                  updateSWRef.current?.(true);
+                }}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-3 rounded-xl transition-colors active:scale-95"
               >
                 Update Now
               </button>
               <button
-                onClick={() => setNeedRefresh(false)}
+                onClick={() => {
+                  try {
+                    localStorage.setItem("pwa-update-dismissed", "true");
+                  } catch (e) {
+                    // ignore
+                  }
+                  setNeedRefresh(false);
+                }}
                 className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold px-4 py-3 rounded-xl transition-colors"
               >
                 Later
@@ -155,40 +176,32 @@ export default function PWAInstallPrompt() {
     );
   }
 
-  // ─── Install popup (centered) ───────────────────────────────────────
+  // ─── Install banner (top) ───────────────────────────────────────────
   if (isInstalled || !showInstall) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="relative bg-white rounded-3xl shadow-xl border border-gray-100 p-6 pt-8 mx-4 max-w-sm w-full animate-fadeIn">
+    <div className="fixed top-0 left-0 right-0 z-50 flex justify-center p-4">
+      <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-100 px-4 py-3 mx-2 w-full max-w-sm animate-fadeIn">
         <button
           onClick={handleDismiss}
-          className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+          className="absolute top-1 right-1 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
           title="Close"
         >
-          <X size={18} />
+          <X size={16} />
         </button>
-        <div className="flex items-center gap-4">
-          <div className="w-20 h-20 flex items-center justify-center flex-shrink-0">
-            <img src="/metrohomes-icon.png" alt="Metrohomes" className="w-16 h-16 object-contain" crossOrigin="anonymous" />
+        <div className="flex items-center gap-3 pr-9">
+          <div className="w-12 h-12 flex items-center justify-center flex-shrink-0">
+            <img src="/metrohomes-icon.png" alt="Metrohomes" className="w-10 h-10 object-contain" crossOrigin="anonymous" />
           </div>
-          <div className="min-w-0">
-            <p className="font-bold text-xl text-slate-900 leading-tight">Metrohomes</p>
-            <p className="text-sm text-slate-500 mt-0.5">Install the app</p>
+          <div className="min-w-0 flex-1">
+            <p className="font-bold text-base text-slate-900 leading-tight truncate">Metrohomes</p>
+            <p className="text-xs text-slate-500">Install the app</p>
           </div>
-        </div>
-        <div className="flex items-center gap-3 mt-6">
           <button
             onClick={handleInstall}
-            className="w-36 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-6 py-3 rounded-xl transition-colors active:scale-95 shadow-sm shadow-blue-500/30 text-center"
+            className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors active:scale-95 shadow-sm shadow-blue-500/30"
           >
             Install
-          </button>
-          <button
-            onClick={handleDismiss}
-            className="w-36 ml-auto bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold px-6 py-3 rounded-xl transition-colors text-center"
-          >
-            Later
           </button>
         </div>
       </div>
