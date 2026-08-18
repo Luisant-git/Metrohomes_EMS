@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { registerSW } from "virtual:pwa-register";
-import { RefreshCw, X } from "lucide-react";
+import { RefreshCw, X, Check, Loader2 } from "lucide-react";
 
 export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstall, setShowInstall] = useState(false);
+  const [installStatus, setInstallStatus] = useState("idle"); // idle | installing | installed
   const [isInstalled, setIsInstalled] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [needRefresh, setNeedRefresh] = useState(false);
@@ -96,26 +97,39 @@ export default function PWAInstallPrompt() {
   const handleInstall = async () => {
     if (deferredPrompt) {
       try {
+        setInstallStatus("installing");
         deferredPrompt.prompt();
         const result = await deferredPrompt.userChoice;
         if (result.outcome === "accepted") {
+          setInstallStatus("installed");
           setIsInstalled(true);
-          setShowInstall(false);
           try {
             localStorage.setItem("pwa-installed", "true");
           } catch (e) {
             // ignore
           }
         } else {
+          setInstallStatus("idle");
           setShowInstall(false);
         }
       } catch (e) {
+        setInstallStatus("idle");
         setShowInstall(false);
       }
     } else {
       setShowInstall(false);
     }
   };
+
+  // Auto-hide the success banner after install
+  useEffect(() => {
+    if (installStatus !== "installed") return;
+    const timer = setTimeout(() => {
+      setShowInstall(false);
+      setInstallStatus("idle");
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [installStatus]);
 
   const handleDismiss = () => {
     setShowInstall(false);
@@ -177,32 +191,58 @@ export default function PWAInstallPrompt() {
   }
 
   // ─── Install banner (top) ───────────────────────────────────────────
-  if (isInstalled || !showInstall) return null;
+  if (isInstalled && installStatus !== "installed") return null;
+  if (!showInstall) return null;
+
+  const installing = installStatus === "installing";
+  const installed = installStatus === "installed";
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 flex justify-center p-4">
       <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-100 px-4 py-3 mx-2 w-full max-w-sm animate-fadeIn">
-        <button
-          onClick={handleDismiss}
-          className="absolute top-1 right-1 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-          title="Close"
-        >
-          <X size={16} />
-        </button>
+        {!installing && !installed && (
+          <button
+            onClick={handleDismiss}
+            className="absolute top-1 right-1 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+            title="Close"
+          >
+            <X size={16} />
+          </button>
+        )}
         <div className="flex items-center gap-3 pr-9">
           <div className="w-12 h-12 flex items-center justify-center flex-shrink-0">
-            <img src="/metrohomes-icon.png" alt="Metrohomes" className="w-10 h-10 object-contain" crossOrigin="anonymous" />
+            {installed ? (
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <Check size={22} className="text-green-600" />
+              </div>
+            ) : (
+              <img src="/metrohomes-icon.png" alt="Metrohomes" className="w-10 h-10 object-contain" crossOrigin="anonymous" />
+            )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-bold text-base text-slate-900 leading-tight truncate">Metrohomes</p>
-            <p className="text-xs text-slate-500">Install the app</p>
+            <p className="font-bold text-base text-slate-900 leading-tight truncate">
+              {installed ? "App installed" : "Metrohomes"}
+            </p>
+            <p className="text-xs text-slate-500">
+              {installing ? "Installing app..." : installed ? "Successfully installed" : "Install the app"}
+            </p>
           </div>
-          <button
-            onClick={handleInstall}
-            className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors active:scale-95 shadow-sm shadow-blue-500/30"
-          >
-            Install
-          </button>
+          {!installed && (
+            <button
+              onClick={handleInstall}
+              disabled={installing}
+              className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors active:scale-95 shadow-sm shadow-blue-500/30 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {installing ? (
+                <span className="flex items-center gap-1.5">
+                  <Loader2 size={15} className="animate-spin" />
+                  Installing...
+                </span>
+              ) : (
+                "Install"
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
