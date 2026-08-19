@@ -89,10 +89,10 @@ export default function PWAInstallPrompt() {
 
   // Re-show the install banner every 15 seconds until installed
   useEffect(() => {
-    if (isInstalled || showInstall || needRefresh) return;
+    if (isInstalled || showInstall) return;
     const timer = setTimeout(() => setShowInstall(true), 15 * 1000);
     return () => clearTimeout(timer);
-  }, [isInstalled, showInstall, needRefresh]);
+  }, [isInstalled, showInstall]);
 
   const handleInstall = async () => {
     if (deferredPrompt) {
