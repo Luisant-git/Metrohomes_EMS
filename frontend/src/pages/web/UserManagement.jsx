@@ -1190,22 +1190,6 @@ export default function UserManagement() {
       });
     }
 
-    const effectiveExpanded = (id) => expandedIds.has(id) || autoExpandIds.has(id);
-
-    const byParent = {};
-    users.forEach(u => {
-      (byParent[u.parentUserId] = byParent[u.parentUserId] || []).push(u);
-    });
-
-    const claimed = new Set();
-    const claimChildren = (id) => {
-      (byParent[id] || []).forEach(child => {
-        claimed.add(child.id);
-        if (effectiveExpanded(child.id)) claimChildren(child.id);
-      });
-    };
-    [...autoExpandIds, ...expandedIds].forEach(id => claimChildren(id));
-
     const byCreatedDesc = (a, b) => (new Date(b.createdAt || 0) - new Date(a.createdAt || 0)) || (b.id - a.id);
 
     const visible = keptIds ? users.filter(u => keptIds.has(u.id)) : users;
@@ -1213,7 +1197,8 @@ export default function UserManagement() {
     if (hasFilter) {
       roots = matches.slice().sort(byCreatedDesc);
     } else {
-      roots = visible.filter(u => !claimed.has(u.id)).sort(byCreatedDesc);
+      const visibleIds = new Set(visible.map(u => u.id));
+      roots = visible.filter(u => !u.parentUserId || !visibleIds.has(u.parentUserId)).sort(byCreatedDesc);
     }
 
     return { roots, keptIds, autoExpandIds };

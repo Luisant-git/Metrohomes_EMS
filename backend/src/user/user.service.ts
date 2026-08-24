@@ -548,6 +548,19 @@ const employeeCode = await this.generateEmployeeCode(createUserDto.role);
 
   // ─── GET TEAM MEMBERS ─────────────────────────────────────────────
   async getTeamMembers(userId: number): Promise<number[]> {
+    const allUsers = await this.prisma.user.findMany({
+      select: { id: true, parentUserId: true },
+    });
+    
+    const byParent = new Map<number, number[]>();
+    for (const u of allUsers) {
+      if (u.parentUserId) {
+        const arr = byParent.get(u.parentUserId) || [];
+        arr.push(u.id);
+        byParent.set(u.parentUserId, arr);
+      }
+    }
+
     const teamMembers: number[] = [];
     const queue = [userId];
     const visited = new Set<number>();
@@ -557,14 +570,10 @@ const employeeCode = await this.generateEmployeeCode(createUserDto.role);
       if (visited.has(currentId)) continue;
       visited.add(currentId);
 
-      const children = await this.prisma.user.findMany({
-        where: { parentUserId: currentId },
-        select: { id: true },
-      });
-
-      for (const child of children) {
-        teamMembers.push(child.id);
-        queue.push(child.id);
+      const childrenIds = byParent.get(currentId) || [];
+      for (const childId of childrenIds) {
+        teamMembers.push(childId);
+        queue.push(childId);
       }
     }
 
