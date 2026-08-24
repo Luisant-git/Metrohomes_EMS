@@ -36,7 +36,15 @@ export default function DataTable({ columns, data, actions, searchKey, title, on
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
-  const paged = filtered.slice((page - 1) * perPage, page * perPage);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [totalPages, page]);
+
+  const currentPage = Math.min(page, totalPages);
+  const paged = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
 
   return (
     <div className="card overflow-hidden">
@@ -141,19 +149,24 @@ export default function DataTable({ columns, data, actions, searchKey, title, on
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
-          <span>{filtered.length} results · Page {page} of {totalPages}</span>
+          <span>{filtered.length} results · Page {currentPage} of {totalPages}</span>
           <div className="flex items-center gap-1">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
               className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
               <ChevronLeft size={16} />
             </button>
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map(n => (
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              // Center the pagination window around currentPage
+              let start = Math.max(1, currentPage - 2);
+              if (start + 4 > totalPages) start = Math.max(1, totalPages - 4);
+              return start + i;
+            }).map(n => (
               <button key={n} onClick={() => setPage(n)}
-                className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${page === n ? "bg-blue-600 text-white" : "hover:bg-gray-100"}`}>
+                className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${currentPage === n ? "bg-blue-600 text-white" : "hover:bg-gray-100"}`}>
                 {n}
               </button>
             ))}
-            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
               className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
               <ChevronRight size={16} />
             </button>
