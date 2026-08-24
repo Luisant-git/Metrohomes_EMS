@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Search, ChevronLeft, ChevronRight, Plus, Minus } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Plus, Minus, Loader2 } from "lucide-react";
 
-export default function DataTable({ columns, data, actions, searchKey, title, onAdd, addLabel = "Add New", hideSearch, extraActions, resetSearch, statusOptions = [], statusFilter = "", onStatusFilterChange, rowClassName, tree = null, serial = false, pageSize = null }) {
+export default function DataTable({ columns, data, actions, searchKey, title, onAdd, addLabel = "Add New", hideSearch, extraActions, resetSearch, statusOptions = [], statusFilter = "", onStatusFilterChange, rowClassName, tree = null, serial = false, pageSize = null, loading = false }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const perPage = pageSize || 8;
@@ -98,7 +98,16 @@ export default function DataTable({ columns, data, actions, searchKey, title, on
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {paged.length === 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan={columns.length + (actions ? 1 : 0) + (serial ? 1 : 0)} className="text-center py-12 text-gray-400 text-sm">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Loader2 size={24} className="animate-spin text-blue-500" />
+                    <span>Loading data...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : paged.length === 0 ? (
               <tr>
                 <td colSpan={columns.length + (actions ? 1 : 0) + (serial ? 1 : 0)} className="text-center py-12 text-gray-400 text-sm">
                   No records found

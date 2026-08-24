@@ -1714,6 +1714,7 @@ export default function UserManagement() {
             hideSearch
             serial
             pageSize={pageSize === "all" ? 100000 : pageSize}
+            loading={usersLoading}
             tree={{
               childrenOf: (row) => {
                 const kids = users.filter(u => u.parentUserId === row.id);
