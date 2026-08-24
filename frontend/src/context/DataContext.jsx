@@ -52,12 +52,6 @@ export function DataProvider({ children }) {
     }
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      refreshCustomers();
-    }
-  }, [user, refreshCustomers]);
-
   const refreshUsers = useCallback(async () => {
     try {
       setUsersLoading(true);
@@ -70,12 +64,6 @@ export function DataProvider({ children }) {
     }
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      refreshUsers();
-    }
-  }, [user, refreshUsers]);
-
   const refreshSites = useCallback(async () => {
     try {
       const data = await siteApi.getAll();
@@ -86,11 +74,42 @@ export function DataProvider({ children }) {
     }
   }, []);
 
+  const refreshBookings = useCallback(async () => {
+    try {
+      setBookingsLoading(true);
+      const data = await bookingApi.getAll();
+      const list = Array.isArray(data) ? data : (data.bookings || data.data || []);
+      const normalized = list.map((b) => ({
+        ...b,
+        siteName: b.siteName || (b.site?.siteNo ? `${b.project?.name || ''} - Site ${b.site.siteNo}` : b.project?.name || ""),
+        customerName: b.customerName || b.customer?.name || "",
+        creatorName: b.creatorName || b.creator?.name || "",
+        creatorRole: b.creatorRole || b.creator?.role || "",
+        creatorEmployeeCode: b.creatorEmployeeCode || b.creator?.employeeCode || "",
+        createdUser: b.createdUser || b.creator || null,
+        createdById: b.createdById || b.createdBy || b.creator?.id || null,
+        salesManagerName: b.salesManagerName || b.assignedToUser?.name || b.creator?.name || "",
+      }));
+      setBookings(normalized);
+    } catch (err) {
+      console.error("Failed to fetch bookings:", err);
+    } finally {
+      setBookingsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (user) {
-      refreshSites();
+      // Run sequentially to prevent overwhelming the server on initial load
+      const loadAllData = async () => {
+        await refreshUsers();
+        await refreshSites();
+        await refreshBookings();
+        await refreshCustomers();
+      };
+      loadAllData();
     }
-  }, [user, refreshSites]);
+  }, [user, refreshUsers, refreshSites, refreshBookings, refreshCustomers]);
 
   const addSite = async (siteData) => {
     try {
@@ -164,34 +183,6 @@ export function DataProvider({ children }) {
       throw err;
     }
   };
-
-  const refreshBookings = useCallback(async () => {
-    try {
-      setBookingsLoading(true);
-      const data = await bookingApi.getAll();
-      const list = Array.isArray(data) ? data : (data.bookings || data.data || []);
-      const normalized = list.map((b) => ({
-        ...b,
-        siteName: b.siteName || (b.site?.siteNo ? `${b.project?.name || ''} - Site ${b.site.siteNo}` : b.project?.name || ""),
-        customerName: b.customerName || b.customer?.name || "",
-        creatorName: b.creatorName || b.creator?.name || "",
-        creatorRole: b.creatorRole || b.creator?.role || "",
-        creatorEmployeeCode: b.creatorEmployeeCode || b.creator?.employeeCode || "",
-        createdUser: b.createdUser || b.creator || null,
-        createdById: b.createdById || b.createdBy || b.creator?.id || null,
-        salesManagerName: b.salesManagerName || b.assignedToUser?.name || b.creator?.name || "",
-      }));
-      setBookings(normalized);
-    } catch (err) {
-      console.error("Failed to fetch bookings:", err);
-    } finally {
-      setBookingsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    refreshBookings();
-  }, [refreshBookings]);
 
   const addBooking = async (booking) => {
     await bookingApi.create(booking);
