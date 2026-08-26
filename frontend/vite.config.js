@@ -24,28 +24,19 @@ export default defineConfig({
           src: "/metrohomes-icon.png",
           sizes: "192x192",
           type: "image/png",
+          purpose: "any maskable"
         },
         {
           src: "/metrohomes-icon.png",
           sizes: "512x512",
           type: "image/png",
-        },
-        {
-          src: "/metrohomes-icon.png",
-          sizes: "512x512",
-          type: "image/png",
-        },
+          purpose: "any maskable"
+        }
       ],
     },
     workbox: {
-      globPatterns: [],
-      runtimeCaching: [
-        {
-          urlPattern: /.*/,
-          handler: "NetworkOnly",
-        },
-      ],
-      navigateFallback: null,
+      globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+      navigateFallback: '/index.html',
       cleanupOutdatedCaches: true,
       clientsClaim: true,
       skipWaiting: true,
