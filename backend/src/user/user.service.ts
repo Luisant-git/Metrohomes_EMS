@@ -204,10 +204,6 @@ const employeeCode = await this.generateEmployeeCode(createUserDto.role);
     let users = await this.prisma.user.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      include: {
-        parent: true,
-        children: true,
-      },
     });
 
     if (currentUser && !['Admin', 'Director'].includes(currentUser?.role)) {

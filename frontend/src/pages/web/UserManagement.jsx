@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, Fragment, useRef } from "react";
+import { useState, useMemo, useEffect, Fragment, useRef, useCallback } from "react";
 import { useData } from "../../context/DataContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { user as userApi } from "../../api/user.js";
@@ -1039,23 +1039,30 @@ export default function UserManagement() {
     return ["Admin", "Director"].includes(user?.role);
   }, [user]);
 
-  const getTeamMembers = (userId) => {
+  const getTeamMembers = useCallback((userId) => {
     const teamMembers = [];
     const queue = [userId];
     const visited = new Set();
+
+    const byParent = {};
+    users.forEach(u => {
+      if (u.parentUserId) {
+        (byParent[u.parentUserId] = byParent[u.parentUserId] || []).push(u.id);
+      }
+    });
 
     while (queue.length > 0) {
       const currentId = queue.shift();
       if (visited.has(currentId)) continue;
       visited.add(currentId);
 
-      const children = users.filter(u => u.parentUserId === currentId);
-      teamMembers.push(...children.map(u => u.id));
-      queue.push(...children.map(u => u.id));
+      const childrenIds = byParent[currentId] || [];
+      teamMembers.push(...childrenIds);
+      queue.push(...childrenIds);
     }
 
     return teamMembers;
-  };
+  }, [users]);
 
   const visibleUsers = useMemo(() => {
     const isAdminOrDirector = ["Admin", "Director"].includes(user?.role);
@@ -1070,7 +1077,8 @@ export default function UserManagement() {
 
     if (viewingTeamId) {
       const teamMemberIds = getTeamMembers(viewingTeamId);
-      result = result.filter(u => u.id === viewingTeamId || teamMemberIds.includes(u.id));
+      const teamSet = new Set(teamMemberIds);
+      result = result.filter(u => u.id === viewingTeamId || teamSet.has(u.id));
     }
 
     if (treeSearch) {
@@ -1160,12 +1168,14 @@ export default function UserManagement() {
 
     if (hasFilter) {
       const s = treeSearch.toLowerCase();
+      const teamMemberIds = viewingTeamId ? getTeamMembers(viewingTeamId) : [];
+      const teamSet = new Set(teamMemberIds);
+
       matches = users.filter(u => {
         if (filterRole && u.role !== filterRole) return false;
         if (filterJobType && u.jobType !== filterJobType) return false;
         if (viewingTeamId) {
-          const teamIds = getTeamMembers(viewingTeamId);
-          if (u.id !== viewingTeamId && !teamIds.includes(u.id)) return false;
+          if (u.id !== viewingTeamId && !teamSet.has(u.id)) return false;
         }
         if (treeSearch) {
           return [u.name, u.employeeCode, u.mobile, u.email, u.role, u.branch, u.region]
