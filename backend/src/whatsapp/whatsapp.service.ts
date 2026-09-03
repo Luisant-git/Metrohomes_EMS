@@ -468,7 +468,7 @@ export class WhatsappService {
       this.logger.error('Error sending OTP template', error.response?.data || error.message);
       throw error;
     }
-  private async logTemplateToCRM(customerPhone: string, messageId: string, templateName: string, orderId: any, templateContent: string, templateParameters?: string[], mediaId?: string, fileName?: string) {
+  private async logTemplateToCRM(customerPhone: string, messageId: string, templateName: string, orderId: any, templateContent: string, templateParameters?: string[], mediaId?: string, fileName?: string, templateButtons?: any[]) {
     try {
       const crmApiUrl = 'https://whatsapp.api.luisant.cloud/whatsapp/external/log-message';
       const crmApiKey = process.env.EXTERNAL_API_KEY || 'default-secret-key';
@@ -484,7 +484,8 @@ export class WhatsappService {
         templateContent: templateContent,
         templateParameters: templateParameters,
         mediaId: mediaId,
-        fileName: fileName
+        fileName: fileName,
+        templateButtons: templateButtons
       };
 
       await axios.post(crmApiUrl, payload, {
