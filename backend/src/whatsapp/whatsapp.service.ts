@@ -109,7 +109,8 @@ export class WhatsappService {
           messageId,
           'employeea_registration_success_v4',
           'N/A',
-          `Employee registration success for ${name}`
+          `Employee registration success for ${name}`,
+          [name, employeeCode, role]
         ).catch(e => this.logger.error('Failed to run CRM logging', e));
       }
 
@@ -173,7 +174,16 @@ export class WhatsappService {
           messageId,
           'site_visit_scheduled_v2',
           'N/A',
-          `Site visit scheduled for ${customerName}`
+          `Site visit scheduled for ${customerName}`,
+          [
+            this.sanitizeText(customerName),
+            this.sanitizeText(siteName),
+            this.sanitizeText(visitDate),
+            this.sanitizeText(visitTime),
+            this.sanitizeText(driverName, 'Not Assigned'),
+            this.sanitizeText(driverMobile),
+            this.sanitizeText(vehicleNo)
+          ]
         ).catch(e => this.logger.error('Failed to run CRM logging', e));
       }
 
@@ -241,9 +251,21 @@ export class WhatsappService {
         this.logTemplateToCRM(
           formattedNumber,
           messageId,
-          'customer_site_visit_confirmation',
+          'customer_site_visit_confirmation_v2',
           'N/A',
-          `Customer site visit confirmation`
+          `Customer site visit confirmation`,
+          [
+            this.sanitizeText(salesManagerName, 'Sales Manager'),
+            this.sanitizeText(customerName),
+            this.sanitizeText(customerMobile),
+            this.sanitizeText(siteName),
+            this.sanitizeText(visitDate),
+            this.sanitizeText(visitTime),
+            this.sanitizeText(driverName, 'Not Assigned'),
+            this.sanitizeText(driverMobile),
+            this.sanitizeText(vehicleNo),
+            this.locationToLink(location)
+          ]
         ).catch(e => this.logger.error('Failed to run CRM logging', e));
       }
 
@@ -290,7 +312,7 @@ export class WhatsappService {
         ],
       },
     };
-    return this.sendTemplate('plot_booking_receipt_v1', formattedNumber, payload);
+    return this.sendTemplate('plot_booking_receipt_v1', formattedNumber, payload, [this.sanitizeText(customerName, 'Customer')], mediaId || undefined, 'Booking_Receipt.pdf');
   }
 
   async sendPaymentReceipt(
@@ -329,7 +351,7 @@ export class WhatsappService {
         ],
       },
     };
-    return this.sendTemplate('payment_receipt', formattedNumber, payload);
+    return this.sendTemplate('payment_receipt', formattedNumber, payload, [this.sanitizeText(customerName, 'Customer')], mediaId || undefined, 'Payment_Receipt.pdf');
   }
 
   private sanitizeText(val: any, defaultVal = 'N/A'): string {
@@ -344,7 +366,7 @@ export class WhatsappService {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`;
   }
 
-  async sendTemplate(templateName: string, formattedNumber: string, payload: any): Promise<any> {
+  async sendTemplate(templateName: string, formattedNumber: string, payload: any, templateParameters?: string[], mediaId?: string, fileName?: string): Promise<any> {
     try {
       const response = await axios.post<any>(
         `${this.apiUrl}/${this.phoneNumberId}/messages`,
@@ -369,7 +391,10 @@ export class WhatsappService {
           messageId,
           templateName,
           'N/A', // no specific order id passed via payload easily
-          `Template ${templateName} sent to ${formattedNumber}`
+          `Template ${templateName} sent to ${formattedNumber}`,
+          templateParameters,
+          mediaId,
+          fileName
         ).catch(e => this.logger.error('Failed to run CRM logging', e));
       }
 
@@ -433,7 +458,8 @@ export class WhatsappService {
           messageId,
           'metrohomes_verification_code_v1',
           'N/A',
-          `OTP sent`
+          `OTP sent`,
+          [otp]
         ).catch(e => this.logger.error('Failed to run CRM logging', e));
       }
 
@@ -442,7 +468,7 @@ export class WhatsappService {
       this.logger.error('Error sending OTP template', error.response?.data || error.message);
       throw error;
     }
-  private async logTemplateToCRM(customerPhone: string, messageId: string, templateName: string, orderId: any, templateContent: string) {
+  private async logTemplateToCRM(customerPhone: string, messageId: string, templateName: string, orderId: any, templateContent: string, templateParameters?: string[], mediaId?: string, fileName?: string) {
     try {
       const crmApiUrl = 'https://whatsapp.api.luisant.cloud/whatsapp/external/log-message';
       const crmApiKey = process.env.EXTERNAL_API_KEY || 'default-secret-key';
@@ -455,7 +481,10 @@ export class WhatsappService {
         websiteId: 'Metrohomes_EMS',
         orderId: orderId,
         templateLanguage: 'en',
-        templateContent: templateContent
+        templateContent: templateContent,
+        templateParameters: templateParameters,
+        mediaId: mediaId,
+        fileName: fileName
       };
 
       await axios.post(crmApiUrl, payload, {
