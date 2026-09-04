@@ -102,7 +102,7 @@ export class WhatsappService {
       );
       this.logger.log(`Employee registration success template sent to ${formattedNumber}`);
 
-      const messageId = response.data?.messages?.[0]?.id;
+      const messageId = (response.data as any)?.messages?.[0]?.id;
       if (messageId) {
         this.logTemplateToCRM(
           formattedNumber,
@@ -167,7 +167,7 @@ export class WhatsappService {
       );
       this.logger.log(`Site visit scheduled template sent to ${formattedNumber}`);
 
-      const messageId = response.data?.messages?.[0]?.id;
+      const messageId = (response.data as any)?.messages?.[0]?.id;
       if (messageId) {
         this.logTemplateToCRM(
           formattedNumber,
@@ -246,7 +246,7 @@ export class WhatsappService {
       );
       this.logger.log(`Customer site visit confirmation template sent to ${formattedNumber}`);
 
-      const messageId = response.data?.messages?.[0]?.id;
+      const messageId = (response.data as any)?.messages?.[0]?.id;
       if (messageId) {
         this.logTemplateToCRM(
           formattedNumber,
@@ -451,7 +451,7 @@ export class WhatsappService {
       );
       this.logger.log(`OTP template sent to ${formattedNumber}`);
 
-      const messageId = response.data?.messages?.[0]?.id;
+      const messageId = (response.data as any)?.messages?.[0]?.id;
       if (messageId) {
         this.logTemplateToCRM(
           formattedNumber,
@@ -468,6 +468,7 @@ export class WhatsappService {
       this.logger.error('Error sending OTP template', error.response?.data || error.message);
       throw error;
     }
+  }
   private async logTemplateToCRM(customerPhone: string, messageId: string, templateName: string, orderId: any, templateContent: string, templateParameters?: string[], mediaId?: string, fileName?: string, templateButtons?: any[]) {
     try {
       const crmApiUrl = 'https://whatsapp.api.luisant.cloud/whatsapp/external/log-message';
