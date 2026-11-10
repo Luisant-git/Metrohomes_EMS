@@ -1,4 +1,4 @@
-﻿// src/whatsapp/whatsapp.service.ts
+// src/whatsapp/whatsapp.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import * as fs from 'fs';
@@ -101,6 +101,19 @@ export class WhatsappService {
         },
       );
       this.logger.log(`Employee registration success template sent to ${formattedNumber}`);
+
+      const messageId = (response.data as any)?.messages?.[0]?.id;
+      if (messageId) {
+        this.logTemplateToCRM(
+          formattedNumber,
+          messageId,
+          'employeea_registration_success_v4',
+          'N/A',
+          `Employee registration success for ${name}`,
+          [name, employeeCode, role]
+        ).catch(e => this.logger.error('Failed to run CRM logging', e));
+      }
+
       return response.data;
     } catch (error: any) {
       this.logger.error('Error sending employee registration success template', error.response?.data || error.message);
@@ -153,6 +166,27 @@ export class WhatsappService {
         },
       );
       this.logger.log(`Site visit scheduled template sent to ${formattedNumber}`);
+
+      const messageId = (response.data as any)?.messages?.[0]?.id;
+      if (messageId) {
+        this.logTemplateToCRM(
+          formattedNumber,
+          messageId,
+          'site_visit_scheduled_v2',
+          'N/A',
+          `Site visit scheduled for ${customerName}`,
+          [
+            this.sanitizeText(customerName),
+            this.sanitizeText(siteName),
+            this.sanitizeText(visitDate),
+            this.sanitizeText(visitTime),
+            this.sanitizeText(driverName, 'Not Assigned'),
+            this.sanitizeText(driverMobile),
+            this.sanitizeText(vehicleNo)
+          ]
+        ).catch(e => this.logger.error('Failed to run CRM logging', e));
+      }
+
       return response.data;
     } catch (error: any) {
       this.logger.error('Error sending site visit scheduled template', error.response?.data || error.message);
@@ -211,6 +245,30 @@ export class WhatsappService {
         },
       );
       this.logger.log(`Customer site visit confirmation template sent to ${formattedNumber}`);
+
+      const messageId = (response.data as any)?.messages?.[0]?.id;
+      if (messageId) {
+        this.logTemplateToCRM(
+          formattedNumber,
+          messageId,
+          'customer_site_visit_confirmation_v2',
+          'N/A',
+          `Customer site visit confirmation`,
+          [
+            this.sanitizeText(salesManagerName, 'Sales Manager'),
+            this.sanitizeText(customerName),
+            this.sanitizeText(customerMobile),
+            this.sanitizeText(siteName),
+            this.sanitizeText(visitDate),
+            this.sanitizeText(visitTime),
+            this.sanitizeText(driverName, 'Not Assigned'),
+            this.sanitizeText(driverMobile),
+            this.sanitizeText(vehicleNo),
+            this.locationToLink(location)
+          ]
+        ).catch(e => this.logger.error('Failed to run CRM logging', e));
+      }
+
       return response.data;
     } catch (error: any) {
       this.logger.error('Error sending customer site visit confirmation template', error.response?.data || error.message);
@@ -254,7 +312,7 @@ export class WhatsappService {
         ],
       },
     };
-    return this.sendTemplate('plot_booking_receipt_v1', formattedNumber, payload);
+    return this.sendTemplate('plot_booking_receipt_v1', formattedNumber, payload, [this.sanitizeText(customerName, 'Customer')], mediaId || undefined, 'Booking_Receipt.pdf');
   }
 
   async sendPaymentReceipt(
@@ -293,7 +351,7 @@ export class WhatsappService {
         ],
       },
     };
-    return this.sendTemplate('payment_receipt', formattedNumber, payload);
+    return this.sendTemplate('payment_receipt', formattedNumber, payload, [this.sanitizeText(customerName, 'Customer')], mediaId || undefined, 'Payment_Receipt.pdf');
   }
 
   private sanitizeText(val: any, defaultVal = 'N/A'): string {
@@ -308,7 +366,7 @@ export class WhatsappService {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`;
   }
 
-  async sendTemplate(templateName: string, formattedNumber: string, payload: any): Promise<any> {
+  async sendTemplate(templateName: string, formattedNumber: string, payload: any, templateParameters?: string[], mediaId?: string, fileName?: string): Promise<any> {
     try {
       const response = await axios.post<any>(
         `${this.apiUrl}/${this.phoneNumberId}/messages`,
@@ -326,6 +384,20 @@ export class WhatsappService {
       const messageId = messages[0]?.id;
       const status = messages[0]?.status || 'accepted';
       this.logger.log(`WhatsApp template "${templateName}" accepted for ${formattedNumber} | messageId=${messageId} status=${status}`);
+
+      if (messageId) {
+        this.logTemplateToCRM(
+          formattedNumber,
+          messageId,
+          templateName,
+          'N/A', // no specific order id passed via payload easily
+          `Template ${templateName} sent to ${formattedNumber}`,
+          templateParameters,
+          mediaId,
+          fileName
+        ).catch(e => this.logger.error('Failed to run CRM logging', e));
+      }
+
       return data;
     } catch (error: any) {
       const apiMessage = error.response?.data?.error?.message || error.message;
@@ -378,10 +450,54 @@ export class WhatsappService {
         },
       );
       this.logger.log(`OTP template sent to ${formattedNumber}`);
+
+      const messageId = (response.data as any)?.messages?.[0]?.id;
+      if (messageId) {
+        this.logTemplateToCRM(
+          formattedNumber,
+          messageId,
+          'metrohomes_verification_code_v1',
+          'N/A',
+          `OTP sent`,
+          [otp]
+        ).catch(e => this.logger.error('Failed to run CRM logging', e));
+      }
+
       return response.data;
     } catch (error: any) {
       this.logger.error('Error sending OTP template', error.response?.data || error.message);
       throw error;
+    }
+  }
+  private async logTemplateToCRM(customerPhone: string, messageId: string, templateName: string, orderId: any, templateContent: string, templateParameters?: string[], mediaId?: string, fileName?: string, templateButtons?: any[]) {
+    try {
+      const crmApiUrl = 'https://whatsapp.api.luisant.cloud/whatsapp/external/log-message';
+      const crmApiKey = process.env.EXTERNAL_API_KEY || 'default-secret-key';
+      
+      const payload = {
+        phoneNumberId: this.phoneNumberId,
+        customerPhone: customerPhone,
+        messageId: messageId,
+        templateName: templateName,
+        websiteId: 'Metrohomes_EMS',
+        orderId: orderId,
+        templateLanguage: 'en',
+        templateContent: templateContent,
+        templateParameters: templateParameters,
+        mediaId: mediaId,
+        fileName: fileName,
+        templateButtons: templateButtons
+      };
+
+      await axios.post(crmApiUrl, payload, {
+        headers: {
+          'Authorization': `Bearer ${crmApiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      this.logger.log(`✅ Successfully logged template ${templateName} to CRM for ref ${orderId}`);
+    } catch (error: any) {
+      this.logger.error('❌ Failed to log template to CRM', error.response?.data || error.message);
     }
   }
 }

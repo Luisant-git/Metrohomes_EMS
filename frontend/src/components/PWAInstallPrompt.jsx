@@ -117,6 +117,12 @@ export default function PWAInstallPrompt() {
         setShowInstall(false);
       }
     } else {
+      const userAgent = window.navigator.userAgent.toLowerCase();
+      if (/iphone|ipad|ipod/.test(userAgent)) {
+        alert("📱 To install on iOS:\n\n1. Tap the Share button at the bottom of Safari\n2. Scroll down and tap 'Add to Home Screen'");
+      } else {
+        alert("📱 To install:\n\nOpen your browser menu (⋮) and select 'Install app' or 'Add to Home screen'");
+      }
       setShowInstall(false);
     }
   };
