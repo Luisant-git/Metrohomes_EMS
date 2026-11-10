@@ -1,5 +1,5 @@
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { UserService } from './user.service';
 
@@ -8,12 +8,16 @@ import { UserService } from './user.service';
 const INACTIVITY_CRON: string = process.env.USER_INACTIVITY_CRON || '0 0 0 * * *';
 
 @Injectable()
-export class UserInactivityScheduler {
+export class UserInactivityScheduler implements OnModuleInit {
   private readonly logger = new Logger(UserInactivityScheduler.name);
   // Prevents overlapping runs (guards against a slow run drifting into the next tick).
   private isRunning = false;
 
   constructor(private readonly userService: UserService) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.handleInactivityCheck();
+  }
 
   @Cron(INACTIVITY_CRON, { name: 'user-inactivity-check' })
   async handleInactivityCheck(): Promise<void> {

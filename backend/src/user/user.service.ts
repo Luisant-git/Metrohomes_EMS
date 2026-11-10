@@ -211,9 +211,8 @@ const employeeCode = await this.generateEmployeeCode(createUserDto.role);
     }
 
     // ─── Inactivity display fields ────────────────────────────────
-    // Status transitions are handled ONLY by the daily cron job
-    // (UserInactivityScheduler). Here we annotate the response with
-    // read-only activity info for the user's reporting hierarchy.
+    // Status transitions are handled by UserInactivityScheduler at startup
+    // and daily; here we annotate responses with current hierarchy activity.
     const cutoff = this.getInactivityCutoff();
     const activityMap = await this.getLastActivityByUser(users.map((user) => user.id));
     const referenceDate = (u: any): Date | null => {
