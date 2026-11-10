@@ -11,10 +11,9 @@ export class UserService {
 
   private readonly logger = new Logger(UserService.name);
 
-  // A user is auto-inactivated only when BOTH activities
-  // (create a subordinate user, book a customer) are missing
-  // for this many consecutive days. Enforced by the daily
-  // cron job (UserInactivityScheduler), not on API requests.
+  // A user is auto-inactivated only when no user has been created under
+  // their team and they have not personally created a booking for this many days.
+  // Enforced by the daily cron job, not on API requests.
   // Configurable via USER_INACTIVITY_DAYS (defaults to 90).
   private readonly INACTIVITY_DAYS: number;
 
@@ -217,19 +216,20 @@ const employeeCode = await this.generateEmployeeCode(createUserDto.role);
 
     // ─── Inactivity display fields ────────────────────────────────
     // Status transitions are handled ONLY by the daily cron job
-    // (UserInactivityScheduler) to avoid extra DB queries per request.
-    // Here we just annotate the response with read-only info derived
-    // from the persisted activity fields.
+    // (UserInactivityScheduler). Here we annotate the response with
+    // read-only activity info for the user's reporting hierarchy.
     const cutoff = this.getInactivityCutoff();
+    const activityMap = await this.getLastActivityByUser(users.map((user) => user.id));
     const referenceDate = (u: any): Date | null => {
-      const candidates = [u.lastActivityAt, u.reactivatedAt, u.createdAt].filter(Boolean);
+      const candidates = [activityMap.get(u.id), u.lastActivityAt, u.reactivatedAt, u.createdAt].filter(Boolean);
       return candidates.length ? new Date(Math.max(...candidates.map((d: Date) => d.getTime()))) : null;
     };
 
     return users.map(({ pin, ...user }) => {
       const ref = referenceDate(user);
       const daysInactive = ref ? Math.max(0, Math.floor((Date.now() - ref.getTime()) / 86400000)) : 0;
-      const autoInactive = user.status === 'Inactive' && (!ref || ref < cutoff);
+      const autoInactive = user.status === 'Inactive'
+        && (!ref || ref < cutoff);
       return {
         ...user,
         lastActivityAt: ref ? ref.toISOString() : null,
@@ -576,38 +576,57 @@ const employeeCode = await this.generateEmployeeCode(createUserDto.role);
     return new Date(now.getTime() - this.INACTIVITY_DAYS * 24 * 60 * 60 * 1000);
   }
 
-  // Returns the latest activity date (created a subordinate OR booked a customer)
-  // for each given user id. Users with no activity are not present in the map.
+  // Team user creation counts regardless of who created the account. Bookings
+  // count only for the user who created the booking, not their reporting hierarchy.
   private async getLastActivityByUser(userIds: number[]): Promise<Map<number, Date>> {
     const ids = userIds.filter((id) => id != null);
     const map = new Map<number, Date>();
     if (ids.length === 0) return map;
 
-    const consider = (uid: number, date: Date) => {
-      if (uid == null || !date) return;
-      const existing = map.get(uid);
-      if (!existing || date > existing) map.set(uid, date);
+    const cutoff = this.getInactivityCutoff();
+    const users = await this.prisma.user.findMany({
+      select: { id: true, parentUserId: true },
+    });
+    const parentByUserId = new Map(users.map((user) => [user.id, user.parentUserId]));
+    const targetIds = new Set(ids);
+
+    const considerAncestors = (userId: number | null, date: Date) => {
+      let currentId = userId;
+      const visited = new Set<number>();
+      while (currentId != null && !visited.has(currentId)) {
+        visited.add(currentId);
+        if (targetIds.has(currentId)) {
+          const existing = map.get(currentId);
+          if (!existing || date > existing) map.set(currentId, date);
+        }
+        currentId = parentByUserId.get(currentId) ?? null;
+      }
     };
 
-    const [subordinates, bookings] = await Promise.all([
+    const [recentUsers, recentBookings] = await Promise.all([
       this.prisma.user.findMany({
-        where: { createdBy: { in: ids } },
-        select: { createdBy: true, createdAt: true },
+        where: { createdAt: { gte: cutoff }, parentUserId: { not: null } },
+        select: { parentUserId: true, createdAt: true },
       }),
       this.prisma.booking.findMany({
-        where: { createdBy: { in: ids } },
+        where: { createdAt: { gte: cutoff }, createdBy: { not: null } },
         select: { createdBy: true, createdAt: true },
       }),
     ]);
 
-    subordinates.forEach((r) => r.createdBy != null && consider(r.createdBy, r.createdAt));
-    bookings.forEach((r) => r.createdBy != null && consider(r.createdBy, r.createdAt));
+    recentUsers.forEach((user) => considerAncestors(user.parentUserId, user.createdAt));
+    recentBookings.forEach((booking) => {
+      if (booking.createdBy != null && targetIds.has(booking.createdBy)) {
+        const existing = map.get(booking.createdBy);
+        if (!existing || booking.createdAt > existing) map.set(booking.createdBy, booking.createdAt);
+      }
+    });
     return map;
   }
 
   // Rule 5 — Daily scheduler logic. For every non-Admin user:
-  //   Active   = created a subordinate OR booked a customer within last 90 days
-  //   Inactive = BOTH activities missing for 90 consecutive days
+  //   Active   = a user was created under their team OR they personally booked within 90 days
+  //   Inactive = neither kind of qualifying activity occurred for 90 consecutive days
   // The reference window starts at lastActivityAt ?? reactivatedAt ?? createdAt.
   async autoDeactivateInactiveUsers(): Promise<{ checked: number; deactivated: number; reactivated: number }> {
     const now = new Date();

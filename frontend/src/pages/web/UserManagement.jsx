@@ -926,6 +926,7 @@ export default function UserManagement() {
   const [pageSize, setPageSize] = useState(20);
   const [filterRole, setFilterRole] = useState("");
   const [filterJobType, setFilterJobType] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
   const [viewingTeamId, setViewingTeamId] = useState(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
@@ -1091,6 +1092,9 @@ export default function UserManagement() {
     if (filterJobType) {
       result = result.filter(u => u.jobType === filterJobType);
     }
+    if (filterStatus) {
+      result = result.filter(u => u.status === filterStatus);
+    }
     if (dateFrom) {
       const fromDate = new Date(dateFrom);
       result = result.filter(u => {
@@ -1109,7 +1113,7 @@ export default function UserManagement() {
       });
     }
     return result;
-  }, [visibleUsers, treeSearch, filterRole, filterJobType, dateFrom, dateTo, viewingTeamId, users]);
+  }, [visibleUsers, treeSearch, filterRole, filterJobType, filterStatus, dateFrom, dateTo, viewingTeamId, users]);
 
   useEffect(() => {
     if (!pdfMeasureRef.current) return;
@@ -1152,7 +1156,7 @@ export default function UserManagement() {
   }, [users]);
 
   const treeData = useMemo(() => {
-    const hasFilter = treeSearch || filterRole || filterJobType || viewingTeamId;
+    const hasFilter = treeSearch || filterRole || filterJobType || filterStatus || viewingTeamId;
 
     let keptIds = null;
     let autoExpandIds = new Set();
@@ -1163,6 +1167,7 @@ export default function UserManagement() {
       matches = users.filter(u => {
         if (filterRole && u.role !== filterRole) return false;
         if (filterJobType && u.jobType !== filterJobType) return false;
+        if (filterStatus && u.status !== filterStatus) return false;
         if (viewingTeamId) {
           const teamIds = getTeamMembers(viewingTeamId);
           if (u.id !== viewingTeamId && !teamIds.includes(u.id)) return false;
@@ -1180,6 +1185,7 @@ export default function UserManagement() {
       // kept so it can be expanded/collapsed manually with the +/− button.
       const addDownline = (id) => {
         users.filter(u => u.parentUserId === id).forEach(child => {
+          if (filterStatus && child.status !== filterStatus) return;
           keptIds.add(child.id);
           addDownline(child.id);
         });
@@ -1217,7 +1223,7 @@ export default function UserManagement() {
     }
 
     return { roots, keptIds, autoExpandIds };
-  }, [users, treeSearch, filterRole, filterJobType, viewingTeamId, expandedIds]);
+  }, [users, treeSearch, filterRole, filterJobType, filterStatus, viewingTeamId, expandedIds]);
 
   const TREE_PAGE_SIZE = 10;
   const totalTreePages = Math.max(1, Math.ceil(treeData.roots.length / TREE_PAGE_SIZE));
@@ -1454,7 +1460,7 @@ export default function UserManagement() {
             {v}
           </span>
           {row.autoInactive && (
-            <span title={`Inactive for ${row.daysInactive ?? 0} days (no user created or booking in last 90 days)`}>
+            <span title={`Inactive for ${row.daysInactive ?? 0} days (no team member created under them or personal booking in the last 90 days)`}>
               <AlertTriangle size={13} className="text-amber-500" />
             </span>
           )}
@@ -1612,6 +1618,19 @@ export default function UserManagement() {
                 </select>
               </div>
 
+              <div className="min-w-[130px]">
+                <select
+                  value={filterStatus}
+                  onChange={e => setFilterStatus(e.target.value)}
+                  className="input-field"
+                  aria-label="Filter by status"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+
               <div className="min-w-[180px]">
                 <select
                   value={filterRole}
@@ -1686,12 +1705,13 @@ export default function UserManagement() {
                 Excel
               </button>
 
-              {(treeSearch || filterRole || filterJobType || dateFrom || dateTo) && (
+              {(treeSearch || filterRole || filterJobType || filterStatus || dateFrom || dateTo) && (
                 <button
                   onClick={() => {
                     setTreeSearch("");
                     setFilterRole("");
                     setFilterJobType("");
+                    setFilterStatus("");
                     setDateFrom("");
                     setDateTo("");
                   }}
